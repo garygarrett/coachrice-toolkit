@@ -123,7 +123,7 @@ export default function AdminPanel() {
                 <label style={s.label}>
                   Role
                   <select name="role" value={form.role} onChange={handleChange} style={s.input}>
-                    <option value="coach">Coach</option>
+                    <option value="coach">Participant</option>
                     <option value="admin">Admin</option>
                   </select>
                 </label>
@@ -179,7 +179,7 @@ export default function AdminPanel() {
                 <td style={s.td}>{u.email}</td>
                 <td style={s.td}>
                   <span style={u.role === 'admin' ? s.badgeAdmin : s.badgeCoach}>
-                    {u.role}
+                    {u.role === 'admin' ? 'Admin' : 'Participant'}
                   </span>
                 </td>
                 <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
