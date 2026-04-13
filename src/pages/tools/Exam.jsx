@@ -1,12 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import allQuestions from '../../data/questions.json'
 
 const EXAM_LENGTH = 10
 
-function pickQuestions() {
+function pickQuestions(allQuestions) {
   const byCompetency = {}
   for (const q of allQuestions) {
     if (!byCompetency[q.competency]) byCompetency[q.competency] = []
@@ -43,19 +42,33 @@ export default function Exam() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  const [allQuestions, setAllQuestions] = useState([])
+  const [loadingBank, setLoadingBank] = useState(true)
   const [phase, setPhase] = useState('start') // 'start' | 'quiz' | 'results'
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState({})
   const [results, setResults] = useState(null)
 
+  // Load question bank from Supabase on mount
+  useEffect(() => {
+    supabase
+      .from('questions')
+      .select('*')
+      .eq('is_active', true)
+      .then(({ data }) => {
+        if (data) setAllQuestions(data)
+        setLoadingBank(false)
+      })
+  }, [])
+
   const startExam = useCallback(() => {
-    setQuestions(pickQuestions())
+    setQuestions(pickQuestions(allQuestions))
     setCurrentIndex(0)
     setAnswers({})
     setResults(null)
     setPhase('quiz')
-  }, [])
+  }, [allQuestions])
 
   function selectAnswer(letter) {
     setAnswers(prev => ({ ...prev, [questions[currentIndex].id]: letter }))
@@ -64,6 +77,7 @@ export default function Exam() {
   async function submitExam() {
     const scored = questions.map(q => ({
       ...q,
+      options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
       userAnswer: answers[q.id],
       isCorrect: answers[q.id] === q.correct,
     }))
@@ -144,7 +158,9 @@ export default function Exam() {
             <li>One question shown at a time</li>
             <li>Results saved to your progress record</li>
           </ul>
-          <button onClick={startExam} style={s.primaryBtn}>Start Exam</button>
+          <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, opacity: loadingBank ? 0.5 : 1 }}>
+            {loadingBank ? 'Loading questions…' : 'Start Exam'}
+          </button>
           <button onClick={() => navigate('/dashboard')} style={s.linkBtn}>Back to Dashboard</button>
         </div>
       </main>
@@ -243,7 +259,7 @@ export default function Exam() {
               style={{ ...s.optionBtn, ...(selected === letter ? s.optionSelected : {}) }}
             >
               <span style={s.optionLetter}>{letter}</span>
-              <span style={s.optionText}>{q.options[letter]}</span>
+              <span style={s.optionText}>{q[`option_${letter.toLowerCase()}`]}</span>
             </button>
           ))}
         </div>
