@@ -117,7 +117,7 @@ export default function Exam() {
         .single()
 
       if (sessionError) {
-        console.error('[Exam] sessions insert error:', sessionError)
+        console.error('[Exam] sessions insert error:', sessionError.message, sessionError.details, sessionError.hint)
       } else if (session?.id) {
         const scoreRows = competencyBreakdown.map(c => {
           const { label } = proficiencyLabel(c.pct)
@@ -131,8 +131,9 @@ export default function Exam() {
             notes: `${c.correct}/${c.total} correct`,
           }
         })
+        console.log('[Exam] inserting competency_scores rows:', JSON.stringify(scoreRows))
         const { error: scoresError } = await supabase.from('competency_scores').insert(scoreRows)
-        if (scoresError) console.error('[Exam] competency_scores insert error:', scoresError)
+        if (scoresError) console.error('[Exam] competency_scores insert error:', scoresError.message, scoresError.details, scoresError.hint)
       }
     }
   }
