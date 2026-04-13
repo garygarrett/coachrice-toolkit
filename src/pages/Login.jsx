@@ -6,10 +6,19 @@ import { useAuth } from '../context/AuthContext'
 export default function Login() {
   const navigate = useNavigate()
   const { user, profile, loading } = useAuth()
+  const [view, setView] = useState('login') // 'login' | 'forgot'
+
+  // Login form state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Forgot password state
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSubmitting, setResetSubmitting] = useState(false)
+  const [resetError, setResetError] = useState(null)
+  const [resetSent, setResetSent] = useState(false)
 
   // If already logged in, redirect away from the login page
   useEffect(() => {
@@ -41,6 +50,68 @@ export default function Login() {
       .single()
 
     navigate(profileData?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault()
+    setResetError(null)
+    setResetSubmitting(true)
+
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/set-password`,
+    })
+
+    if (error) {
+      setResetError(error.message)
+      setResetSubmitting(false)
+    } else {
+      setResetSent(true)
+      setResetSubmitting(false)
+    }
+  }
+
+  if (view === 'forgot') {
+    return (
+      <main style={s.page}>
+        <div style={s.card}>
+          <h1 style={s.title}>Reset Your Password</h1>
+          <p style={s.subtitle}>We'll send a password reset link to your email.</p>
+
+          {resetSent ? (
+            <>
+              <p style={s.successMsg}>
+                Check your inbox — a reset link is on its way.
+              </p>
+              <button onClick={() => { setView('login'); setResetSent(false); setResetEmail('') }} style={s.linkBtn}>
+                Back to Sign In
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleForgotPassword} style={s.form}>
+              <label style={s.label}>
+                Email
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={e => setResetEmail(e.target.value)}
+                  required
+                  style={s.input}
+                  autoComplete="email"
+                  placeholder="you@rice.edu"
+                />
+              </label>
+              {resetError && <p style={s.error}>{resetError}</p>}
+              <button type="submit" disabled={resetSubmitting} style={s.button}>
+                {resetSubmitting ? 'Sending…' : 'Send Reset Link'}
+              </button>
+              <button type="button" onClick={() => setView('login')} style={s.linkBtn}>
+                Back to Sign In
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -79,6 +150,10 @@ export default function Login() {
 
           <button type="submit" disabled={submitting} style={s.button}>
             {submitting ? 'Signing in…' : 'Sign In'}
+          </button>
+
+          <button type="button" onClick={() => setView('forgot')} style={s.linkBtn}>
+            Forgot your password?
           </button>
         </form>
       </div>
@@ -133,7 +208,6 @@ const s = {
     fontSize: '1rem',
     color: '#111',
     outline: 'none',
-    transition: 'border-color 0.15s',
   },
   error: {
     color: '#b91c1c',
@@ -142,6 +216,15 @@ const s = {
     border: '1px solid #fecaca',
     borderRadius: '6px',
     padding: '0.6rem 0.8rem',
+  },
+  successMsg: {
+    color: '#15803d',
+    fontSize: '0.9rem',
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: '6px',
+    padding: '0.75rem',
+    marginBottom: '1rem',
   },
   button: {
     padding: '0.75rem',
@@ -152,6 +235,14 @@ const s = {
     fontSize: '1rem',
     fontWeight: '600',
     cursor: 'pointer',
-    marginTop: '0.25rem',
+  },
+  linkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#00205B',
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    textAlign: 'center',
   },
 }

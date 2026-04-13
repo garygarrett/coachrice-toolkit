@@ -18,6 +18,10 @@ export default function AdminPanel() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editError, setEditError] = useState(null)
   const [error, setError] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
 
@@ -121,6 +125,49 @@ export default function AdminPanel() {
     }
   }
 
+  function openEditForm(user) {
+    setEditingUser(user)
+    setEditForm({
+      full_name: user.full_name,
+      role: user.role,
+      cohort_id: user.cohort_id ?? '',
+      mentor_coach_id: user.mentor_coach_id ?? '',
+      is_active: user.is_active ?? true,
+    })
+    setEditError(null)
+    setShowForm(false)
+    setSuccessMsg(null)
+  }
+
+  function handleEditChange(e) {
+    const val = e.target.name === 'is_active' ? e.target.value === 'true' : e.target.value
+    setEditForm(f => ({ ...f, [e.target.name]: val }))
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault()
+    setEditError(null)
+    setEditSubmitting(true)
+
+    const res = await fetch('/api/update-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: editingUser.id, ...editForm }),
+    })
+    const result = await res.json()
+
+    if (!res.ok) {
+      setEditError(result.error ?? 'Something went wrong.')
+      setEditSubmitting(false)
+      return
+    }
+
+    setSuccessMsg(`${editForm.full_name} has been updated.`)
+    setEditingUser(null)
+    await loadData()
+    setEditSubmitting(false)
+  }
+
   return (
     <main style={s.page}>
       <header style={s.header}>
@@ -207,6 +254,67 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {editingUser && (
+          <div style={s.formCard}>
+            <h2 style={s.formHeading}>Edit User: {editingUser.full_name}</h2>
+            <form onSubmit={handleEditSubmit}>
+              <div style={s.formGrid}>
+                <label style={s.label}>
+                  Full Name
+                  <input
+                    name="full_name"
+                    value={editForm.full_name}
+                    onChange={handleEditChange}
+                    required
+                    style={s.input}
+                  />
+                </label>
+                <label style={s.label}>
+                  Role
+                  <select name="role" value={editForm.role} onChange={handleEditChange} style={s.input}>
+                    <option value="coach">Participant</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+                <label style={s.label}>
+                  Cohort
+                  <select name="cohort_id" value={editForm.cohort_id} onChange={handleEditChange} style={s.input}>
+                    <option value="">— None —</option>
+                    {cohorts.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={s.label}>
+                  Mentor Coach
+                  <select name="mentor_coach_id" value={editForm.mentor_coach_id} onChange={handleEditChange} style={s.input}>
+                    <option value="">— None —</option>
+                    {mentorCoaches.map(m => (
+                      <option key={m.id} value={m.id}>{m.full_name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={s.label}>
+                  Account Access
+                  <select name="is_active" value={String(editForm.is_active)} onChange={handleEditChange} style={s.input}>
+                    <option value="true">Active</option>
+                    <option value="false">Paused</option>
+                  </select>
+                </label>
+              </div>
+              {editError && <p style={s.errorMsg}>{editError}</p>}
+              <div style={s.formActions}>
+                <button type="button" onClick={() => setEditingUser(null)} style={s.cancelBtn}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={editSubmitting} style={s.submitBtn}>
+                  {editSubmitting ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         <table style={s.table}>
           <thead>
             <tr>
@@ -225,15 +333,23 @@ export default function AdminPanel() {
                 <td style={s.td}>{u.full_name}</td>
                 <td style={s.td}>{u.email}</td>
                 <td style={s.td}>
-                  <span style={u.role === 'admin' ? s.badgeAdmin : s.badgeCoach}>
-                    {u.role === 'admin' ? 'Admin' : 'Participant'}
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={u.role === 'admin' ? s.badgeAdmin : s.badgeCoach}>
+                      {u.role === 'admin' ? 'Admin' : 'Participant'}
+                    </span>
+                    {u.is_active === false && (
+                      <span style={s.badgePaused}>Paused</span>
+                    )}
+                  </div>
                 </td>
                 <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
                 <td style={s.td}>{u.mentor_coaches?.full_name ?? '—'}</td>
                 <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
                 <td style={s.td}>
                   <div style={s.actions}>
+                    <button onClick={() => openEditForm(u)} style={s.actionBtn}>
+                      Edit
+                    </button>
                     <button onClick={() => handleResendInvite(u)} style={s.actionBtn}>
                       Resend Invite
                     </button>
@@ -431,6 +547,14 @@ const s = {
   badgeAdmin: {
     background: '#faf5ff',
     color: '#7e22ce',
+    borderRadius: '4px',
+    padding: '0.2rem 0.55rem',
+    fontSize: '0.8rem',
+    fontWeight: '500',
+  },
+  badgePaused: {
+    background: '#fef9c3',
+    color: '#854d0e',
     borderRadius: '4px',
     padding: '0.2rem 0.55rem',
     fontSize: '0.8rem',
