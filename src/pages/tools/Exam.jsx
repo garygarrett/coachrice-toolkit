@@ -104,7 +104,7 @@ export default function Exam() {
 
     // Save to Supabase in the background
     if (user) {
-      const { data: session } = await supabase
+      const { data: session, error: sessionError } = await supabase
         .from('sessions')
         .insert({
           user_id: user.id,
@@ -117,7 +117,9 @@ export default function Exam() {
         .select('id')
         .single()
 
-      if (session?.id) {
+      if (sessionError) {
+        console.error('[Exam] sessions insert error:', sessionError)
+      } else if (session?.id) {
         const scoreRows = competencyBreakdown.map(c => {
           const { label } = proficiencyLabel(c.pct)
           return {
@@ -128,7 +130,8 @@ export default function Exam() {
             notes: `${c.correct}/${c.total} correct`,
           }
         })
-        await supabase.from('competency_scores').insert(scoreRows)
+        const { error: scoresError } = await supabase.from('competency_scores').insert(scoreRows)
+        if (scoresError) console.error('[Exam] competency_scores insert error:', scoresError)
       }
     }
   }
