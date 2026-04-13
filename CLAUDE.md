@@ -47,6 +47,8 @@ The root `/` redirects to `/login`. Route guards enforcing auth and role checks 
 
 **No backend server** — the React app calls Supabase and the AI APIs directly from the browser (via environment variables). Never expose secret API keys in client-side code; Supabase anon key is safe for client use.
 
+**Critical Supabase auth rule:** Never call `supabase.from()` or any other Supabase data method inside an `onAuthStateChange` callback. Doing so causes a deadlock — `signInWithPassword` waits for all auth listeners to finish before resolving, but the listener is waiting on another Supabase call. In `AuthContext`, `onAuthStateChange` only calls `setUser()`. Profile fetching happens in a separate `useEffect` that watches the `user` state.
+
 ## Core Data Model
 
 Five key tables in Supabase:

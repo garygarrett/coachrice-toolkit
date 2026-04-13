@@ -1,84 +1,88 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
 
-export default function Login() {
+/**
+ * Shown when a newly invited coach clicks the email link.
+ * Supabase auto-exchanges the invite token and signs them in;
+ * this page lets them set a permanent password before entering the app.
+ */
+export default function SetPassword() {
   const navigate = useNavigate()
-  const { user, profile, loading } = useAuth()
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // If already logged in, redirect away from the login page
-  useEffect(() => {
-    if (!loading && user && profile) {
-      navigate(profile.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
-    }
-  }, [user, profile, loading, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setSubmitting(true)
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (signInError) {
-      setError('Invalid email or password. Please try again.')
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    if (updateError) {
+      setError(updateError.message)
       setSubmitting(false)
       return
     }
 
-    const { data: profileData } = await supabase
+    // Fetch role to send the user to the right page
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase
       .from('users')
       .select('role')
-      .eq('id', data.user.id)
+      .eq('id', user.id)
       .single()
 
-    navigate(profileData?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+    navigate(profile?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
   }
 
   return (
     <main style={s.page}>
       <div style={s.card}>
-        <h1 style={s.title}>CoachRICE Toolkit</h1>
-        <p style={s.subtitle}>Doerr Institute for New Leaders · Rice University</p>
+        <h1 style={s.title}>Welcome to CoachRICE Toolkit</h1>
+        <p style={s.subtitle}>Set a password to activate your account.</p>
 
         <form onSubmit={handleSubmit} style={s.form}>
           <label style={s.label}>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              style={s.input}
-              autoComplete="email"
-              placeholder="you@rice.edu"
-            />
-          </label>
-
-          <label style={s.label}>
-            Password
+            New Password
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
               style={s.input}
-              autoComplete="current-password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+            />
+          </label>
+
+          <label style={s.label}>
+            Confirm Password
+            <input
+              type="password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+              style={s.input}
+              autoComplete="new-password"
             />
           </label>
 
           {error && <p style={s.error}>{error}</p>}
 
           <button type="submit" disabled={submitting} style={s.button}>
-            {submitting ? 'Signing in…' : 'Sign In'}
+            {submitting ? 'Saving…' : 'Set Password & Enter App'}
           </button>
         </form>
       </div>
@@ -133,7 +137,6 @@ const s = {
     fontSize: '1rem',
     color: '#111',
     outline: 'none',
-    transition: 'border-color 0.15s',
   },
   error: {
     color: '#b91c1c',
