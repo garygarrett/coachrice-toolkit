@@ -34,6 +34,31 @@ const EMPTY_QUESTION = {
   is_active: true,
 }
 
+// Content fields shown in the Content tab, grouped by section
+const CONTENT_FIELDS = [
+  {
+    section: 'Dashboard — Exam Tool Card',
+    description: 'The card participants see on their dashboard.',
+    keys: [
+      { key: 'exam_card_tag',         label: 'Tag (small label above title)',  multiline: false },
+      { key: 'exam_card_title',       label: 'Title',                          multiline: false },
+      { key: 'exam_card_description', label: 'Description',                    multiline: true  },
+    ],
+  },
+  {
+    section: 'Exam — Start Screen',
+    description: 'Text shown before the participant begins the exam.',
+    keys: [
+      { key: 'exam_start_badge',    label: 'Badge (small label at top)',  multiline: false },
+      { key: 'exam_start_title',    label: 'Title',                       multiline: false },
+      { key: 'exam_start_subtitle', label: 'Subtitle paragraph',          multiline: true  },
+      { key: 'exam_start_info_1',   label: 'Bullet 1',                    multiline: false },
+      { key: 'exam_start_info_2',   label: 'Bullet 2',                    multiline: false },
+      { key: 'exam_start_info_3',   label: 'Bullet 3',                    multiline: false },
+    ],
+  },
+]
+
 export default function AdminPanel() {
   const { profile, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('users')
@@ -62,8 +87,15 @@ export default function AdminPanel() {
   const [qError, setQError] = useState(null)
   const [qSuccess, setQSuccess] = useState(null)
 
+  // ── Content state ──
+  const [contentValues, setContentValues] = useState({})
+  const [contentSaving, setContentSaving] = useState(false)
+  const [contentSuccess, setContentSuccess] = useState(null)
+  const [contentError, setContentError] = useState(null)
+
   useEffect(() => { loadUsers() }, [])
   useEffect(() => { if (activeTab === 'questions') loadQuestions() }, [activeTab])
+  useEffect(() => { if (activeTab === 'content') loadContent() }, [activeTab])
 
   async function loadUsers() {
     const [{ data: usersData }, { data: cohortsData }, { data: mentorData }] =
@@ -80,6 +112,35 @@ export default function AdminPanel() {
   async function loadQuestions() {
     const { data } = await supabase.from('questions').select('*').order('id')
     if (data) setQuestions(data)
+  }
+
+  async function loadContent() {
+    const { data } = await supabase.from('site_content').select('key, value')
+    if (data) {
+      const map = {}
+      data.forEach(row => { map[row.key] = row.value })
+      setContentValues(map)
+    }
+  }
+
+  async function handleContentSave() {
+    setContentSaving(true)
+    setContentError(null)
+    setContentSuccess(null)
+
+    const allKeys = CONTENT_FIELDS.flatMap(g => g.keys.map(f => f.key))
+    const upsertRows = allKeys.map(key => ({ key, value: contentValues[key] ?? '' }))
+
+    const { error } = await supabase
+      .from('site_content')
+      .upsert(upsertRows, { onConflict: 'key' })
+
+    if (error) {
+      setContentError(error.message)
+    } else {
+      setContentSuccess('Content saved successfully.')
+    }
+    setContentSaving(false)
   }
 
   // ── User handlers ──
@@ -290,13 +351,17 @@ export default function AdminPanel() {
       {/* Tab bar */}
       <div style={s.tabBar}>
         <div style={s.tabInner}>
-          {['users', 'questions'].map(tab => (
+          {[
+            { id: 'users',     label: 'Users' },
+            { id: 'questions', label: 'Exam Questions' },
+            { id: 'content',   label: 'Page Content' },
+          ].map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{ ...s.tab, ...(activeTab === tab ? s.tabActive : {}) }}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
             >
-              {tab === 'users' ? 'Users' : 'Exam Questions'}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -579,6 +644,63 @@ export default function AdminPanel() {
             </table>
           </>
         )}
+        {/* ─── CONTENT TAB ─── */}
+        {activeTab === 'content' && (
+          <>
+            <div style={s.titleRow}>
+              <h1 style={s.heading}>Page Content</h1>
+              <button onClick={handleContentSave} disabled={contentSaving} style={s.addBtn}>
+                {contentSaving ? 'Saving…' : 'Save All Changes'}
+              </button>
+            </div>
+
+            <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.75rem', marginTop: '-0.75rem' }}>
+              Edit the text participants see on their dashboard and within each tool. Changes go live immediately after saving.
+            </p>
+
+            {contentSuccess && <p style={s.successBanner}>{contentSuccess}</p>}
+            {contentError && <p style={s.errorMsg}>{contentError}</p>}
+
+            {CONTENT_FIELDS.map(group => (
+              <div key={group.section} style={s.formCard}>
+                <h2 style={s.formHeading}>{group.section}</h2>
+                {group.description && (
+                  <p style={{ color: '#6b7280', fontSize: '0.82rem', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
+                    {group.description}
+                  </p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {group.keys.map(field => (
+                    <label key={field.key} style={s.label}>
+                      {field.label}
+                      {field.multiline ? (
+                        <textarea
+                          rows={3}
+                          style={s.textarea}
+                          value={contentValues[field.key] ?? ''}
+                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
+                        />
+                      ) : (
+                        <input
+                          style={s.input}
+                          value={contentValues[field.key] ?? ''}
+                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
+                        />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button onClick={handleContentSave} disabled={contentSaving} style={s.submitBtn}>
+                {contentSaving ? 'Saving…' : 'Save All Changes'}
+              </button>
+            </div>
+          </>
+        )}
+
       </div>
     </main>
   )

@@ -1,19 +1,32 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 
-const tools = [
-  {
-    id: 'exam',
-    title: 'ACC Practice Exam',
-    description: '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
-    path: '/tools/exam',
-    tag: 'Exam Prep',
-  },
-]
+const DEFAULTS = {
+  exam_card_tag:         'Exam Prep',
+  exam_card_title:       'ACC Practice Exam',
+  exam_card_description: '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
+}
 
 export default function CoachDashboard() {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
+  const [content, setContent] = useState(DEFAULTS)
+
+  useEffect(() => {
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .in('key', Object.keys(DEFAULTS))
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {}
+          data.forEach(row => { map[row.key] = row.value })
+          setContent(prev => ({ ...prev, ...map }))
+        }
+      })
+  }, [])
 
   return (
     <main style={s.page}>
@@ -27,14 +40,12 @@ export default function CoachDashboard() {
 
       <h2 style={s.sectionTitle}>Tools</h2>
       <div style={s.grid}>
-        {tools.map(tool => (
-          <button key={tool.id} onClick={() => navigate(tool.path)} style={s.toolCard}>
-            <span style={s.toolTag}>{tool.tag}</span>
-            <p style={s.toolTitle}>{tool.title}</p>
-            <p style={s.toolDesc}>{tool.description}</p>
-            <span style={s.toolArrow}>Start →</span>
-          </button>
-        ))}
+        <button onClick={() => navigate('/tools/exam')} style={s.toolCard}>
+          <span style={s.toolTag}>{content.exam_card_tag}</span>
+          <p style={s.toolTitle}>{content.exam_card_title}</p>
+          <p style={s.toolDesc}>{content.exam_card_description}</p>
+          <span style={s.toolArrow}>Start →</span>
+        </button>
       </div>
     </main>
   )

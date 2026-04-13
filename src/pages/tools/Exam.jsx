@@ -37,6 +37,15 @@ function proficiencyLabel(pct) {
   return                   { label: 'Developing', color: '#b91c1c', bg: '#fef2f2' }
 }
 
+const CONTENT_DEFAULTS = {
+  exam_start_badge:    'ACC Exam Prep',
+  exam_start_title:    'ICF Practice Exam',
+  exam_start_subtitle: '10 scenario-based questions drawn from all 9 ICF competency areas. Select the best answer for each question, then review your results and explanations for every missed question.',
+  exam_start_info_1:   '10 questions · untimed',
+  exam_start_info_2:   'One question shown at a time',
+  exam_start_info_3:   'Results saved to your progress record',
+}
+
 export default function Exam() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -48,8 +57,9 @@ export default function Exam() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState({})
   const [results, setResults] = useState(null)
+  const [content, setContent] = useState(CONTENT_DEFAULTS)
 
-  // Load question bank from Supabase on mount
+  // Load question bank and start-screen content from Supabase on mount
   useEffect(() => {
     supabase
       .from('questions')
@@ -58,6 +68,18 @@ export default function Exam() {
       .then(({ data }) => {
         if (data) setAllQuestions(data)
         setLoadingBank(false)
+      })
+
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .in('key', Object.keys(CONTENT_DEFAULTS))
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {}
+          data.forEach(row => { map[row.key] = row.value })
+          setContent(prev => ({ ...prev, ...map }))
+        }
       })
   }, [])
 
@@ -151,17 +173,13 @@ export default function Exam() {
     return (
       <main style={s.page}>
         <div style={s.card}>
-          <p style={s.badge}>ACC Exam Prep</p>
-          <h1 style={s.title}>ICF Practice Exam</h1>
-          <p style={s.subtitle}>
-            10 scenario-based questions drawn from all 9 ICF competency areas.
-            Select the best answer for each question, then review your results
-            and explanations for every missed question.
-          </p>
+          <p style={s.badge}>{content.exam_start_badge}</p>
+          <h1 style={s.title}>{content.exam_start_title}</h1>
+          <p style={s.subtitle}>{content.exam_start_subtitle}</p>
           <ul style={s.infoList}>
-            <li>10 questions · untimed</li>
-            <li>One question shown at a time</li>
-            <li>Results saved to your progress record</li>
+            {[content.exam_start_info_1, content.exam_start_info_2, content.exam_start_info_3]
+              .filter(Boolean)
+              .map((item, i) => <li key={i}>{item}</li>)}
           </ul>
           <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, opacity: loadingBank ? 0.5 : 1 }}>
             {loadingBank ? 'Loading questions…' : 'Start Exam'}
