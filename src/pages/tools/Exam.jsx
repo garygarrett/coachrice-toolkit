@@ -124,6 +124,7 @@ export default function Exam() {
           const { label } = proficiencyLabel(c.pct)
           return {
             session_id: session.id,
+            user_id: user.id,
             competency: c.competency,
             proficiency_level: label,
             proficiency_numeric: c.correct / c.total,
