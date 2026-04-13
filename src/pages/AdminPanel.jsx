@@ -75,6 +75,52 @@ export default function AdminPanel() {
     setSubmitting(false)
   }
 
+  async function handleResendInvite(user) {
+    setSuccessMsg(null)
+    const res = await fetch('/api/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, full_name: user.full_name, role: user.role }),
+    })
+    const result = await res.json()
+    if (!res.ok) {
+      alert(`Could not resend invite: ${result.error}`)
+    } else {
+      setSuccessMsg(`Invite resent to ${user.email}.`)
+    }
+  }
+
+  async function handleResetPassword(user) {
+    setSuccessMsg(null)
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email }),
+    })
+    const result = await res.json()
+    if (!res.ok) {
+      alert(`Could not send reset email: ${result.error}`)
+    } else {
+      setSuccessMsg(`Password reset email sent to ${user.email}.`)
+    }
+  }
+
+  async function handleDeleteUser(user) {
+    if (!window.confirm(`Remove ${user.full_name}? This cannot be undone.`)) return
+    const res = await fetch('/api/delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    })
+    const result = await res.json()
+    if (!res.ok) {
+      alert(`Could not remove user: ${result.error}`)
+    } else {
+      setSuccessMsg(`${user.full_name} has been removed.`)
+      await loadData()
+    }
+  }
+
   return (
     <main style={s.page}>
       <header style={s.header}>
@@ -170,6 +216,7 @@ export default function AdminPanel() {
               <th style={s.th}>Cohort</th>
               <th style={s.th}>Mentor Coach</th>
               <th style={s.th}>Added</th>
+              <th style={s.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -185,11 +232,24 @@ export default function AdminPanel() {
                 <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
                 <td style={s.td}>{u.mentor_coaches?.full_name ?? '—'}</td>
                 <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
+                <td style={s.td}>
+                  <div style={s.actions}>
+                    <button onClick={() => handleResendInvite(u)} style={s.actionBtn}>
+                      Resend Invite
+                    </button>
+                    <button onClick={() => handleResetPassword(u)} style={s.actionBtn}>
+                      Reset Password
+                    </button>
+                    <button onClick={() => handleDeleteUser(u)} style={s.deleteBtn}>
+                      Remove
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ ...s.td, textAlign: 'center', color: '#999' }}>
+                <td colSpan={7} style={{ ...s.td, textAlign: 'center', color: '#999' }}>
                   No users yet.
                 </td>
               </tr>
@@ -375,5 +435,29 @@ const s = {
     padding: '0.2rem 0.55rem',
     fontSize: '0.8rem',
     fontWeight: '500',
+  },
+  actions: {
+    display: 'flex',
+    gap: '0.5rem',
+  },
+  actionBtn: {
+    background: 'none',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    padding: '0.25rem 0.6rem',
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    color: '#374151',
+    whiteSpace: 'nowrap',
+  },
+  deleteBtn: {
+    background: 'none',
+    border: '1px solid #fca5a5',
+    borderRadius: '4px',
+    padding: '0.25rem 0.6rem',
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    color: '#dc2626',
+    whiteSpace: 'nowrap',
   },
 }
