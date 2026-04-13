@@ -125,6 +125,7 @@ export default function Exam() {
           return {
             session_id: session.id,
             user_id: user.id,
+            score_category: 'knowledge',
             competency: c.competency,
             proficiency_level: label,
             proficiency_numeric: c.correct / c.total,
