@@ -24,8 +24,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'email, full_name, and role are required' })
   }
 
+  const siteUrl = process.env.SITE_URL ?? 'https://coachrice-toolkit.vercel.app'
+
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { full_name, role },
+    redirectTo: `${siteUrl}/set-password`,
   })
 
   if (error) {
