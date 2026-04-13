@@ -108,7 +108,7 @@ export default function Exam() {
         .from('sessions')
         .insert({
           user_id: user.id,
-          tool: 'practice_exam',
+          tool: 'exam',
           score_category: 'ACC Practice Exam',
           raw_input: JSON.stringify(scored.map(({ id, competency, question }) => ({ id, competency, question }))),
           raw_output: JSON.stringify({ score, total }),
