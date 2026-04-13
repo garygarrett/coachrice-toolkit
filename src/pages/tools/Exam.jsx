@@ -44,6 +44,9 @@ const CONTENT_DEFAULTS = {
   exam_start_info_1:   '10 questions · untimed',
   exam_start_info_2:   'One question shown at a time',
   exam_start_info_3:   'Results saved to your progress record',
+  theme_primary_color: '#00205B',
+  theme_page_bg:       '#f0f2f5',
+  theme_font_family:   'system-ui, -apple-system, sans-serif',
 }
 
 export default function Exam() {
@@ -168,23 +171,27 @@ export default function Exam() {
     }
   }
 
+  const primary = content.theme_primary_color
+  const pageBg  = content.theme_page_bg
+  const font    = content.theme_font_family
+
   // ─── START SCREEN ───
   if (phase === 'start') {
     return (
-      <main style={s.page}>
+      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
         <div style={s.card}>
-          <p style={s.badge}>{content.exam_start_badge}</p>
-          <h1 style={s.title}>{content.exam_start_title}</h1>
+          <p style={{ ...s.badge, color: primary }}>{content.exam_start_badge}</p>
+          <h1 style={{ ...s.title, color: primary }}>{content.exam_start_title}</h1>
           <p style={s.subtitle}>{content.exam_start_subtitle}</p>
           <ul style={s.infoList}>
             {[content.exam_start_info_1, content.exam_start_info_2, content.exam_start_info_3]
               .filter(Boolean)
               .map((item, i) => <li key={i}>{item}</li>)}
           </ul>
-          <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, opacity: loadingBank ? 0.5 : 1 }}>
+          <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
             {loadingBank ? 'Loading questions…' : 'Start Exam'}
           </button>
-          <button onClick={() => navigate('/dashboard')} style={s.linkBtn}>Back to Dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={{ ...s.linkBtn, color: primary }}>Back to Dashboard</button>
         </div>
       </main>
     )
@@ -196,13 +203,13 @@ export default function Exam() {
     const overall = proficiencyLabel(pct)
 
     return (
-      <main style={s.page}>
+      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
         <div style={{ ...s.card, maxWidth: '600px' }}>
           <p style={s.badge}>Exam Complete</p>
           <h1 style={s.title}>Your Results</h1>
 
-          <div style={s.scoreCircle}>
-            <span style={s.scoreNumber}>{results.score}/{results.total}</span>
+          <div style={{ ...s.scoreCircle, borderColor: primary }}>
+            <span style={{ ...s.scoreNumber, color: primary }}>{results.score}/{results.total}</span>
             <span style={{ ...s.scoreLabel, color: overall.color }}>{overall.label}</span>
           </div>
 
@@ -246,8 +253,8 @@ export default function Exam() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
-            <button onClick={startExam} style={s.primaryBtn}>Take Another Exam</button>
-            <button onClick={() => navigate('/dashboard')} style={s.secondaryBtn}>Dashboard</button>
+            <button onClick={startExam} style={{ ...s.primaryBtn, background: primary }}>Take Another Exam</button>
+            <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Dashboard</button>
           </div>
         </div>
       </main>
@@ -261,15 +268,15 @@ export default function Exam() {
   const progress = (currentIndex / questions.length) * 100
 
   return (
-    <main style={s.page}>
+    <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
       <div style={s.card}>
         <div style={s.quizHeader}>
-          <span style={s.badge}>{q.competency}</span>
+          <span style={{ ...s.badge, color: primary }}>{q.competency}</span>
           <span style={s.counter}>Question {currentIndex + 1} of {questions.length}</span>
         </div>
 
         <div style={s.progressTrack}>
-          <div style={{ ...s.progressFill, width: `${progress}%` }} />
+          <div style={{ ...s.progressFill, width: `${progress}%`, background: primary }} />
         </div>
 
         <p style={s.questionText}>{q.question}</p>
@@ -279,9 +286,9 @@ export default function Exam() {
             <button
               key={letter}
               onClick={() => selectAnswer(letter)}
-              style={{ ...s.optionBtn, ...(selected === letter ? s.optionSelected : {}) }}
+              style={{ ...s.optionBtn, ...(selected === letter ? { ...s.optionSelected, borderColor: primary } : {}) }}
             >
-              <span style={s.optionLetter}>{letter}</span>
+              <span style={{ ...s.optionLetter, background: primary }}>{letter}</span>
               <span style={s.optionText}>{q[`option_${letter.toLowerCase()}`]}</span>
             </button>
           ))}
@@ -289,12 +296,12 @@ export default function Exam() {
 
         <div style={s.navRow}>
           {currentIndex > 0 && (
-            <button onClick={() => setCurrentIndex(i => i - 1)} style={s.secondaryBtn}>Back</button>
+            <button onClick={() => setCurrentIndex(i => i - 1)} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back</button>
           )}
           <button
             onClick={advance}
             disabled={!selected}
-            style={{ ...s.primaryBtn, marginLeft: 'auto', opacity: selected ? 1 : 0.45 }}
+            style={{ ...s.primaryBtn, background: primary, marginLeft: 'auto', opacity: selected ? 1 : 0.45 }}
           >
             {isLast ? 'Submit Exam' : 'Next'}
           </button>

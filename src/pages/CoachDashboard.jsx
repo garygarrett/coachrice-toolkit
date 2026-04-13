@@ -7,6 +7,9 @@ const DEFAULTS = {
   exam_card_tag:         'Exam Prep',
   exam_card_title:       'ACC Practice Exam',
   exam_card_description: '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
+  theme_primary_color:   '#00205B',
+  theme_page_bg:         '#f0f2f5',
+  theme_font_family:     'system-ui, -apple-system, sans-serif',
 }
 
 export default function CoachDashboard() {
@@ -28,23 +31,26 @@ export default function CoachDashboard() {
       })
   }, [])
 
+  const primary = content.theme_primary_color
+  const font    = content.theme_font_family
+
   return (
-    <main style={s.page}>
+    <main style={{ ...s.page, background: content.theme_page_bg, fontFamily: font }}>
       <header style={s.header}>
-        <span style={s.name}>{profile?.full_name ?? 'Coach'}</span>
+        <span style={{ ...s.name, color: primary }}>{profile?.full_name ?? 'Coach'}</span>
         <button onClick={signOut} style={s.signOut}>Sign Out</button>
       </header>
 
-      <h1 style={s.heading}>Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}.</h1>
+      <h1 style={{ ...s.heading, color: primary }}>Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}.</h1>
       <p style={s.sub}>Doerr Institute · CoachRICE Toolkit</p>
 
       <h2 style={s.sectionTitle}>Tools</h2>
       <div style={s.grid}>
         <button onClick={() => navigate('/tools/exam')} style={s.toolCard}>
-          <span style={s.toolTag}>{content.exam_card_tag}</span>
-          <p style={s.toolTitle}>{content.exam_card_title}</p>
+          <span style={{ ...s.toolTag, color: primary }}>{content.exam_card_tag}</span>
+          <p style={{ ...s.toolTitle, color: primary }}>{content.exam_card_title}</p>
           <p style={s.toolDesc}>{content.exam_card_description}</p>
-          <span style={s.toolArrow}>Start →</span>
+          <span style={{ ...s.toolArrow, color: primary }}>Start →</span>
         </button>
       </div>
     </main>

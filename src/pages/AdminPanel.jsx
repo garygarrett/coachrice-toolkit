@@ -34,27 +34,45 @@ const EMPTY_QUESTION = {
   is_active: true,
 }
 
+const FONT_OPTIONS = [
+  { label: 'System Default (sans-serif)',  value: 'system-ui, -apple-system, sans-serif' },
+  { label: 'Inter',                        value: "'Inter', system-ui, sans-serif" },
+  { label: 'Lato',                         value: "'Lato', system-ui, sans-serif" },
+  { label: 'Source Sans 3',               value: "'Source Sans 3', system-ui, sans-serif" },
+  { label: 'Merriweather (serif)',         value: "'Merriweather', Georgia, serif" },
+  { label: 'Georgia (serif)',              value: "Georgia, 'Times New Roman', serif" },
+]
+
 // Content fields shown in the Content tab, grouped by section
 const CONTENT_FIELDS = [
+  {
+    section: 'Theme & Branding',
+    description: 'Colors and typography applied across all participant-facing pages.',
+    keys: [
+      { key: 'theme_primary_color', label: 'Primary Color',   type: 'color' },
+      { key: 'theme_page_bg',       label: 'Page Background', type: 'color' },
+      { key: 'theme_font_family',   label: 'Font',            type: 'font'  },
+    ],
+  },
   {
     section: 'Dashboard — Exam Tool Card',
     description: 'The card participants see on their dashboard.',
     keys: [
-      { key: 'exam_card_tag',         label: 'Tag (small label above title)',  multiline: false },
-      { key: 'exam_card_title',       label: 'Title',                          multiline: false },
-      { key: 'exam_card_description', label: 'Description',                    multiline: true  },
+      { key: 'exam_card_tag',         label: 'Tag (small label above title)', type: 'text' },
+      { key: 'exam_card_title',       label: 'Title',                         type: 'text' },
+      { key: 'exam_card_description', label: 'Description',                   type: 'textarea' },
     ],
   },
   {
     section: 'Exam — Start Screen',
     description: 'Text shown before the participant begins the exam.',
     keys: [
-      { key: 'exam_start_badge',    label: 'Badge (small label at top)',  multiline: false },
-      { key: 'exam_start_title',    label: 'Title',                       multiline: false },
-      { key: 'exam_start_subtitle', label: 'Subtitle paragraph',          multiline: true  },
-      { key: 'exam_start_info_1',   label: 'Bullet 1',                    multiline: false },
-      { key: 'exam_start_info_2',   label: 'Bullet 2',                    multiline: false },
-      { key: 'exam_start_info_3',   label: 'Bullet 3',                    multiline: false },
+      { key: 'exam_start_badge',    label: 'Badge (small label at top)', type: 'text'     },
+      { key: 'exam_start_title',    label: 'Title',                      type: 'text'     },
+      { key: 'exam_start_subtitle', label: 'Subtitle paragraph',         type: 'textarea' },
+      { key: 'exam_start_info_1',   label: 'Bullet 1',                   type: 'text'     },
+      { key: 'exam_start_info_2',   label: 'Bullet 2',                   type: 'text'     },
+      { key: 'exam_start_info_3',   label: 'Bullet 3',                   type: 'text'     },
     ],
   },
 ]
@@ -655,7 +673,7 @@ export default function AdminPanel() {
             </div>
 
             <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.75rem', marginTop: '-0.75rem' }}>
-              Edit the text participants see on their dashboard and within each tool. Changes go live immediately after saving.
+              Edit text, colors, and fonts. The preview updates live as you type. Changes go live for participants after saving.
             </p>
 
             {contentSuccess && <p style={s.successBanner}>{contentSuccess}</p>}
@@ -669,11 +687,43 @@ export default function AdminPanel() {
                     {group.description}
                   </p>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: group.section === 'Theme & Branding'
+                    ? 'repeat(auto-fill, minmax(200px, 1fr))'
+                    : '1fr',
+                  gap: '1rem',
+                }}>
                   {group.keys.map(field => (
                     <label key={field.key} style={s.label}>
                       {field.label}
-                      {field.multiline ? (
+                      {field.type === 'color' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <input
+                            type="color"
+                            value={contentValues[field.key] ?? '#00205B'}
+                            onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
+                            style={{ width: '48px', height: '36px', padding: '2px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', background: '#fff' }}
+                          />
+                          <input
+                            type="text"
+                            value={contentValues[field.key] ?? ''}
+                            onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
+                            style={{ ...s.input, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+                            placeholder="#000000"
+                          />
+                        </div>
+                      ) : field.type === 'font' ? (
+                        <select
+                          value={contentValues[field.key] ?? FONT_OPTIONS[0].value}
+                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
+                          style={{ ...s.input, fontFamily: contentValues[field.key] || 'inherit' }}
+                        >
+                          {FONT_OPTIONS.map(f => (
+                            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+                          ))}
+                        </select>
+                      ) : field.type === 'textarea' ? (
                         <textarea
                           rows={3}
                           style={s.textarea}
@@ -692,6 +742,112 @@ export default function AdminPanel() {
                 </div>
               </div>
             ))}
+
+            {/* ── Live Preview ── */}
+            <div style={s.formCard}>
+              <h2 style={s.formHeading}>Live Preview</h2>
+              <p style={{ color: '#6b7280', fontSize: '0.82rem', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
+                This is exactly what participants will see. Updates instantly as you edit above.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+
+                {/* Dashboard card preview */}
+                <div>
+                  <p style={s.previewLabel}>Participant Dashboard</p>
+                  <div style={{
+                    background: contentValues.theme_page_bg || '#f0f2f5',
+                    padding: '1.25rem',
+                    borderRadius: '8px',
+                  }}>
+                    <p style={{
+                      fontSize: '0.65rem', fontWeight: '700', color: '#888',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                      marginBottom: '0.6rem', fontFamily: contentValues.theme_font_family || 'inherit',
+                    }}>Tools</p>
+                    <div style={{
+                      background: '#fff',
+                      border: '1.5px solid #e5e7eb',
+                      borderRadius: '10px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.4rem',
+                      fontFamily: contentValues.theme_font_family || 'inherit',
+                    }}>
+                      <span style={{
+                        display: 'inline-block',
+                        background: '#e8ecf5',
+                        color: contentValues.theme_primary_color || '#00205B',
+                        fontSize: '0.65rem', fontWeight: '700',
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                        padding: '0.2rem 0.5rem', borderRadius: '4px',
+                      }}>
+                        {contentValues.exam_card_tag || 'Exam Prep'}
+                      </span>
+                      <p style={{ fontSize: '0.95rem', fontWeight: '700', color: contentValues.theme_primary_color || '#00205B', margin: 0 }}>
+                        {contentValues.exam_card_title || 'ACC Practice Exam'}
+                      </p>
+                      <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: 0 }}>
+                        {contentValues.exam_card_description || ''}
+                      </p>
+                      <span style={{ fontSize: '0.78rem', fontWeight: '600', color: contentValues.theme_primary_color || '#00205B', marginTop: '0.35rem' }}>
+                        Start →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Exam start screen preview */}
+                <div>
+                  <p style={s.previewLabel}>Exam Start Screen</p>
+                  <div style={{
+                    background: contentValues.theme_page_bg || '#f0f2f5',
+                    padding: '1.25rem',
+                    borderRadius: '8px',
+                  }}>
+                    <div style={{
+                      background: '#fff',
+                      borderRadius: '10px',
+                      padding: '1.25rem',
+                      fontFamily: contentValues.theme_font_family || 'inherit',
+                    }}>
+                      <span style={{
+                        display: 'inline-block',
+                        background: '#e8ecf5',
+                        color: contentValues.theme_primary_color || '#00205B',
+                        fontSize: '0.65rem', fontWeight: '700',
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                        padding: '0.2rem 0.5rem', borderRadius: '4px', marginBottom: '0.5rem',
+                      }}>
+                        {contentValues.exam_start_badge || 'ACC Exam Prep'}
+                      </span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: contentValues.theme_primary_color || '#00205B', margin: '0 0 0.4rem' }}>
+                        {contentValues.exam_start_title || 'ICF Practice Exam'}
+                      </h3>
+                      <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: '0 0 0.6rem' }}>
+                        {contentValues.exam_start_subtitle || ''}
+                      </p>
+                      <ul style={{ fontSize: '0.78rem', color: '#444', paddingLeft: '1.1rem', margin: '0 0 0.75rem', lineHeight: '1.75' }}>
+                        {[contentValues.exam_start_info_1, contentValues.exam_start_info_2, contentValues.exam_start_info_3]
+                          .filter(Boolean)
+                          .map((item, i) => <li key={i}>{item}</li>)}
+                      </ul>
+                      <button style={{
+                        padding: '0.5rem 1.1rem',
+                        background: contentValues.theme_primary_color || '#00205B',
+                        color: '#fff', border: 'none', borderRadius: '6px',
+                        fontSize: '0.85rem', fontWeight: '600', cursor: 'default',
+                        fontFamily: contentValues.theme_font_family || 'inherit',
+                      }}>
+                        Start Exam
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button onClick={handleContentSave} disabled={contentSaving} style={s.submitBtn}>
@@ -769,4 +925,5 @@ const s = {
   badgeInactive: { background: '#f9fafb', color: '#9ca3af', borderRadius: '4px', padding: '0.2rem 0.55rem', fontSize: '0.8rem', fontWeight: '500' },
   compBadge: { display: 'inline-block', background: '#e8ecf5', color: '#00205B', fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '4px', whiteSpace: 'nowrap' },
   qText: { fontSize: '0.85rem', color: '#374151', lineHeight: '1.4' },
+  previewLabel: { fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', marginTop: 0 },
 }
