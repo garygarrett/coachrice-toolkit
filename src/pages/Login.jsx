@@ -38,7 +38,12 @@ export default function Login() {
     })
 
     if (signInError) {
-      setError('Invalid email or password. Please try again.')
+      const isBanned = signInError.message?.toLowerCase().includes('banned')
+      setError(
+        isBanned
+          ? 'Your account is currently paused. If you have questions about this, please reach out to CoachRICE@rice.edu.'
+          : 'Invalid email or password. Please try again.'
+      )
       setSubmitting(false)
       return
     }
