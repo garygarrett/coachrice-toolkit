@@ -34,8 +34,7 @@ function proficiencyLabel(pct) {
   if (pct === 100) return { label: 'Exceeding', color: '#15803d', bg: '#f0fdf4' }
   if (pct >= 75)   return { label: 'Meeting',   color: '#1d4ed8', bg: '#eff6ff' }
   if (pct >= 50)   return { label: 'Approaching', color: '#b45309', bg: '#fffbeb' }
-  if (pct > 0)     return { label: 'Developing', color: '#b91c1c', bg: '#fef2f2' }
-  return                   { label: 'Beginning',  color: '#6b7280', bg: '#f9fafb' }
+  return                   { label: 'Developing', color: '#b91c1c', bg: '#fef2f2' }
 }
 
 export default function Exam() {
