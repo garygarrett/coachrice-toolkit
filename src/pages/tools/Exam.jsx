@@ -112,7 +112,7 @@ export default function Exam() {
           score_category: 'ACC Practice Exam',
           raw_input: JSON.stringify(scored.map(({ id, competency, question }) => ({ id, competency, question }))),
           raw_output: JSON.stringify({ score, total }),
-          status: 'complete',
+          status: 'completed',
         })
         .select('id')
         .single()
