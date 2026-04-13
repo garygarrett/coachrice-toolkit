@@ -1,0 +1,1952 @@
+[
+  {
+    "id": 1,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach has been working with a corporate client for three months. The sponsor who contracted the coaching reaches out asking how the client is progressing. The coaching agreement, signed by the client before the engagement began, specifies that a progress summary will be shared with the sponsor at the 90-day mark. What is the most appropriate action for the coach to take?",
+    "options": {
+      "A": "Decline to share any information, citing confidentiality as the primary obligation to the client.",
+      "B": "Share a progress summary consistent with what was agreed to in the coaching contract.",
+      "C": "Ask the client what they would like shared before responding to the sponsor.",
+      "D": "Share only general observations without reference to specific goals discussed in sessions."
+    },
+    "correct": "B",
+    "explanation": "The coaching agreement explicitly outlined what would be shared at 90 days. Honoring that agreement respects both Ethical Practice and Establishes and Maintains Agreements. The client already consented at the start of the engagement."
+  },
+  {
+    "id": 2,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is approached by a prospective client who works at the same company as a current coaching client. The two are in different departments and do not work together. The prospective client is unaware their colleague is also a client. The current client has not given permission for the coach to take on anyone else from the same organization. What should the coach do before agreeing to take on the prospective client?",
+    "options": {
+      "A": "Accept the new client since the two work in separate departments and are unlikely to interact.",
+      "B": "Decline the new client to avoid any potential conflict of interest.",
+      "C": "Disclose to the prospective client that the coach already works with someone at their company.",
+      "D": "Discuss the potential dual relationship with the current client and obtain their input before proceeding."
+    },
+    "correct": "D",
+    "explanation": "Before taking on a new client in the same organization, the coach should surface the potential conflict with the current client. This respects confidentiality while ensuring the existing relationship is not compromised, consistent with ICF ethics on conflicts of interest."
+  },
+  {
+    "id": 3,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "During a session, a client discloses they are struggling with alcohol use affecting their work performance. The client has not asked for the coach's perspective on this. The coaching agreement does not address substance use, and the client does not appear to be in crisis or danger to themselves or others. What is the most ethically aligned coaching response?",
+    "options": {
+      "A": "Express concern and strongly encourage the client to seek professional help for alcohol use.",
+      "B": "Ignore the disclosure and redirect the conversation to the client's original coaching goal.",
+      "C": "Ask the client if this is something they want to explore in the context of their coaching work.",
+      "D": "Inform the client that coaching cannot continue while substance use is affecting their work."
+    },
+    "correct": "C",
+    "explanation": "The client chose to share this. Asking whether they want to explore it in coaching respects autonomy and non-judgment while keeping the door open — without moralizing or exceeding scope."
+  },
+  {
+    "id": 4,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach has been coaching a client for six sessions. The client mentions they are also seeing a therapist for anxiety. The client has not asked the coach to coordinate with the therapist, and no release of information has been signed. What is the most appropriate response for the coach?",
+    "options": {
+      "A": "Contact the therapist proactively to coordinate care and ensure the approaches are aligned.",
+      "B": "Continue coaching as usual; the existence of a therapist does not affect the coaching engagement.",
+      "C": "Acknowledge the client's work with a therapist, note the potential for complementary support, and ask how the client would like to approach the two relationships.",
+      "D": "Suggest the client pause coaching until their therapy is complete, to avoid conflicting modalities."
+    },
+    "correct": "C",
+    "explanation": "Acknowledging both relationships and centering the client's preference respects autonomy and reflects good ethical practice. Coaching and therapy can be complementary, and the client should decide how to navigate both."
+  },
+  {
+    "id": 5,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach realizes mid-engagement that the client's presenting goal — managing workplace conflict — requires specialized knowledge of employment law that the coach does not have. The client is asking the coach to weigh in on what legal options they might have. What should the coach do?",
+    "options": {
+      "A": "Offer general guidance based on their understanding of common workplace law, framing it as non-legal advice.",
+      "B": "Acknowledge the limits of their expertise, decline to advise on legal matters, and suggest the client consult an employment attorney.",
+      "C": "Research the relevant employment law before the next session and present options to the client.",
+      "D": "Help the client explore their feelings about the conflict and defer the legal question indefinitely."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging scope of practice limits and referring to qualified professionals is a core ethical obligation. The coach must not advise outside their competence."
+  },
+  {
+    "id": 6,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is working with a client in an executive coaching engagement sponsored by the client's employer. After four sessions, the sponsor contacts the coach and asks for a report on how the client is engaging in coaching. No reporting agreement beyond the 90-day progress summary was included in the original contract. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Provide the sponsor with a general update since the sponsor is paying for the coaching.",
+      "B": "Decline to provide the report and explain that the agreed-upon reporting terms cannot be expanded without the client's consent.",
+      "C": "Contact the client first and ask whether they consent to additional reporting before responding to the sponsor.",
+      "D": "Provide a brief update that avoids specific details but confirms the client is engaged."
+    },
+    "correct": "C",
+    "explanation": "Any reporting beyond what was agreed upon requires the client's explicit consent. Contacting the client first honors both confidentiality and the integrity of the coaching relationship."
+  },
+  {
+    "id": 7,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach discovers that a prospective client is the ex-partner of one of their current clients. The coach knows significant details about the current client's perspective on the relationship from multiple sessions. The prospective client is unaware the coach works with their ex-partner. What is the most ethically appropriate course of action?",
+    "options": {
+      "A": "Accept the new client; the two individuals are no longer in a relationship, so no conflict exists.",
+      "B": "Decline to work with the prospective client due to the significant conflict of interest.",
+      "C": "Disclose to the prospective client that a conflict may exist and allow them to decide.",
+      "D": "Consult with a supervisor and proceed only if the supervisor approves."
+    },
+    "correct": "B",
+    "explanation": "The coach holds significant one-sided knowledge about a deeply personal conflict. This creates an unavoidable conflict of interest that cannot be managed ethically, making declining the appropriate choice."
+  },
+  {
+    "id": 8,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is facilitating a group coaching program for a team of eight employees. During a group session, one participant shares something personal and another participant later messages the coach privately, asking what that person said. No confidentiality guidelines were established at the program's outset. What should the coach do?",
+    "options": {
+      "A": "Share the information since no confidentiality agreement was in place for the group.",
+      "B": "Decline to share the information and use the moment as an opportunity to establish group confidentiality norms going forward.",
+      "C": "Inform the participant who shared that another group member asked about their disclosure.",
+      "D": "Review the content of what was shared and decide based on whether it was sensitive."
+    },
+    "correct": "B",
+    "explanation": "Even without a formal agreement, coaches are expected to uphold confidentiality as a core ethical practice. This situation also offers a valuable opportunity to establish explicit group norms to prevent future issues."
+  },
+  {
+    "id": 9,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is asked by a client to write a letter of recommendation for a graduate program. The coaching engagement is still active, and the coach has worked with this client for eight months. What should the coach consider before agreeing to write the letter?",
+    "options": {
+      "A": "Agree immediately; writing the letter is a natural extension of the supportive coaching relationship.",
+      "B": "Decline because writing letters of recommendation is always outside the coach's role.",
+      "C": "Reflect on whether taking on this role would create a dual relationship or conflict of interest, and discuss this openly with the client before deciding.",
+      "D": "Agree to write the letter but include a disclosure that the author is the client's coach."
+    },
+    "correct": "C",
+    "explanation": "Taking on additional roles beyond coaching can create dual relationships that affect the coaching engagement. Reflecting on this and discussing it openly with the client honors transparency and ethical practice."
+  },
+  {
+    "id": 10,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach receives a subpoena requiring them to testify about their sessions with a client in a civil lawsuit. The client has not consented to disclosure of coaching session content. The coach's jurisdiction has no statute protecting coach-client privilege. What is the most appropriate action for the coach?",
+    "options": {
+      "A": "Refuse to comply with the subpoena, citing the ICF Code of Ethics as a professional confidentiality standard.",
+      "B": "Comply fully with the subpoena without notifying the client.",
+      "C": "Consult with a licensed attorney about legal obligations while notifying the client of the subpoena.",
+      "D": "Provide only general information about the coaching process and decline to share session specifics."
+    },
+    "correct": "C",
+    "explanation": "When legal obligations arise, coaches must seek legal counsel to understand their obligations and should notify the client. The ICF Code of Ethics requires coaches to comply with applicable laws, even when those conflict with confidentiality preferences."
+  },
+  {
+    "id": 11,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is meeting with a new client for a chemistry session. During the conversation, the client describes a goal that the coach knows typically requires therapeutic intervention — specifically, recovering from a traumatic event that occurred six months ago. What is the most appropriate response during this initial meeting?",
+    "options": {
+      "A": "Agree to coach the client, since the client has defined their goal and coaching can address many challenges.",
+      "B": "Decline to work with the client and refer them directly to a therapist.",
+      "C": "Explore the client's goals further, share an honest perspective on what coaching can and cannot address, and provide information about therapeutic referrals.",
+      "D": "Accept the client and plan to transition to therapeutic techniques if needed once the relationship is established."
+    },
+    "correct": "C",
+    "explanation": "The chemistry session is the right time to be transparent about coaching's scope and share information about therapy. This allows the client to make an informed choice about what support is most appropriate."
+  },
+  {
+    "id": 12,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach wants to post a testimonial from a past client on social media. The client gave verbal permission during a casual conversation but did not sign a written release. The coaching engagement ended eight months ago. What should the coach do before posting the testimonial?",
+    "options": {
+      "A": "Post the testimonial as-is, since the client verbally consented.",
+      "B": "Contact the client, explain how the testimonial will be used, and obtain written consent before posting.",
+      "C": "Paraphrase the testimonial without attribution so no consent is needed.",
+      "D": "Post the testimonial but omit the client's name to protect their privacy."
+    },
+    "correct": "B",
+    "explanation": "Obtaining written, informed consent for specific use of a client's words is an ethical standard for protecting client privacy and maintaining trust. Verbal consent in a casual context is insufficient for public marketing use."
+  },
+  {
+    "id": 13,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach has been working with a client for five months when they notice the client has made little measurable progress toward their goals. The coach genuinely enjoys working with this client, but suspects the client may need therapeutic support rather than continued coaching. What is the most appropriate course of action?",
+    "options": {
+      "A": "Continue the engagement; progress in coaching is often non-linear and hard to measure.",
+      "B": "End the engagement immediately and refer the client to a therapist.",
+      "C": "Raise the observation with the client directly, explore what value they are getting from coaching, and discuss whether continued coaching, a referral, or both best serves their interests.",
+      "D": "Consult with a supervisor privately and continue coaching while awaiting guidance."
+    },
+    "correct": "C",
+    "explanation": "Transparency with the client about progress, combined with exploration of what is and is not working, reflects both ethical practice and the coach's obligation to act in the client's best interest — not their own interest in continuing the engagement."
+  },
+  {
+    "id": 14,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach receives an inquiry from a potential client who works for a direct competitor of an existing client. The existing client has not mentioned any confidentiality concerns about industry competitors. What is the most appropriate action before accepting the new client?",
+    "options": {
+      "A": "Accept the new client immediately, since no explicit restriction exists in the existing agreement.",
+      "B": "Decline the new client to avoid any appearance of conflict.",
+      "C": "Review the existing coaching agreement for any conflict of interest clauses and raise the potential issue transparently with the existing client.",
+      "D": "Accept the new client but commit to keeping all company-specific information strictly separate."
+    },
+    "correct": "C",
+    "explanation": "Proactively reviewing the existing agreement and raising the potential issue with the current client reflects the ethical obligation to avoid conflicts of interest and maintain trust. This is preferable to assuming permission or declining without reflection."
+  },
+  {
+    "id": 15,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "During a session, a client discloses that they have been falsifying expense reports at work. The client presents this as a minor issue and does not ask for the coach's opinion. No mandatory reporting law applies in this jurisdiction. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Advise the client to stop the behavior immediately to protect their career.",
+      "B": "Report the issue to the client's employer since it involves dishonesty.",
+      "C": "Decline to coach on the issue and end the session.",
+      "D": "Acknowledge the disclosure, remain non-judgmental, and explore whether this connects to anything the client wants to address in coaching — while being transparent about the limits of the coaching role."
+    },
+    "correct": "D",
+    "explanation": "In the absence of a mandatory reporting obligation, the coach's role is to maintain non-judgment, stay within scope, and explore whether the disclosure opens something relevant to the client's coaching work. Moralizing or reporting without legal obligation exceeds the coach's role."
+  },
+  {
+    "id": 16,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is asked to provide coaching services to a nonprofit at a significantly reduced rate. The nonprofit's director mentions that the coach would be asked to informally advocate for the organization as part of the arrangement. What should the coach do before agreeing?",
+    "options": {
+      "A": "Accept the arrangement since advocacy for a good cause is compatible with coaching values.",
+      "B": "Decline the advocacy component and clarify that the coach's role is coaching, not promotional.",
+      "C": "Agree to both elements but keep them informal so there is no official conflict.",
+      "D": "Consult a supervisor and proceed only if they find no conflict."
+    },
+    "correct": "B",
+    "explanation": "The ICF Code of Ethics requires coaches to avoid situations where their judgment or professional role could be compromised by other obligations. Accepting an advocacy component alongside a coaching role creates a conflict that should be explicitly declined."
+  },
+  {
+    "id": 17,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach completes an engagement and the client asks for their coaching session notes to keep as a personal record of their growth. The coach took detailed notes throughout the engagement. What is the most appropriate response?",
+    "options": {
+      "A": "Provide all notes immediately since they belong to the client.",
+      "B": "Decline to share the notes since they are proprietary coach records.",
+      "C": "Review the coaching agreement to determine what records policy was established, discuss what the client wants and why, and share appropriately based on those terms.",
+      "D": "Provide a summary document rather than the original notes."
+    },
+    "correct": "C",
+    "explanation": "Records ownership and access should be governed by the original coaching agreement. Reviewing what was agreed upon and discussing the client's needs before sharing or withholding notes reflects transparency and ethical practice."
+  },
+  {
+    "id": 18,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach discovers mid-engagement that a client has been sharing details of their coaching sessions — including the coach's questions — with a colleague who is preparing to hire a different coach. The client seems to think this is harmless. What should the coach do?",
+    "options": {
+      "A": "End the engagement immediately due to breach of trust.",
+      "B": "Raise the concern directly and transparently with the client, explore the impact on the coaching relationship, and revisit any confidentiality agreements.",
+      "C": "Ignore the situation to maintain rapport and avoid conflict.",
+      "D": "Contact the colleague to clarify the nature of coaching."
+    },
+    "correct": "B",
+    "explanation": "When a client's behavior raises concerns about the coaching relationship or any implicit expectations about confidentiality, the coach's obligation is direct and transparent conversation. Ending the engagement without discussion or ignoring the situation both fail the client."
+  },
+  {
+    "id": 19,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach is invited to join a panel discussion where they will be introduced as representing the ICF's position on a controversial coaching issue. The coach holds personal views on the topic but has not been authorized to speak on the ICF's behalf. What is the most appropriate response?",
+    "options": {
+      "A": "Accept and share personal views, noting the ICF introduction was a mistake.",
+      "B": "Decline to participate entirely to avoid any appearance of misrepresentation.",
+      "C": "Accept but clarify clearly in the introduction and throughout the panel that they are sharing personal views, not ICF positions.",
+      "D": "Contact the ICF for permission to represent their views before accepting."
+    },
+    "correct": "C",
+    "explanation": "The ICF Code of Ethics requires coaches to accurately represent their professional affiliations and avoid implying endorsement they do not have. Clarifying the distinction between personal views and official ICF positions is the appropriate professional action."
+  },
+  {
+    "id": 20,
+    "competency": "Demonstrates Ethical Practice",
+    "question": "A coach's long-term client offers them a significant gift — a luxury experience worth over $500 — to thank them at the end of a successful engagement. The coaching contract did not address gift policies. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Accept the gift graciously, since the engagement is complete and there is no longer an active coaching relationship.",
+      "B": "Decline the gift entirely as a matter of professional principle.",
+      "C": "Reflect on whether accepting the gift could compromise the coach's objectivity in any future engagement with this client, discuss this with the client, and make a transparent, considered decision.",
+      "D": "Accept a token amount (e.g., $50 equivalent) and decline the rest."
+    },
+    "correct": "C",
+    "explanation": "Even at the conclusion of an engagement, accepting significant gifts can create obligation or compromise future objectivity. The coach should reflect on this and, if keeping the gift, do so transparently and after genuine consideration. ─── EMBODIES A COACHING MINDSET ─── Questions 21–35"
+  },
+  {
+    "id": 21,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach notices mid-session that they have been asking leading questions and subtly steering the client toward a career change the coach personally believes would benefit them. The coach recognizes this pattern while the session is still in progress. What should the coach do?",
+    "options": {
+      "A": "Continue the session as planned and address the pattern during supervision afterward.",
+      "B": "Pause internally, recalibrate toward curiosity, and return to open questions that follow the client's agenda.",
+      "C": "Acknowledge to the client that the coach may have been biased and apologize.",
+      "D": "Ask the client whether they have considered a career change, since the topic came up organically."
+    },
+    "correct": "B",
+    "explanation": "Embodying a Coaching Mindset includes self-awareness and the ability to recalibrate in real time. Releasing the coach's agenda and returning to genuine curiosity is the most professional and aligned response."
+  },
+  {
+    "id": 22,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "Before a session, a coach learns from the sponsor that the client received negative performance feedback that morning. The coach mentally prepares questions about the performance issue. What is the most appropriate way for the coach to begin the session?",
+    "options": {
+      "A": "Ask the client directly how they are feeling about the performance feedback they received today.",
+      "B": "Set aside the sponsor's information and open by asking the client what they want to focus on today.",
+      "C": "Mention to the client that the coach has heard about the feedback and offer space to discuss it.",
+      "D": "Proceed with the prepared questions but allow the client to redirect if needed."
+    },
+    "correct": "B",
+    "explanation": "Embodying a Coaching Mindset means approaching each session without assumptions. Opening by following the client's agenda honors autonomy and avoids imposing the coach's or sponsor's frame on the conversation."
+  },
+  {
+    "id": 23,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach has 20 years of industry experience in the same field as their client. During a session, the client describes a strategy the coach believes is clearly flawed based on personal expertise. The client has not asked for the coach's opinion. What is the most appropriate response?",
+    "options": {
+      "A": "Share the perspective based on industry experience, framing it as a data point for the client to consider.",
+      "B": "Ask powerful questions that invite the client to examine the assumptions and risks in their approach themselves.",
+      "C": "Mention that the coach has relevant experience in this area and ask if the client would like that perspective.",
+      "D": "Validate the client's strategy to maintain trust and explore it further without challenge."
+    },
+    "correct": "B",
+    "explanation": "Even when the coach has relevant expertise, the coaching stance is to evoke the client's own thinking through questions. This honors client autonomy and embodies a coaching — not consulting — mindset."
+  },
+  {
+    "id": 24,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach finishes a session feeling drained and frustrated because the client seemed resistant and unmotivated. A different client's session begins in ten minutes. What should the coach prioritize in those ten minutes?",
+    "options": {
+      "A": "Review notes from the previous session with the upcoming client to be well-prepared.",
+      "B": "Take a few minutes to mentally release the previous session's emotional residue and reset to a present, open state.",
+      "C": "Reflect on why the previous client was resistant and plan to discuss it with a supervisor.",
+      "D": "Send a follow-up message to the resistant client with a resource they might find helpful."
+    },
+    "correct": "B",
+    "explanation": "Maintaining presence requires the coach to show up fully for each client. Releasing emotional residue from a previous session is a key self-management practice that embodies a coaching mindset."
+  },
+  {
+    "id": 25,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach is working with a client who repeatedly returns to the same limiting belief: 'I'm just not a natural leader.' The coach strongly disagrees with this belief based on everything they have observed. The client has not asked for the coach's assessment. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Challenge the belief directly by offering specific evidence of the client's leadership strengths from past sessions.",
+      "B": "Ask the client where that belief comes from and what evidence they have for and against it.",
+      "C": "Affirm the client and tell them that in the coach's observation they clearly are a natural leader.",
+      "D": "Suggest a leadership assessment tool to provide objective data about the client's strengths."
+    },
+    "correct": "B",
+    "explanation": "Inviting the client to examine the belief themselves — where it comes from, what supports or contradicts it — evokes awareness without the coach imposing their own view. This embodies non-judgment and client-led discovery."
+  },
+  {
+    "id": 26,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach has a strong personal belief that work-life balance is essential for wellbeing. During a session, a client expresses that they are happiest when fully immersed in work and has no desire to change that. The client is not in distress and is not asking for input on their values. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Gently raise the topic of burnout risk, since the coach believes this could become a problem.",
+      "B": "Explore what being fully immersed in work means to the client and how it connects to their goals.",
+      "C": "Acknowledge the client's perspective and note that coaching can help them maximize their engagement further.",
+      "D": "Ask whether the client has ever tried setting work boundaries and what the experience was like."
+    },
+    "correct": "B",
+    "explanation": "Coaching requires non-judgment about client values. The client's orientation toward work is their own, and exploring it on their own terms honors autonomy and embodies the coaching mindset."
+  },
+  {
+    "id": 27,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach notices they frequently feel irritated when a particular client dismisses suggestions and changes direction mid-session. This has happened across six sessions. What is the most appropriate action for the coach to take?",
+    "options": {
+      "A": "Raise the pattern with the client and explain how it affects the coaching sessions.",
+      "B": "Work through the irritation in supervision or reflective practice to understand what it may be revealing about the coach's own assumptions.",
+      "C": "Adjust the coaching approach to be more directive so the client is less likely to dismiss suggestions.",
+      "D": "Terminate the coaching engagement since the dynamic is not productive."
+    },
+    "correct": "B",
+    "explanation": "The coach's emotional reaction is data about themselves, not just the client. Bringing this to supervision and reflective practice is central to embodying a coaching mindset — using self-awareness to improve presence and effectiveness."
+  },
+  {
+    "id": 28,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach receives a referral from a current client who describes the prospective client as 'difficult' and says they will 'need a lot of work.' The coach meets the prospective client for a chemistry call. What is the most appropriate stance for the coach to bring to the chemistry call?",
+    "options": {
+      "A": "Approach the chemistry call with curiosity and openness, setting aside the referring client's characterization.",
+      "B": "Use the referring client's insight as helpful context to understand the prospective client's challenges.",
+      "C": "Ask the prospective client early in the call whether they have been told they are difficult to work with.",
+      "D": "Proceed with the chemistry call but plan to check in with the referring client afterward."
+    },
+    "correct": "A",
+    "explanation": "Embodying a Coaching Mindset means approaching every client without assumptions or prior framing. Setting aside the characterization and meeting the prospective client fresh reflects non-judgment and genuine openness."
+  },
+  {
+    "id": 29,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach is mid-session when they realize they have been internally evaluating the client's decisions as either good or bad and silently rooting for specific outcomes. The coach recognizes this is affecting the questions they are asking. What should the coach do?",
+    "options": {
+      "A": "Disclose to the client that the coach has opinions and ask if the client would like to hear them.",
+      "B": "Internally name the judgment, set it aside, and return to genuine curiosity about what the client wants.",
+      "C": "Continue the session but make a note to address this judgment in supervision later.",
+      "D": "Shift to more neutral questions to compensate for the biased questions asked earlier."
+    },
+    "correct": "B",
+    "explanation": "Self-awareness in real time — naming internal judgment and returning to curiosity — is a core coaching mindset skill. The coach does not need to stop the session or disclose; recalibration is sufficient."
+  },
+  {
+    "id": 30,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach is preparing to work with a client from a cultural background very different from their own. The coach has limited familiarity with this culture. It is the first session. What is the most appropriate stance for the coach to take?",
+    "options": {
+      "A": "Research the client's cultural background extensively before the session to demonstrate respect and preparation.",
+      "B": "Approach the client with curiosity, acknowledge the coach's own cultural limitations if relevant, and invite the client to share what matters to them in the coaching context.",
+      "C": "Apply the same coaching framework used with all clients; culture is not relevant to goal-focused work.",
+      "D": "Ask the client to share their cultural background at the start of the session so the coach can adapt their approach."
+    },
+    "correct": "B",
+    "explanation": "Cultural humility — approaching with openness, acknowledging one's own limitations, and following the client's lead — is more aligned than assuming research can substitute for authentic curiosity in the coaching relationship."
+  },
+  {
+    "id": 31,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach has been working with the same client for two years. The client recently accomplished a major life goal and the relationship has become comfortable and familiar. The coach notices they no longer prepare intentionally before sessions and feels they 'know' the client well. What is the most appropriate action?",
+    "options": {
+      "A": "Continue as-is; deep familiarity with a client is a sign of a strong coaching relationship.",
+      "B": "Reflect on whether the comfort of the relationship has reduced the coach's presence and intentionality, and recommit to full preparation and openness.",
+      "C": "Suggest to the client that the engagement may be nearing its natural end.",
+      "D": "Introduce a new coaching model to re-energize the engagement."
+    },
+    "correct": "B",
+    "explanation": "Long-term familiarity can create complacency that works against the coaching mindset. Noticing this and recommitting to presence and intentionality reflects the ongoing self-awareness that embodying a coaching mindset requires."
+  },
+  {
+    "id": 32,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach finds that after reading a popular leadership book, they keep looking for opportunities to reference it in client sessions. They notice this regardless of whether the reference is relevant to the client's stated goal. What does this reflect, and what should the coach do?",
+    "options": {
+      "A": "This reflects enthusiasm for professional development; it is appropriate to share new ideas with clients.",
+      "B": "This reflects the coach importing their own agenda into sessions. The coach should notice this pattern and let go of the book's framework unless the client's own words naturally invite it.",
+      "C": "This is a harmless habit that adds value as long as the references are relevant.",
+      "D": "This reflects strong preparation; the coach should continue but make the references more subtle."
+    },
+    "correct": "B",
+    "explanation": "Using a framework or idea because the coach is excited about it — rather than because the client's work calls for it — is an expression of the coach's agenda. Noticing and releasing this is central to embodying a coaching mindset."
+  },
+  {
+    "id": 33,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach is working with a client who has a very different political worldview than the coach. During a session, the client makes a statement the coach finds personally offensive. The statement is not abusive but reflects a values difference. What should the coach do?",
+    "options": {
+      "A": "Express respectful disagreement so the client understands the coach's values.",
+      "B": "Notice the internal reaction, set it aside, and continue coaching from a place of genuine curiosity and non-judgment.",
+      "C": "End the session and reflect on whether this client is a good fit.",
+      "D": "Ask the client a question that gently challenges the assumption embedded in their statement."
+    },
+    "correct": "B",
+    "explanation": "The ICF Coaching Mindset requires non-judgment across differences — including values and political differences. The coach's personal reactions are their own; managing them internally and continuing with genuine curiosity is the professional response."
+  },
+  {
+    "id": 34,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach realizes they have been consistently ending sessions before the client feels finished, because the coach finds it uncomfortable to sit with clients in unresolved states. What should the coach do?",
+    "options": {
+      "A": "Start providing more closure and summaries at the end of sessions to help clients feel resolved.",
+      "B": "Explore this pattern in supervision or reflective practice, recognizing it as a coach-driven behavior that may not serve clients.",
+      "C": "Let the client know they should signal when they feel complete so the coach does not cut sessions short.",
+      "D": "Extend session times to give clients more space to reach resolution."
+    },
+    "correct": "B",
+    "explanation": "A coach's discomfort with ambiguity or unresolved states is a personal pattern that, when acted upon, prioritizes the coach's comfort over the client's process. Supervision and reflective practice are the appropriate places to examine and address it."
+  },
+  {
+    "id": 35,
+    "competency": "Embodies a Coaching Mindset",
+    "question": "A coach regularly receives feedback from clients that they feel inspired and motivated after sessions. The coach notices they have begun to value this feedback highly and now shapes sessions toward producing that feeling. What is the primary concern with this pattern?",
+    "options": {
+      "A": "There is no concern — client inspiration is a positive coaching outcome.",
+      "B": "The coach has begun to optimize for their own validation rather than for what each individual client actually needs, which may not always be inspiration.",
+      "C": "The coach should seek more varied feedback to ensure they are meeting a wider range of client needs.",
+      "D": "Inspiring clients is an appropriate coaching goal; the concern is only if it replaces other outcomes."
+    },
+    "correct": "B",
+    "explanation": "When a coach begins shaping their approach to produce a feeling the coach values — even a positive one — they have allowed their own needs to drive the session rather than the client's agenda. This is a subtle but important embodiment-of-mindset failure. ─── ESTABLISHES AND MAINTAINS AGREEMENTS ─── Questions 36–50"
+  },
+  {
+    "id": 36,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "Midway through a session, a client who came in wanting to work on time management begins discussing deep unresolved feelings about a parent's death two years ago, saying it might be related to everything. The coach has no training in grief counseling. Which response best aligns with ICF principles?",
+    "options": {
+      "A": "Allow the client to explore the topic fully since the client identified the connection themselves.",
+      "B": "Redirect the client back to time management since that was the agreed-upon focus.",
+      "C": "Acknowledge what the client shared, explore whether they want to continue in that direction, and note that a referral to a grief counselor might also be valuable.",
+      "D": "End the session early to avoid working outside the coach's scope of practice."
+    },
+    "correct": "C",
+    "explanation": "This response honors the agreement by checking whether the client wants to shift focus and demonstrates Ethical Practice by acknowledging scope limitations and offering a referral. It centers client autonomy without abandoning professional responsibility."
+  },
+  {
+    "id": 37,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "In the first session of a new coaching engagement, a client asks the coach to help them decide whether to leave their current job. The coach notices the client seems to want the coach to make the choice for them. What should the coach do?",
+    "options": {
+      "A": "Help the client make a pros and cons list to facilitate the decision.",
+      "B": "Decline to help since decision-making is outside the scope of coaching.",
+      "C": "Clarify the coaching role, explain that coaching does not make decisions for clients, and explore with the client what kind of support would be most helpful.",
+      "D": "Agree to coach the client on the decision and guide them toward staying since that appears safer."
+    },
+    "correct": "C",
+    "explanation": "Establishing agreements includes clarifying what coaching is and is not. Helping the client understand the coach's role while exploring what support they actually need is the right first step."
+  },
+  {
+    "id": 38,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "Three sessions into an engagement, a client reveals that their actual concern is a deeply strained relationship with their co-founder — not the leadership development goal they stated at the outset. They were not ready to be honest initially. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Express frustration that the client was not forthcoming at the start and re-establish the original goal.",
+      "B": "Acknowledge the client's honesty, explore the new focus, and revisit the coaching agreement to see if it needs to be updated.",
+      "C": "Continue with the original goal since changing agreements mid-engagement can be destabilizing.",
+      "D": "Refer the client to a mediator since co-founder conflict may be outside coaching's scope."
+    },
+    "correct": "B",
+    "explanation": "Agreements should be revisited and updated as the client's real needs become clear. Acknowledging the client's vulnerability and exploring whether the agreement needs updating is both competent and compassionate."
+  },
+  {
+    "id": 39,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A coach is working with a client and a sponsor in a three-way arrangement. The sponsor has requested monthly check-ins to discuss the client's progress. No formal agreement was established about what information would be shared in those check-ins. What should the coach do before the first sponsor check-in?",
+    "options": {
+      "A": "Attend the check-in and share only general impressions, being careful not to reveal session content.",
+      "B": "Meet with the client first to establish what, if anything, can be shared with the sponsor, and document that agreement.",
+      "C": "Cancel the sponsor check-in until a formal reporting structure is agreed upon.",
+      "D": "Ask the sponsor what they want to hear, then decide what to share based on that."
+    },
+    "correct": "B",
+    "explanation": "A three-way agreement covering what will and will not be shared in sponsor meetings is essential before any such meeting occurs. Establishing this with the client first protects confidentiality and sets up a clear, ethical structure."
+  },
+  {
+    "id": 40,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "During a session, a client asks the coach to review a presentation they have prepared and give detailed feedback on its quality before a board meeting. This is outside what was discussed in the coaching agreement. What is the most appropriate response?",
+    "options": {
+      "A": "Review the presentation and provide detailed feedback, since helping the client succeed is always appropriate.",
+      "B": "Decline entirely, since reviewing presentations is outside the coaching scope.",
+      "C": "Acknowledge the request, explore what support the client is actually looking for, and clarify whether expanding the session's scope aligns with their coaching goals.",
+      "D": "Agree to review the presentation after the session ends, keeping it separate from the coaching time."
+    },
+    "correct": "C",
+    "explanation": "Exploring what the client is actually looking for and whether this fits within the coaching agreement maintains the integrity of the agreement while serving the client's needs."
+  },
+  {
+    "id": 41,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A client and coach agreed at the start of the engagement to meet bi-weekly for six months. At session four, the client asks to increase frequency to weekly and extend sessions to 90 minutes. The coach has availability for this. What should the coach do?",
+    "options": {
+      "A": "Agree immediately since the client is clearly engaged and motivated.",
+      "B": "Explore what is driving the request, clarify the implications, and formally update the coaching agreement if proceeding.",
+      "C": "Decline because mid-engagement changes to agreements can undermine the coaching structure.",
+      "D": "Trial the new format for two sessions before making it official."
+    },
+    "correct": "B",
+    "explanation": "Exploring what is driving the request allows the coach to understand the underlying need and ensure any agreement changes are intentional. Formalizing changes maintains transparency."
+  },
+  {
+    "id": 42,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A client mentions at the start of a session that they would like to use today's session to process a conflict with their partner. The original coaching goal was professional development. The coaching agreement does not restrict topics. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Redirect the client to their professional development goal since that is what they committed to.",
+      "B": "Explore the personal conflict fully since the client brought it and the agreement does not restrict topics.",
+      "C": "Explore what the client wants from the session, how the personal conflict connects to their coaching goals, and whether proceeding serves their overall development.",
+      "D": "Suggest the client address personal matters with a therapist and return to professional topics."
+    },
+    "correct": "C",
+    "explanation": "The coaching agreement does not restrict topics, so the client's choice is valid. Exploring the connection to their goals and what they want from the session maintains coherence without dismissing what the client brought."
+  },
+  {
+    "id": 43,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "At the end of a coaching engagement, a client says they want to continue but cannot afford the current rate. The coach has capacity and enjoys working with this client. The client asks if the coach would consider a significant fee reduction. What should the coach consider before responding?",
+    "options": {
+      "A": "Agree to the fee reduction, since continued engagement benefits both parties.",
+      "B": "Decline, since changing the fee structure mid-engagement sets a problematic precedent.",
+      "C": "Reflect on whether the fee change would affect the power dynamics or the coach's own motivation, and discuss options openly with the client.",
+      "D": "Offer to continue coaching on a pro bono basis as a gesture of investment in the client."
+    },
+    "correct": "C",
+    "explanation": "Fee changes can affect the coaching relationship, including motivation and perceived value on both sides. Reflecting on this and having an open conversation ensures any new agreement is entered into thoughtfully."
+  },
+  {
+    "id": 44,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "Halfway through a 10-session engagement, the client says they feel they have accomplished their goal early and wants to end at session six. The coach believes there is more important work to do and that the client may be avoiding deeper growth. What should the coach do?",
+    "options": {
+      "A": "Encourage the client to complete the full 10 sessions since deeper work often emerges in later sessions.",
+      "B": "Honor the client's decision to end the engagement without question.",
+      "C": "Acknowledge the client's sense of completion, share the observation about potential deeper work as an offer rather than a directive, and respect the client's decision.",
+      "D": "Ask the client to reflect for one week before making a final decision to ensure it is not avoidance."
+    },
+    "correct": "C",
+    "explanation": "Honoring the client's autonomy while being transparent about the coach's observation is the appropriate balance. The coach can name what they see without overriding the client's right to end the engagement."
+  },
+  {
+    "id": 45,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A coach meets with a new client for the first chemistry session. The client is eager to start immediately and resists spending time establishing a coaching agreement. They say, 'I just want to get into it — can we skip the setup stuff?' What should the coach do?",
+    "options": {
+      "A": "Skip the agreement to respect the client's preference and build rapport.",
+      "B": "Insist on completing the full agreement before any coaching begins.",
+      "C": "Explain briefly why the agreement matters, address the client's most important goals and boundaries, and make the process feel purposeful rather than procedural.",
+      "D": "Begin coaching and revisit the agreement in session two once the relationship is established."
+    },
+    "correct": "C",
+    "explanation": "The coaching agreement is foundational, but how it is introduced matters. Making it feel purposeful and connecting it to the client's own goals addresses their impatience while preserving the agreement's integrity."
+  },
+  {
+    "id": 46,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A new coaching client is a mid-level manager whose company is sponsoring the engagement. The company's HR director contacts the coach before the first session and says the coaching is intended to address the client's 'attitude problem.' The client has been told only that coaching is a 'development opportunity.' What should the coach do before proceeding?",
+    "options": {
+      "A": "Begin coaching with the HR director's framing and guide the client toward attitude improvement.",
+      "B": "Refuse the engagement since the client has not been fully informed.",
+      "C": "Meet with the client, ensure they understand the purpose of the coaching as the company has framed it, and explore whether the client wants to engage on those terms.",
+      "D": "Ask HR to re-frame the coaching as purely developmental before starting."
+    },
+    "correct": "C",
+    "explanation": "A coaching agreement requires the client's informed consent about the purpose of the engagement. When the client has been given incomplete information by the sponsor, the coach must ensure the client understands the actual context before proceeding."
+  },
+  {
+    "id": 47,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A client sets a coaching goal at the start of the engagement that the coach privately believes is too small and not sufficiently challenging. The client seems satisfied with the goal. What should the coach do?",
+    "options": {
+      "A": "Accept the goal and coach toward it without comment.",
+      "B": "Challenge the goal by suggesting it does not reflect the client's full potential.",
+      "C": "Explore what the goal means to the client and what achieving it would make possible, to ensure the agreement reflects the client's genuine ambition.",
+      "D": "Reframe the goal in bigger terms so the client is inspired to aim higher."
+    },
+    "correct": "C",
+    "explanation": "Exploring what a goal means and what it opens up allows the coach to honor the client's autonomy while ensuring the agreement reflects genuine intent. The coach's judgment about scale is not the standard — the client's is."
+  },
+  {
+    "id": 48,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A client arrives to a session and immediately begins talking about a new urgent issue without setting a session goal. Fifteen minutes in, the client is still in the middle of the story. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Continue listening and let the client lead; the story is the session content.",
+      "B": "Interrupt to remind the client that sessions should begin with a goal-setting exercise.",
+      "C": "Gently acknowledge what the client is sharing and ask what they most want from the time remaining together.",
+      "D": "Take notes and plan to reflect on the session's theme at the end."
+    },
+    "correct": "C",
+    "explanation": "Helping the client identify what they want from the session — even partway through — maintains the coaching agreement's intent that sessions are purposeful and client-directed, without being rigid about process."
+  },
+  {
+    "id": 49,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "At the start of a new engagement, a client asks the coach to also serve as an informal mentor by sharing relevant career experiences when useful. The coach has relevant experience and is willing to do this. What should the coach do?",
+    "options": {
+      "A": "Agree to the informal arrangement since it benefits the client.",
+      "B": "Decline entirely; mixing coaching and mentoring roles is never appropriate.",
+      "C": "Discuss explicitly how the coaching and mentoring roles will be distinguished, under what circumstances each will be used, and document this in the agreement.",
+      "D": "Agree informally and adjust based on what feels right in each session."
+    },
+    "correct": "C",
+    "explanation": "When a client and coach agree to work across multiple roles, the agreement should explicitly define how and when each mode will be used. Without this clarity, the boundaries between roles can blur in ways that compromise the coaching relationship."
+  },
+  {
+    "id": 50,
+    "competency": "Establishes and Maintains Agreements",
+    "question": "A coaching engagement is nearing its final session. The coach realizes they never formally reviewed the overall progress of the engagement or asked the client to reflect on what they have learned. What is the most appropriate action for the final session?",
+    "options": {
+      "A": "Proceed with whatever the client wants to discuss in the final session.",
+      "B": "Use the final session to facilitate a structured reflection on the client's progress, learning, and what they want to carry forward.",
+      "C": "Send the client a written summary of their progress before the final session so they arrive prepared.",
+      "D": "Ask the client whether they found coaching valuable and invite them to provide a testimonial."
+    },
+    "correct": "B",
+    "explanation": "Facilitating a meaningful close — including reflection on progress and learning — is part of the coaching agreement's lifecycle. The final session should serve the client's growth, not just be another open session or an opportunity for marketing. ─── CULTIVATES TRUST AND SAFETY ─── Questions 51–65"
+  },
+  {
+    "id": 51,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client begins crying during a session while discussing a difficult decision at work. They say, 'Sorry — I don't know why I'm crying. This is embarrassing.' The coach and client are in only their second session together. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Say 'There's nothing to be embarrassed about' and wait for the client to continue.",
+      "B": "Ask what prompted the tears and encourage the client to explore what came up.",
+      "C": "Acknowledge the emotion with warmth, normalize it as a natural part of the process, and invite the client to stay with whatever came up if they choose.",
+      "D": "Offer a short break so the client can compose themselves before continuing."
+    },
+    "correct": "C",
+    "explanation": "This response cultivates trust and safety by validating the emotion, removing shame, and giving the client agency. It keeps the space open without forcing exploration or withdrawing from the moment."
+  },
+  {
+    "id": 52,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client comes to a session visibly distracted and quieter than usual. When asked what they want to focus on, they say, 'Nothing, really. I don't know why I'm here today.' This is session seven of an eight-session engagement. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Suggest revisiting a previous goal since the client is not ready to identify a new one.",
+      "B": "Acknowledge what the client said and invite them to explore what 'nothing' might actually mean for them today.",
+      "C": "Point out that this is a funded engagement and encourage the client to make use of the time.",
+      "D": "Suggest ending the session early if the client is not ready to engage."
+    },
+    "correct": "B",
+    "explanation": "Meeting the client where they are — including in uncertainty or flatness — and gently inviting curiosity about their state cultivates trust. 'Nothing' often holds significant meaning."
+  },
+  {
+    "id": 53,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client shares that they are struggling with feelings of worthlessness at work after being passed over for a promotion. They say, 'Maybe I should just quit.' The client's tone is flat. This is session three. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Reassure the client that being passed over is common and does not define their worth.",
+      "B": "Acknowledge the weight of what the client is sharing, ask how they are doing overall, and be attentive to whether the feelings go beyond work frustration.",
+      "C": "Explore with the client what 'quitting' would mean for them and what options they are considering.",
+      "D": "Encourage the client to identify three things they are doing well to counteract the negative thinking."
+    },
+    "correct": "B",
+    "explanation": "Feelings of worthlessness and a flat tone may indicate something beyond typical work frustration. Acknowledging the weight of it and checking in holistically prioritizes the client's wellbeing while maintaining safety."
+  },
+  {
+    "id": 54,
+    "competency": "Cultivates Trust and Safety",
+    "question": "During a virtual session, the client's internet drops repeatedly. After the third disconnection, the client rejoins frustrated and embarrassed. The coach had been asking a particularly meaningful question when the last drop occurred. What is the most appropriate response?",
+    "options": {
+      "A": "Immediately return to the meaningful question before the energy of the moment is lost.",
+      "B": "Acknowledge the frustration and embarrassment, allow a brief moment to reset, and ask the client what they need to continue.",
+      "C": "Suggest rescheduling the session to avoid further disruption.",
+      "D": "Reassure the client that it is not a problem and proceed with the agenda."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging what the client is experiencing — frustration and embarrassment — before moving on creates safety and re-establishes connection. Asking what the client needs gives them agency in resetting."
+  },
+  {
+    "id": 55,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client tells the coach in session two that they find it difficult to trust coaches because a previous coaching experience left them feeling judged and unsupported. They are not sure they are ready to be fully open. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Assure the client that this coaching relationship will be different from the previous one.",
+      "B": "Acknowledge the client's experience, thank them for sharing it, and invite them to move at whatever pace feels right while being clear about the coach's commitment to a non-judgmental space.",
+      "C": "Ask the client to describe the previous coaching experience in detail so the coach can understand what to avoid.",
+      "D": "Suggest that the client might benefit from more sessions before the coaching work begins in earnest."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging the client's past experience with non-judgment and offering agency in the pacing of disclosure builds trust authentically. Promising a non-judgmental space while honoring their timeline is the appropriate response."
+  },
+  {
+    "id": 56,
+    "competency": "Cultivates Trust and Safety",
+    "question": "During a session, a client reveals something they have never told anyone before. They pause after sharing and say, 'I can't believe I just said that out loud.' The room is quiet. This is session five. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Ask a follow-up question to explore what the client shared in more depth.",
+      "B": "Respond with warmth and allow the silence to hold what was just shared before speaking.",
+      "C": "Reassure the client that what they shared is safe and will remain confidential.",
+      "D": "Reflect back the content of what the client shared to demonstrate the coach was listening."
+    },
+    "correct": "B",
+    "explanation": "Holding the moment with warmth and allowing silence honors the significance of what the client has shared. Rushing to respond with a question or reassurance can diminish the experience."
+  },
+  {
+    "id": 57,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A coach notices that a client consistently minimizes their successes, using phrases like 'It was nothing, really' or 'Anyone could have done that.' In session four, the client downplays a significant achievement again. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Tell the client that they need to stop minimizing their achievements and own their success.",
+      "B": "Gently reflect the pattern back to the client and invite them to explore what it is like to take full credit for what they did.",
+      "C": "Celebrate the achievement enthusiastically to model a more positive response.",
+      "D": "Challenge the client by asking whether they actually believe what they are saying."
+    },
+    "correct": "B",
+    "explanation": "Reflecting the pattern back and inviting exploration creates awareness without shame. This approach is safe, curious, and honors the client's autonomy in examining their own behavior."
+  },
+  {
+    "id": 58,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A coach is working virtually with a client in a country where the coach has heard reports of government monitoring of digital communications. The client has not raised this concern but is discussing politically sensitive career choices. What is the most appropriate action from the coach?",
+    "options": {
+      "A": "Continue the session as planned; the coach's platform is encrypted and secure.",
+      "B": "Raise the topic with the client, share what the coach is aware of, and explore together how to ensure they feel safe in the coaching space.",
+      "C": "End the session and consult with a legal expert before continuing.",
+      "D": "Avoid coaching on politically sensitive topics going forward to reduce risk."
+    },
+    "correct": "B",
+    "explanation": "Proactively raising safety concerns with the client and co-creating a safe space reflects ethical care. The client has the right to make informed choices about what to discuss and how."
+  },
+  {
+    "id": 59,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client arrives to a session in a noticeably different mood — short in responses, deflecting questions, quick to change topics. When the coach gently notices this, the client says, 'I'm fine. Let's just focus on the work.' What should the coach do?",
+    "options": {
+      "A": "Accept the client's statement and proceed with the session agenda.",
+      "B": "Gently honor the client's request to focus while naming what the coach is noticing, and let the client know the door is open if they want to address it.",
+      "C": "Continue to press gently until the client opens up, since something important is clearly happening.",
+      "D": "Ask the client directly what happened before the session."
+    },
+    "correct": "B",
+    "explanation": "Honoring the client's stated wish while keeping the door open — without pressing — creates safety and demonstrates attunement. The client may not be ready to share, and that is their right."
+  },
+  {
+    "id": 60,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client shares that they feel unsafe being fully honest in coaching because their employer is paying for the sessions and they worry information might get back to their manager. The coaching agreement specifies that only a general progress summary is shared with the sponsor, with no session content disclosed. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Assure the client that everything they say is confidential and nothing will be shared.",
+      "B": "Review the specific confidentiality terms with the client, clarify exactly what is and is not shared with the sponsor, and address any remaining concerns.",
+      "C": "Suggest the client find a private-pay coach if they are concerned about employer-sponsored confidentiality.",
+      "D": "Contact the sponsor to renegotiate the reporting terms to give the client greater peace of mind."
+    },
+    "correct": "B",
+    "explanation": "Reviewing the specific agreement terms with the client provides accurate information rather than vague reassurances. Addressing their concerns directly restores safety and allows coaching to proceed on honest footing."
+  },
+  {
+    "id": 61,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client who has been highly engaged for the first five sessions suddenly becomes very closed off in session six. They give one-word answers and say they do not want to discuss the goals they had been working on. The coach has no information about what may have changed. What is the most appropriate response?",
+    "options": {
+      "A": "Continue with the session agenda and hope the client re-engages on their own.",
+      "B": "Ask the client directly what happened since the last session.",
+      "C": "Acknowledge what the coach is noticing without pressure, and offer the client space to use the session in whatever way feels right for them today.",
+      "D": "Suggest rescheduling the session for a time when the client feels more ready."
+    },
+    "correct": "C",
+    "explanation": "A sudden shift in engagement is significant, but pressing for an explanation can feel intrusive. Creating a non-pressured space that follows the client's pace is the most appropriate trust-building response."
+  },
+  {
+    "id": 62,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client shares a personal failure they are clearly ashamed of. After sharing, they add, 'Please don't think less of me.' This is session four of an ongoing engagement. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Reassure the client that the coach does not think less of them and that everyone makes mistakes.",
+      "B": "Respond with genuine warmth, acknowledge the courage it took to share, and invite the client to explore what the experience brought up for them.",
+      "C": "Redirect the conversation to what the client learned from the failure.",
+      "D": "Tell the client that coaching is a judgment-free zone and they can share anything."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging the vulnerability with genuine warmth before moving into exploration honors what the client risked in sharing. Jumping immediately to reassurance or learning skips the relational moment."
+  },
+  {
+    "id": 63,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A coach is working with a client who identifies as part of a marginalized group and has mentioned feeling misunderstood in many professional relationships. The coach does not share the same identity. In session two, the client asks, 'Do you really get what it's like for someone like me?' What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Assure the client that the coach has worked with many diverse clients and understands their experiences.",
+      "B": "Acknowledge honestly that the coach does not share the same lived experience, express genuine curiosity about the client's world, and invite the client to share what they need the coach to understand.",
+      "C": "Refer the client to a coach who shares their identity to ensure the best match.",
+      "D": "Ask the client to describe the specific ways in which they feel misunderstood so the coach can be aware."
+    },
+    "correct": "B",
+    "explanation": "Honest acknowledgment of the coach's own limitations, combined with genuine curiosity and an invitation for the client to shape the relationship, builds trust far more effectively than overstating the coach's understanding."
+  },
+  {
+    "id": 64,
+    "competency": "Cultivates Trust and Safety",
+    "question": "A client discloses mid-session that they are going through a divorce and breaks down in tears. The divorce was not part of the original coaching goal — the engagement is focused on career development. The client apologizes for going off-topic. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Acknowledge the client's distress briefly and redirect them to the career development goal.",
+      "B": "Ask the client whether the divorce has anything to do with the career issues they have been working on.",
+      "C": "Respond with warmth, acknowledge the weight of what the client is experiencing, and ask what would be most supportive for them right now.",
+      "D": "Pause the session and give the client space to compose themselves before continuing."
+    },
+    "correct": "C",
+    "explanation": "When a client shares significant personal distress, the most trust-building response is to acknowledge their experience and follow their lead — not to immediately redirect, analyze, or pause. Safety is created by meeting the client where they are."
+  },
+  {
+    "id": 65,
+    "competency": "Cultivates Trust and Safety",
+    "question": "After several sessions in which a client has been very guarded, the client begins to open up and share vulnerable information. The coach feels a strong pull to ask a probing follow-up question to get more of the story. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Ask the probing question; the client is finally opening up and the momentum should be maintained.",
+      "B": "Stay with what the client shared, respond with presence and warmth, and trust the client to continue at their own pace.",
+      "C": "Acknowledge the shift in openness explicitly and tell the client how glad the coach is that they are sharing.",
+      "D": "Ask the client what made them feel comfortable enough to open up today."
+    },
+    "correct": "B",
+    "explanation": "When a guarded client begins to open, creating safety means following gently — not accelerating. A probing question or explicit naming of the shift can both feel like pressure that causes the client to close again. ─── MAINTAINS PRESENCE ─── Questions 66–80"
+  },
+  {
+    "id": 66,
+    "competency": "Maintains Presence",
+    "question": "During a session, the client is describing a complex situation involving multiple colleagues. The coach finds themselves mentally rehearsing a question they plan to ask once the client finishes. They realize they have stopped fully listening. What should the coach do?",
+    "options": {
+      "A": "Ask the question they had prepared, since it was formed from earlier parts of what the client said.",
+      "B": "Let the client finish and then ask the prepared question as a way of demonstrating engagement.",
+      "C": "Silently let go of the prepared question, refocus attention on the client, and respond to what is actually being said now.",
+      "D": "Acknowledge to the client that they may have missed something and ask them to repeat the last point."
+    },
+    "correct": "C",
+    "explanation": "Maintaining presence means returning fully to the client in the moment. Releasing the prepared question and refocusing demonstrates the self-awareness ICF expects. The best next question always emerges from what the client is saying now."
+  },
+  {
+    "id": 67,
+    "competency": "Maintains Presence",
+    "question": "A client pauses mid-sentence for an unusually long time — about 20 seconds. The coach feels the urge to fill the silence by asking a question. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Ask a clarifying question after ten seconds to help the client move forward.",
+      "B": "Gently name that the client seems to be in thought and invite them to continue when ready.",
+      "C": "Hold the silence, staying present and open to wherever the client goes next.",
+      "D": "Reflect back the last thing the client said before the pause to help them re-engage."
+    },
+    "correct": "C",
+    "explanation": "Silence often holds important processing. Staying present without filling it honors the client's internal work and demonstrates trust that the silence is productive."
+  },
+  {
+    "id": 68,
+    "competency": "Maintains Presence",
+    "question": "A coach is conducting back-to-back sessions and realizes during the third session that they are connecting something the current client said to something a previous client shared. The coach catches themselves comparing the two. What should the coach do?",
+    "options": {
+      "A": "Note the comparison mentally; it may help the coach understand the current client better.",
+      "B": "Internally name the comparison, let it go, and return full attention to this specific client's experience.",
+      "C": "Mention to the client that something similar came up with a recent client to normalize their experience.",
+      "D": "Use the comparison to shape the next question, since it reveals a common coaching pattern."
+    },
+    "correct": "B",
+    "explanation": "Every client deserves the coach's full, undivided attention — not attention filtered through another client's story. Noticing the comparison and releasing it is the practice of presence."
+  },
+  {
+    "id": 69,
+    "competency": "Maintains Presence",
+    "question": "Partway through a session, the coach realizes they have been mentally evaluating whether the client is being honest. The coach has no specific evidence of dishonesty but notices they are in a state of suspicion. What is the most appropriate response?",
+    "options": {
+      "A": "Ask the client a direct question to clarify what they mean and check for consistency.",
+      "B": "Name the internal state, examine whether it reflects a personal assumption, and return to genuine curiosity about the client.",
+      "C": "Continue the session; internal evaluations are a natural part of coaching.",
+      "D": "Raise the observation with the client that something feels unclear and invite them to elaborate."
+    },
+    "correct": "B",
+    "explanation": "Internal suspicion without evidence reflects the coach's own assumptions. Naming and examining it — and returning to curiosity — is the practice of presence and embodies a coaching mindset."
+  },
+  {
+    "id": 70,
+    "competency": "Maintains Presence",
+    "question": "A coach is mid-session when they realize they are mentally drafting a model or framework to share with the client. They believe the framework would be highly relevant to what the client is sharing. What should the coach do?",
+    "options": {
+      "A": "Mentally finalize the framework and introduce it when the client pauses.",
+      "B": "Let go of the framework and remain fully with what the client is sharing, trusting that the right question will emerge from presence.",
+      "C": "Ask the client to pause so the coach can share a model that might be helpful.",
+      "D": "Save the framework for after the session and email it to the client as a resource."
+    },
+    "correct": "B",
+    "explanation": "Drafting a framework while the client is speaking moves the coach into consulting mode and breaks presence. Releasing the mental activity and staying with the client honors the coaching stance."
+  },
+  {
+    "id": 71,
+    "competency": "Maintains Presence",
+    "question": "A client shares that they received devastating personal news just before the session and is visibly shaken. They say they still want to proceed with the session. The coach is unsure whether to continue. What is the most appropriate response?",
+    "options": {
+      "A": "Proceed with the original agenda to give the client structure and stability.",
+      "B": "Pause the agenda, acknowledge what the client just shared, and ask what would be most helpful for them in the session today.",
+      "C": "Encourage the client to go home and rest, since they are clearly not in a state to coach.",
+      "D": "Begin the session by asking the client to share more about the news before deciding how to proceed."
+    },
+    "correct": "B",
+    "explanation": "Maintaining presence means meeting the client where they are, not where the agenda expects them to be. Acknowledging the news and asking what would help puts the client's needs at the center."
+  },
+  {
+    "id": 72,
+    "competency": "Maintains Presence",
+    "question": "A coach is working with a client who has been very silent throughout the session, offering only minimal responses. The coach begins to feel anxiety about whether the session is going well. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Ask more questions to fill the space and generate conversation.",
+      "B": "Acknowledge the coach's own anxiety silently, stay present with the client's pace, and gently notice the quiet with curiosity.",
+      "C": "Tell the client that the session seems quiet and ask if something is wrong.",
+      "D": "Suggest a different coaching activity to change the energy of the session."
+    },
+    "correct": "B",
+    "explanation": "The coach's anxiety about the session belongs to the coach. Naming it internally and returning to presence allows the coach to meet the client's quiet with openness rather than urgency."
+  },
+  {
+    "id": 73,
+    "competency": "Maintains Presence",
+    "question": "While a client speaks, the coach realizes they are thinking about an unrelated personal concern — a conflict at home — that is pulling their attention away. This lasts for about two minutes before the coach notices. What should the coach do?",
+    "options": {
+      "A": "Do nothing; the client does not appear to notice, and the session can continue from here.",
+      "B": "Interrupt the client briefly, apologize, and ask them to repeat what was said.",
+      "C": "Silently refocus full attention on the client and follow the thread of what is being said now.",
+      "D": "End the session early and reschedule since full presence cannot be guaranteed."
+    },
+    "correct": "C",
+    "explanation": "The appropriate in-session response is to quietly return to full presence. The coach does not need to disclose or interrupt — simply refocusing is sufficient."
+  },
+  {
+    "id": 74,
+    "competency": "Maintains Presence",
+    "question": "A client tells the coach they feel the coach has been distracted in recent sessions and that it makes them feel unimportant. The coach reflects and acknowledges this is accurate. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Apologize briefly and assure the client it will not happen again.",
+      "B": "Acknowledge the client's experience honestly, take responsibility, and explore with the client what would help restore trust.",
+      "C": "Explain the external pressures that have affected the coach's focus to help the client understand.",
+      "D": "Suggest taking a short break from the engagement to allow the coach to address what has been distracting them."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging the client's experience, taking clear responsibility, and exploring what would help restore trust honors both transparency and the client's agency. This is what presence and maintaining the coaching relationship looks like when it has faltered."
+  },
+  {
+    "id": 75,
+    "competency": "Maintains Presence",
+    "question": "A client is describing a complex organizational problem at length. The coach notices they are waiting for the client to 'get to the point' so they can ask what they believe is the most important question. The coach feels impatient. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Ask the client to summarize the key issue so the session can move forward more efficiently.",
+      "B": "Notice the impatience internally, release the attachment to 'the point,' and stay genuinely open to what emerges.",
+      "C": "Interrupt when appropriate to redirect the client to their original coaching goal.",
+      "D": "Take detailed notes so the important question can be asked at the end."
+    },
+    "correct": "B",
+    "explanation": "Impatience is a signal of the coach's own need, not the client's. Noticing it and releasing it allows the coach to receive what the client is offering rather than rushing toward a predetermined destination."
+  },
+  {
+    "id": 76,
+    "competency": "Maintains Presence",
+    "question": "A coach realizes partway through a session that they have been mentally agreeing and disagreeing with everything the client says, rather than listening with open curiosity. What is the most appropriate response?",
+    "options": {
+      "A": "Continue the session; having opinions about what clients say is a natural part of coaching.",
+      "B": "Name the internal evaluation pattern, set it aside, and return to full presence and open-ended listening.",
+      "C": "Ask the client a broad open question to reset the conversation.",
+      "D": "Share some of the coach's reactions to model honest engagement."
+    },
+    "correct": "B",
+    "explanation": "Listening through a lens of agreement/disagreement means the coach is evaluating rather than receiving. Noticing and releasing this is the practice of presence. The aim is open, non-evaluative receptivity."
+  },
+  {
+    "id": 77,
+    "competency": "Maintains Presence",
+    "question": "A coach notices that during sessions with a high-achieving client, they feel subtly competitive — comparing their own accomplishments to the client's. The coach catches this during a session. What is the most appropriate response?",
+    "options": {
+      "A": "Use the competitive feeling to push the client toward even greater ambitions.",
+      "B": "Recognize the feeling as the coach's own issue, set it aside, and refocus on genuine curiosity about the client's experience.",
+      "C": "Disclose the feeling to the client as a way of modeling transparency.",
+      "D": "Seek a different type of client after the current engagement ends."
+    },
+    "correct": "B",
+    "explanation": "Competitiveness toward a client is the coach's internal material, not coaching content. Noticing it, not acting on it, and returning to full curiosity is the practice of presence."
+  },
+  {
+    "id": 78,
+    "competency": "Maintains Presence",
+    "question": "A coach is working with a client who frequently changes topics mid-session. In this session, the client has jumped between four different themes in 20 minutes. The coach is having difficulty tracking the thread. What is the most appropriate response?",
+    "options": {
+      "A": "Ask the client to choose one topic and stick with it for the rest of the session.",
+      "B": "Follow each topic as it arises without comment, trusting that the client is exploring what they need.",
+      "C": "Notice the pattern, reflect it back gently to the client, and ask what they notice about it.",
+      "D": "Stop the session and restart with a structured agenda."
+    },
+    "correct": "C",
+    "explanation": "Noticing and gently naming the pattern allows the client to become aware of it without the coach imposing a structure. This keeps the coach present to what is happening rather than trying to control the flow."
+  },
+  {
+    "id": 79,
+    "competency": "Maintains Presence",
+    "question": "A coach is reviewing their notes from a previous session just before a new session begins. As the client joins, the coach still has last session's notes open and is scanning them. The client begins speaking. What should the coach do?",
+    "options": {
+      "A": "Continue reviewing briefly since having session context is important for coaching quality.",
+      "B": "Close the notes immediately and give full, undivided attention to the client from the moment they begin speaking.",
+      "C": "Ask the client to give the coach one more minute to finish reviewing so the session can begin well.",
+      "D": "Review notes while listening since coaches can do both effectively."
+    },
+    "correct": "B",
+    "explanation": "Presence begins from the moment the client enters the session. Continuing to review notes while the client speaks is a split-attention behavior that signals the client is not the priority. Full attention should begin immediately."
+  },
+  {
+    "id": 80,
+    "competency": "Maintains Presence",
+    "question": "A coach notices during a session that the client has shifted from talking about their goals to describing a pattern of behavior that the coach finds personally triggering based on their own life history. The coach feels a strong emotional reaction rising. What should the coach do?",
+    "options": {
+      "A": "Name the emotional reaction to the client to be transparent.",
+      "B": "Acknowledge the reaction internally, breathe, and return to neutral curiosity — then bring the topic to supervision afterward.",
+      "C": "Redirect the client away from the triggering topic to protect the quality of the session.",
+      "D": "End the session early and reschedule to avoid compromising the quality of care."
+    },
+    "correct": "B",
+    "explanation": "Personal triggers are the coach's material, not the client's. Managing the reaction internally, maintaining presence, and bringing the material to supervision is the appropriate professional response. ─── LISTENS ACTIVELY ─── Questions 81–95"
+  },
+  {
+    "id": 81,
+    "competency": "Listens Actively",
+    "question": "During a session, a client is describing a conflict with a colleague. They use the phrase 'I just want it to go away' three times. The coach notices the client's tone shift from frustrated to flat. What is the coach's most appropriate next response?",
+    "options": {
+      "A": "Ask the client to describe what resolution would look like for them.",
+      "B": "Reflect back that the client has said 'I just want it to go away' several times and ask what that phrase means to them.",
+      "C": "Suggest that the client consider whether the conflict is worth the emotional energy it's taking.",
+      "D": "Point out that the client's energy has shifted and ask if they are okay."
+    },
+    "correct": "B",
+    "explanation": "Noticing and naming a repeated phrase — especially one with a tone shift — is core to Active Listening. Reflecting the client's own language back invites deeper awareness without steering or assuming."
+  },
+  {
+    "id": 82,
+    "competency": "Listens Actively",
+    "question": "A client is talking about a significant career decision. They describe it in logical, detailed terms for several minutes. At one point they say, 'Logically I know what I should do, but something just doesn't feel right.' The client then moves on without addressing this. What should the coach do?",
+    "options": {
+      "A": "Continue listening and let the client arrive at the feeling on their own.",
+      "B": "Reflect back the shift the client made — from logic to feeling — and invite them to explore what 'something doesn't feel right' means.",
+      "C": "Ask the client what the logical decision is so the coach can help them evaluate it.",
+      "D": "Point out that the client seems to be overthinking the decision."
+    },
+    "correct": "B",
+    "explanation": "Noticing and gently naming the shift from logic to feeling — and inviting exploration — demonstrates active listening. The client's aside may hold the most important insight."
+  },
+  {
+    "id": 83,
+    "competency": "Listens Actively",
+    "question": "A client uses the word 'fine' to describe multiple areas of their life — their job is fine, their marriage is fine, their health is fine. The coach notices the word is used consistently but the client's body language and tone suggest something is off. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Accept the client's description at face value and explore their coaching goal directly.",
+      "B": "Gently name the pattern of 'fine' the coach is noticing and ask what 'fine' actually feels like for this client.",
+      "C": "Ask the client which area of their life they are least satisfied with.",
+      "D": "Tell the client it sounds like they might not be fully satisfied with any area of their life."
+    },
+    "correct": "B",
+    "explanation": "Noticing a repeated word and exploring its meaning — especially when it conflicts with other signals — is active listening in practice. Inviting the client to define 'fine' for themselves opens awareness without projection."
+  },
+  {
+    "id": 84,
+    "competency": "Listens Actively",
+    "question": "A client is describing a conflict with their team. Midway through the story, the coach realizes they have already formulated a hypothesis about the root cause. The client is still speaking. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Continue listening and offer the hypothesis when the client pauses.",
+      "B": "Silently release the hypothesis and return to listening openly to what the client is still sharing.",
+      "C": "Interrupt gently to share the hypothesis before it is forgotten.",
+      "D": "Ask a question designed to test whether the hypothesis is correct."
+    },
+    "correct": "B",
+    "explanation": "Holding a hypothesis while the client is still speaking breaks active listening. Releasing it and returning to open attention honors both the client and the practice of listening fully before responding."
+  },
+  {
+    "id": 85,
+    "competency": "Listens Actively",
+    "question": "A client describes a situation and the coach notices two distinct emotional undertones — frustration and grief — but the client has not named either. The client concludes by asking, 'So what do you think I should do?' What is the most coaching-aligned response?",
+    "options": {
+      "A": "Respond to the client's question and offer a perspective on what they might do.",
+      "B": "Reflect back the two emotional undertones the coach noticed and ask which, if either, resonates.",
+      "C": "Ask the client what they think they should do, since the coach does not offer advice.",
+      "D": "Summarize the situation the client described before responding to the question."
+    },
+    "correct": "B",
+    "explanation": "Reflecting back what the coach noticed beneath the surface of the story — before jumping to the action question — demonstrates active listening and creates an opportunity for deeper awareness."
+  },
+  {
+    "id": 86,
+    "competency": "Listens Actively",
+    "question": "A client says, 'I know I should delegate more, but I just can't seem to let go.' The coach notices the phrase 'let go' and wonders whether it has a deeper meaning beyond delegation. What is the most appropriate response?",
+    "options": {
+      "A": "Ask the client what prevents them from delegating specific tasks.",
+      "B": "Explore what 'let go' means for this client, naming that the phrase caught the coach's attention.",
+      "C": "Reflect back that the client knows what to do but is struggling to act, and ask what the gap is.",
+      "D": "Suggest that letting go is a common challenge and ask whether the client has tried any delegation strategies."
+    },
+    "correct": "B",
+    "explanation": "When a phrase carries possible deeper resonance, naming it and exploring it is active listening at its most powerful. The client chose those words for a reason."
+  },
+  {
+    "id": 87,
+    "competency": "Listens Actively",
+    "question": "A client is telling a long and detailed story about a workplace situation. Fifteen minutes into the session, the coach realizes they have not yet asked a single question and the client shows no sign of pausing. The coach senses the story has more to go. What should the coach do?",
+    "options": {
+      "A": "Continue listening without interrupting until the client naturally finishes.",
+      "B": "Gently interrupt to ask what the client most wants from the session today.",
+      "C": "Reflect back what the coach has heard so far and ask what is most important about this story for the client.",
+      "D": "Take notes and plan to ask a comprehensive question once the client stops."
+    },
+    "correct": "C",
+    "explanation": "Reflecting back and asking what is most important redirects with purpose — it honors the client's story while helping them find the thread that matters most for coaching."
+  },
+  {
+    "id": 88,
+    "competency": "Listens Actively",
+    "question": "A client is speaking about a new role they are starting. Their words convey excitement, but their voice is flat and their pace is slow. The coach notices this incongruence. What is the most appropriate response?",
+    "options": {
+      "A": "Match the client's verbal content and ask about the most exciting aspect of the new role.",
+      "B": "Gently name what the coach is noticing — enthusiasm in words but something more subdued in tone — and invite the client to say more.",
+      "C": "Ask the client if they are sure they are ready for the new role.",
+      "D": "Reflect back the client's excitement and explore what they are looking forward to most."
+    },
+    "correct": "B",
+    "explanation": "When verbal and non-verbal signals are incongruent, naming what the coach is observing — without interpreting — and inviting exploration is active listening at its most perceptive."
+  },
+  {
+    "id": 89,
+    "competency": "Listens Actively",
+    "question": "After a client finishes speaking, the coach gives a lengthy summary of everything the client said, including interpretations of what the client might have meant. The client nods along but doesn't seem particularly engaged. What does this most suggest about the coach's listening practice?",
+    "options": {
+      "A": "The coach is demonstrating strong active listening by confirming their understanding.",
+      "B": "The coach may be over-processing the client's words through their own interpretation rather than following the client's meaning.",
+      "C": "The client is disengaged and should be asked to be more present.",
+      "D": "The coach's summary is appropriate, but it should be shorter to maintain engagement."
+    },
+    "correct": "B",
+    "explanation": "Lengthy summaries with interpretations risk putting the coach's frame on the client's experience. Active listening requires staying close to the client's own words, not explaining what the coach thinks they meant."
+  },
+  {
+    "id": 90,
+    "competency": "Listens Actively",
+    "question": "A client pauses after sharing something emotionally significant and then says, 'Never mind — it's not important.' The coach noticed that the content seemed significant based on what they have heard over several sessions. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Respect the client's statement and move on, since the client has indicated they do not want to pursue it.",
+      "B": "Gently name that it seemed significant and offer the client the choice to explore it or not.",
+      "C": "Tell the client that based on past sessions, this actually seems very important.",
+      "D": "Ask the client why they feel it is not important."
+    },
+    "correct": "B",
+    "explanation": "Naming what the coach noticed while offering the client a genuine choice — without pressing — honors both active listening and client autonomy."
+  },
+  {
+    "id": 91,
+    "competency": "Listens Actively",
+    "question": "A client is describing a situation in which they feel stuck. They use metaphors repeatedly — 'I feel like I'm running in sand,' 'I can't find my footing,' 'the ground keeps shifting.' The coach has been responding to the literal content. What would be the most powerful shift in the coach's approach?",
+    "options": {
+      "A": "Ask the client to be more specific and concrete about what is happening.",
+      "B": "Enter the client's metaphorical world and ask what it would take for the ground to feel solid.",
+      "C": "Reflect back that the client feels stuck and ask what would help them move forward.",
+      "D": "Ask the client whether they have experienced this feeling in other areas of their life."
+    },
+    "correct": "B",
+    "explanation": "Active listening includes receiving the client's language exactly as offered — including metaphors. Entering the metaphorical world and exploring it on its own terms is one of the most powerful listening moves available to a coach."
+  },
+  {
+    "id": 92,
+    "competency": "Listens Actively",
+    "question": "A client finishes a long description of a conflict and says, 'Anyway, that's the whole story.' The coach noticed that the client left out any mention of their own role in the conflict, focusing entirely on the other person's behavior. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Ask the client what they think the other person was thinking or feeling during the conflict.",
+      "B": "Gently name what the coach noticed — that the story focused on the other person — and invite the client to reflect on their own part in the dynamic.",
+      "C": "Accept the story as complete and ask the client what they want to do about the other person's behavior.",
+      "D": "Ask the client how they felt during the conflict."
+    },
+    "correct": "B",
+    "explanation": "Noticing what is absent from a story — as well as what is present — is a sophisticated form of active listening. Inviting the client to consider their own role creates awareness without accusation."
+  },
+  {
+    "id": 93,
+    "competency": "Listens Actively",
+    "question": "A client who usually speaks quickly and energetically is speaking slowly and choosing their words carefully in this session. The coach has not noticed any change in topic. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Match the slower pace and proceed with the usual approach.",
+      "B": "Ask the client if they have something specific on their mind today.",
+      "C": "Gently notice the shift in how the client is speaking and invite them to share what is present for them.",
+      "D": "Allow the client to continue without comment; different pacing is normal."
+    },
+    "correct": "C",
+    "explanation": "Active listening includes noticing changes in how a client communicates, not just what they communicate. Naming the shift gently and inviting exploration honors the full communication, not just the words."
+  },
+  {
+    "id": 94,
+    "competency": "Listens Actively",
+    "question": "A coach regularly finds themselves forming a response while their client is still speaking. They justify this by telling themselves it helps them respond more quickly and insightfully. What is the primary concern with this pattern?",
+    "options": {
+      "A": "There is no concern; forming responses while listening is an efficient cognitive process.",
+      "B": "Forming responses while the client is still speaking means the coach is listening to respond rather than listening to understand — which compromises the quality of both listening and response.",
+      "C": "This is fine as long as the coach remains flexible and adjusts their response based on what the client says.",
+      "D": "The concern is only if the coach interrupts; waiting until the client finishes is sufficient."
+    },
+    "correct": "B",
+    "explanation": "Active listening requires full attention to what the client is saying, not parallel processing to form a reply. When the coach is already composing a response, they cannot be fully receiving what the client is still sharing."
+  },
+  {
+    "id": 95,
+    "competency": "Listens Actively",
+    "question": "A client has been talking for several minutes about a problem at work. The coach summarizes: 'It sounds like you're frustrated with your manager's lack of support.' The client responds, 'Not really — it's more that I feel invisible.' What should the coach do?",
+    "options": {
+      "A": "Accept the correction and ask what the client means by invisible.",
+      "B": "Restate the original summary since the coach believes 'invisible' and 'lack of support' are the same thing.",
+      "C": "Apologize for misunderstanding and ask the client to start the story again.",
+      "D": "Note that frustration and feeling invisible often go together and explore both."
+    },
+    "correct": "A",
+    "explanation": "When a client corrects the coach's summary, accepting the correction and exploring the client's own words is the active listening response. 'Invisible' is the client's word and should be received exactly as offered. ─── EVOKES AWARENESS ─── Questions 96–115"
+  },
+  {
+    "id": 96,
+    "competency": "Evokes Awareness",
+    "question": "A client describes a recurring pattern: they commit to making a change, make progress, then pull back right before a breakthrough, saying 'I have no idea why I keep doing this.' This is the third session where this pattern has come up. Which coaching response best evokes awareness?",
+    "options": {
+      "A": "Suggest that the client may be experiencing self-sabotage and offer strategies to overcome it.",
+      "B": "Ask what the client imagines might happen if they didn't pull back at that moment.",
+      "C": "Point out that this is the third time the pattern has come up and ask what the client makes of that.",
+      "D": "Ask the client to describe the last time they pulled back in detail so the coach can better understand the trigger."
+    },
+    "correct": "B",
+    "explanation": "Asking the client to imagine what happens if they don't pull back invites them to examine what might be driving the behavior — without labeling it or prescribing a fix. This is a generative, awareness-evoking question."
+  },
+  {
+    "id": 97,
+    "competency": "Evokes Awareness",
+    "question": "A client has been saying for three sessions that they want to have a difficult conversation with their manager about workload, but they have not done so. When asked what has stopped them, they say, 'I don't know — I just haven't gotten around to it.' What is the most awareness-evoking response from the coach?",
+    "options": {
+      "A": "Help the client draft talking points for the conversation so they feel more prepared.",
+      "B": "Ask the client what they imagine the conversation might cost them if they were honest with their manager.",
+      "C": "Suggest the client put the conversation on the calendar to create accountability.",
+      "D": "Explore whether the client's manager is actually approachable."
+    },
+    "correct": "B",
+    "explanation": "Asking what the conversation might cost them invites the client to access the underlying fear or belief driving the avoidance — more illuminating than logistics or preparation."
+  },
+  {
+    "id": 98,
+    "competency": "Evokes Awareness",
+    "question": "A client is excited about a new business idea and describes it at length. When the coach asks what excites them most, the client pauses and says, 'Honestly? I think it's that for once, something would be fully mine.' What is the most coaching-aligned response?",
+    "options": {
+      "A": "Explore what business model would best align with the client's desire for ownership.",
+      "B": "Reflect back that 'something fully mine' seems meaningful and ask the client to say more about that.",
+      "C": "Ask whether the client has felt this way about previous work and what that has been like.",
+      "D": "Validate the client's desire and explore next steps for moving the idea forward."
+    },
+    "correct": "B",
+    "explanation": "Naming the phrase as meaningful and inviting the client to go deeper follows the client's own words directly — a hallmark of evoking awareness. This phrase likely holds important insight beyond the business idea itself."
+  },
+  {
+    "id": 99,
+    "competency": "Evokes Awareness",
+    "question": "A client says they want to 'stop being so afraid of conflict.' They use this exact phrase in every session. The coach has never explored what 'afraid' specifically means to this client. What is the most powerful coaching question to evoke awareness here?",
+    "options": {
+      "A": "What strategies have you tried to manage your fear of conflict?",
+      "B": "What is the fear protecting you from?",
+      "C": "On a scale of 1-10, how afraid are you of conflict right now?",
+      "D": "What would you do differently at work if you were not afraid?"
+    },
+    "correct": "B",
+    "explanation": "Asking what the fear is protecting invites the client to see the fear as serving a function — a significant reframe that often unlocks new awareness and opens entirely different directions of exploration."
+  },
+  {
+    "id": 100,
+    "competency": "Evokes Awareness",
+    "question": "A client is describing a decision they need to make. They have laid out all the pros and cons but still feel stuck, saying 'I've analyzed it to death. I know what makes sense on paper, but I still can't move.' This is session five. Which question is most likely to evoke new awareness?",
+    "options": {
+      "A": "What additional information would help you make this decision?",
+      "B": "What does the version of you who has already made the decision know that you don't yet know right now?",
+      "C": "Which option do you lean toward when you trust your gut?",
+      "D": "What has kept you from making this decision until now?"
+    },
+    "correct": "B",
+    "explanation": "Inviting the client to speak from the perspective of their future self who has already decided bypasses analysis and accesses a different kind of knowing — highly awareness-evoking for a client stuck in their head."
+  },
+  {
+    "id": 101,
+    "competency": "Evokes Awareness",
+    "question": "A client is talking about not having time for things that matter to them personally. When the coach asks what they would do if they had more time, the client lists several activities and becomes visibly more energized as they speak. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client how they might carve out time in their schedule for these activities.",
+      "B": "Name the shift in energy the coach noticed and ask the client what they notice about that.",
+      "C": "Explore which activity would have the most impact if prioritized first.",
+      "D": "Ask whether these activities have ever been a priority in the past."
+    },
+    "correct": "B",
+    "explanation": "Naming the observable shift in energy and turning the client's attention to it invites self-awareness about what actually matters to them — which may be more powerful than any discussion of scheduling or priorities."
+  },
+  {
+    "id": 102,
+    "competency": "Evokes Awareness",
+    "question": "A client consistently describes others as 'needing them' and expresses pride in being indispensable. In this session they mention being exhausted but don't connect it to this pattern. The coach has noticed this across multiple sessions. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Name the pattern the coach has noticed across sessions and ask the client what they make of it.",
+      "B": "Ask the client what being indispensable gives them.",
+      "C": "Suggest that the client's exhaustion may be connected to taking on too much responsibility.",
+      "D": "Ask the client to describe a time they did not feel needed and what that was like."
+    },
+    "correct": "B",
+    "explanation": "Asking what being indispensable gives the client invites them to examine the payoff of the pattern — which is more likely to evoke awareness than naming or explaining the pattern for them."
+  },
+  {
+    "id": 103,
+    "competency": "Evokes Awareness",
+    "question": "A client finishes describing a long-term personal struggle and says, 'I've just accepted that this is who I am.' The tone is resigned. The coach senses this belief is limiting the client. What is the most awareness-evoking coaching question?",
+    "options": {
+      "A": "How long have you felt this way?",
+      "B": "What would it mean for you if that belief were not true?",
+      "C": "Who else in your life would agree with that belief?",
+      "D": "What evidence do you have that this is who you are?"
+    },
+    "correct": "B",
+    "explanation": "Asking what it would mean if the belief were not true opens the client to possibility without directly challenging or dismissing the belief. It creates a crack in a fixed perspective."
+  },
+  {
+    "id": 104,
+    "competency": "Evokes Awareness",
+    "question": "A client talks about wanting to become more visible in their organization but says, 'I don't want to seem like I'm showing off.' The coach notices a tension between desire for visibility and fear of negative perception. Which question is most likely to evoke awareness about this tension?",
+    "options": {
+      "A": "What is the difference between being visible and showing off, in your view?",
+      "B": "How might you increase your visibility without compromising your values?",
+      "C": "Who in your organization is visible in a way you admire?",
+      "D": "What would you need to believe about yourself to feel comfortable being more visible?"
+    },
+    "correct": "A",
+    "explanation": "Asking the client to define the difference between visibility and showing off in their own terms invites them to examine the belief driving the tension — and may reveal it is a distinction only they are drawing."
+  },
+  {
+    "id": 105,
+    "competency": "Evokes Awareness",
+    "question": "A client says they want to 'be a better leader.' When asked what that means, they say, 'I'm not sure — I just know I'm not good enough right now.' The coach hears a judgment embedded in the answer. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client to define what 'good enough' leadership would look like.",
+      "B": "Explore where the belief that they are not good enough right now comes from.",
+      "C": "Ask the client whose standard of 'good enough' they are measuring themselves against.",
+      "D": "Reflect back that they seem to be being hard on themselves and ask if they agree."
+    },
+    "correct": "C",
+    "explanation": "Asking whose standard of 'good enough' the client is using invites them to examine whether the judgment is truly their own — which can be highly revealing and identity-shifting."
+  },
+  {
+    "id": 106,
+    "competency": "Evokes Awareness",
+    "question": "A client is describing a situation at work where they feel invisible. They use many words to describe the situation but never directly say how they feel. The coach notices this absence. What is the most awareness-evoking question?",
+    "options": {
+      "A": "What do you think is causing you to feel invisible at work?",
+      "B": "What is it like for you to feel invisible?",
+      "C": "Who at work makes you feel seen, and what do they do differently?",
+      "D": "How long have you been feeling this way?"
+    },
+    "correct": "B",
+    "explanation": "Asking what it is like to feel invisible invites the client into the felt experience they have been circling without naming. It opens the emotional layer that is clearly present."
+  },
+  {
+    "id": 107,
+    "competency": "Evokes Awareness",
+    "question": "A client shares they are afraid to take a risk that could significantly advance their career, saying 'What if I fail? I've worked so hard to get here.' The coach hears both fear of failure and pride in the journey. Which question is most likely to open new awareness?",
+    "options": {
+      "A": "What is the worst realistic outcome if you take the risk and it doesn't work out?",
+      "B": "What would it mean to have worked hard and still chosen not to take the risk?",
+      "C": "What has taken the most courage in your journey so far?",
+      "D": "What would need to be true for you to feel the risk is worth it?"
+    },
+    "correct": "B",
+    "explanation": "Asking what it would mean to have worked hard and still choose not to act invites the client to examine the relationship between their effort and their identity — a deeply awareness-evoking reframe."
+  },
+  {
+    "id": 108,
+    "competency": "Evokes Awareness",
+    "question": "A client is working on building confidence in presenting to senior leaders. They have canceled two scheduled presentations due to anxiety. When asked what they are afraid might happen, they say, 'I don't know — I just freeze.' What is the most awareness-evoking follow-up question?",
+    "options": {
+      "A": "What have you tried in the past to manage presentation anxiety?",
+      "B": "When you imagine being in the room and freezing, what happens next in that scenario?",
+      "C": "What would it mean to you if you did freeze in front of senior leaders?",
+      "D": "Have you ever given a presentation that went well? What was different?"
+    },
+    "correct": "C",
+    "explanation": "Asking what it would mean to freeze in front of senior leaders invites the client to surface the underlying belief or fear that gives freezing its power. This is more likely to create insight than exploring the mechanics of anxiety or past successes."
+  },
+  {
+    "id": 109,
+    "competency": "Evokes Awareness",
+    "question": "A client describes being chronically underestimated at work. They give three detailed examples and seem increasingly frustrated as they speak. At the end, they say, 'I don't know what I'm doing wrong.' What is the most awareness-evoking coaching question?",
+    "options": {
+      "A": "What do you think those three situations had in common?",
+      "B": "What do you think you might be doing that contributes to people underestimating you?",
+      "C": "What would it feel like to be fully seen and accurately estimated at work?",
+      "D": "Who in your organization does get appropriate recognition, and what do they do differently?"
+    },
+    "correct": "C",
+    "explanation": "Asking the client to imagine being fully seen invites them to access what they actually want — which may not yet be conscious — and creates a generative contrast to the frustration they have been describing."
+  },
+  {
+    "id": 110,
+    "competency": "Evokes Awareness",
+    "question": "A client says, 'I always put everyone else first. I've done it my whole life.' The coach notices this is stated as fact, not complaint. The client has not asked to change this behavior. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client how that pattern has served them.",
+      "B": "Ask whether the client wants to explore what it would be like to put themselves first.",
+      "C": "Reflect back that the client seems to accept this as just how they are.",
+      "D": "Explore the earliest memory the client has of putting others first."
+    },
+    "correct": "A",
+    "explanation": "Asking how the pattern has served the client invites them to see it as something with both costs and benefits — without the coach assuming it needs to change. This creates awareness without imposing a direction."
+  },
+  {
+    "id": 111,
+    "competency": "Evokes Awareness",
+    "question": "A client describes wanting to improve their relationship with their team, but every example they give describes team members as the problem. The coach notices the client never places themselves in the dynamic. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client what their team would say about the dynamic if asked.",
+      "B": "Point out that the client has been describing others as the problem and ask if that feels accurate.",
+      "C": "Ask what the client's contribution to the current team dynamic might be.",
+      "D": "Ask the client what they would want to be different about their team's behavior."
+    },
+    "correct": "C",
+    "explanation": "Asking about the client's own contribution invites ownership and self-examination without accusation. It shifts the frame from 'what others do' to 'what I can influence' — which is where coaching growth lives."
+  },
+  {
+    "id": 112,
+    "competency": "Evokes Awareness",
+    "question": "A client is talking about wanting more balance in their life. When asked to describe what balance looks like, they list what they think it 'should' look like rather than what they actually want. The coach notices the language of obligation. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client which of their obligations they might be able to reduce.",
+      "B": "Ask the client what balance would look and feel like if there were no 'shoulds' involved.",
+      "C": "Reflect back that the client used the word 'should' several times and ask what they notice about that.",
+      "D": "Ask the client where their ideas about balance come from."
+    },
+    "correct": "B",
+    "explanation": "Asking what balance would look like without 'shoulds' invites the client to access their authentic desire beneath the layer of obligation — which may look very different from what they 'should' want."
+  },
+  {
+    "id": 113,
+    "competency": "Evokes Awareness",
+    "question": "A client mentions in passing that they have been described by colleagues as 'intense.' They seem slightly uncomfortable with the description but move on quickly. The coach notices the discomfort. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client whether they agree with their colleagues' description.",
+      "B": "Note that the client seems to have a reaction to that word and invite them to explore what 'intense' means to them.",
+      "C": "Ask the client whether 'intense' is a quality that has helped or hurt their career.",
+      "D": "Reflect back that colleagues have described them as intense and ask what the client would prefer to be described as instead."
+    },
+    "correct": "B",
+    "explanation": "Naming the reaction to the word and inviting the client to explore its meaning for them creates an opening for self-awareness around an identity label — without assuming the coach knows what the word means to this particular client."
+  },
+  {
+    "id": 114,
+    "competency": "Evokes Awareness",
+    "question": "A client in an executive coaching engagement says, 'My team respects me, but I don't think they really like me.' They say this without apparent distress and move on quickly. The coach senses there is something important here. What is the most awareness-evoking response?",
+    "options": {
+      "A": "Ask the client whether they need their team to like them in order to be effective.",
+      "B": "Explore what the difference between being respected and being liked means to the client.",
+      "C": "Ask the client what evidence they have that their team does not like them.",
+      "D": "Ask whether being liked matters to the client's goals."
+    },
+    "correct": "B",
+    "explanation": "Exploring what the distinction between being respected and being liked means to this client invites them into their own value system and may reveal something important about identity, belonging, or leadership philosophy."
+  },
+  {
+    "id": 115,
+    "competency": "Evokes Awareness",
+    "question": "A client says they want to be 'more authentic' at work. When asked what they mean by authentic, they struggle to define it beyond 'just being myself.' The coach senses the client has not deeply examined what this means for them. What is the most awareness-evoking question?",
+    "options": {
+      "A": "What does 'being yourself' look like in a work context?",
+      "B": "Who at work do you experience as authentic, and what do they do that makes you feel that way?",
+      "C": "When do you feel most and least like yourself at work?",
+      "D": "What would you have to stop doing in order to feel more authentic?"
+    },
+    "correct": "C",
+    "explanation": "Asking when the client feels most and least like themselves creates concrete anchoring points for an abstract concept — and is likely to surface specific behaviors, contexts, or relationships that carry the real meaning of 'authenticity' for this person. ─── FACILITATES CLIENT GROWTH ─── Questions 116–135"
+  },
+  {
+    "id": 116,
+    "competency": "Facilitates Client Growth",
+    "question": "Near the end of a session, a client identifies a specific action they want to take before the next meeting. They chose it themselves and seem energized. When the coach asks how confident they are on a scale of 1-10, the client says '5.' What is the most appropriate coaching response?",
+    "options": {
+      "A": "Encourage the client to go for it — their energy suggests they are ready, even if doubt exists.",
+      "B": "Explore what would need to be true to raise their confidence to a 7 or 8.",
+      "C": "Suggest the client modify the action to something more achievable before the next session.",
+      "D": "Accept the commitment and check in on progress at the start of the next session."
+    },
+    "correct": "B",
+    "explanation": "Asking what would raise confidence honors the client's autonomy while helping them identify real obstacles or supports. It facilitates accountability without taking over the goal."
+  },
+  {
+    "id": 117,
+    "competency": "Facilitates Client Growth",
+    "question": "At the end of a session, the client identifies two possible actions but cannot decide between them. They ask the coach to recommend which one to do. The coach has a clear opinion about which action is more likely to produce results. What is the most appropriate response?",
+    "options": {
+      "A": "Share the opinion honestly, since the client asked for it and transparency builds trust.",
+      "B": "Ask the client which option resonates more when they set aside logic and check in with themselves.",
+      "C": "Tell the client to do both actions since both have merit.",
+      "D": "Decline to give a recommendation and remind the client that the coach does not offer advice."
+    },
+    "correct": "B",
+    "explanation": "Facilitating client growth means helping clients develop their own decision-making capacity, not making decisions for them. Asking what resonates when the client looks inward builds that muscle."
+  },
+  {
+    "id": 118,
+    "competency": "Facilitates Client Growth",
+    "question": "A client completes a significant action they had been putting off for weeks. They minimize the achievement: 'It wasn't that big of a deal — I should have done it months ago.' What is the most coaching-aligned response?",
+    "options": {
+      "A": "Agree that the action was overdue and explore what the delay cost the client.",
+      "B": "Acknowledge the accomplishment and gently invite the client to reflect on what it took to actually do it.",
+      "C": "Challenge the minimization directly by pointing out how long the client avoided this action.",
+      "D": "Move past the accomplishment and focus on the next goal since the client seems to have moved on."
+    },
+    "correct": "B",
+    "explanation": "Celebrating progress and inviting the client to own what it took to achieve it builds self-efficacy and supports continued growth — even when the client is reluctant to claim the win."
+  },
+  {
+    "id": 119,
+    "competency": "Facilitates Client Growth",
+    "question": "A client reports at the start of a session that they did not complete the action they committed to. They seem apologetic. The coach notices this is the third consecutive session where a committed action was not completed. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Express gentle concern about the pattern and ask the client to reflect on what is getting in the way.",
+      "B": "Reassure the client that it is okay and move forward with a new action for this session.",
+      "C": "Suggest that the client's goals may not be the right fit and explore whether a new direction is needed.",
+      "D": "Ask the client to commit to a smaller, simpler version of the original action to ensure success."
+    },
+    "correct": "A",
+    "explanation": "Naming the pattern with curiosity — not judgment — and inviting the client to explore what is getting in the way facilitates awareness and growth. Ignoring it would be a disservice."
+  },
+  {
+    "id": 120,
+    "competency": "Facilitates Client Growth",
+    "question": "At the close of the final session of a coaching engagement, the client says they are not sure what they have actually learned and feel like nothing significant changed. The coach, by contrast, has observed significant growth over the engagement. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Reassure the client that significant growth has occurred and offer examples.",
+      "B": "Invite the client to reflect on where they were at the beginning of the engagement compared to now.",
+      "C": "Express surprise at the client's assessment and ask what they expected to be different.",
+      "D": "Accept the client's reflection as accurate and explore what unfinished work might remain."
+    },
+    "correct": "B",
+    "explanation": "Inviting the client to do their own reflection on beginning versus now facilitates their own recognition of growth — which is more meaningful and lasting than the coach telling them what changed."
+  },
+  {
+    "id": 121,
+    "competency": "Facilitates Client Growth",
+    "question": "A client sets a goal at the beginning of a session but midway through, the coach notices the client's energy drop significantly when discussing the steps to achieve it. The client continues without commenting on the shift. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Continue pursuing the goal the client set; shifting mid-session may be disorienting.",
+      "B": "Note the energy drop to the client and ask if the goal still feels right.",
+      "C": "Suggest a different approach to achieving the goal that might re-energize the client.",
+      "D": "Check in with the client about their motivation level and encourage them to stay committed."
+    },
+    "correct": "B",
+    "explanation": "Naming observable shifts and inviting the client to reflect creates an opportunity for authentic course correction. The goal may be right but the approach wrong — or the goal itself may need revisiting."
+  },
+  {
+    "id": 122,
+    "competency": "Facilitates Client Growth",
+    "question": "A client successfully completes a challenging goal and comes to the session excited to celebrate. The coach feels the urge to immediately pivot to 'what's next.' It is session eight of ten. What should the coach do?",
+    "options": {
+      "A": "Acknowledge the success briefly and move to planning the next goal since there are two sessions remaining.",
+      "B": "Fully celebrate the achievement with the client and explore what made it possible before moving forward.",
+      "C": "Ask the client what they want to focus on for the remaining sessions.",
+      "D": "Ask the client how this success changes how they see themselves going forward."
+    },
+    "correct": "B",
+    "explanation": "Celebrating achievement and exploring what made it possible builds self-efficacy and creates transferable insights. Rushing past it to 'what's next' misses a valuable growth moment."
+  },
+  {
+    "id": 123,
+    "competency": "Facilitates Client Growth",
+    "question": "A client identifies a clear, specific action to take. When asked how they will hold themselves accountable, they say, 'I'll just try to remember.' The coach has worked with this client for several sessions and knows they have said this before and not followed through. What is the most coaching-aligned response?",
+    "options": {
+      "A": "Accept the client's accountability plan; it is their commitment to make.",
+      "B": "Gently name the pattern from past sessions and explore with the client what a more reliable accountability structure might look like.",
+      "C": "Suggest the client set a reminder on their phone as a more concrete accountability strategy.",
+      "D": "Ask the client to commit to sending the coach a message when they complete the action."
+    },
+    "correct": "B",
+    "explanation": "Naming the past pattern with care and exploring what a more reliable structure might look like invites the client to design a better approach themselves, building real accountability skill."
+  },
+  {
+    "id": 124,
+    "competency": "Facilitates Client Growth",
+    "question": "A client says they want to set a goal for the session but struggles to articulate it, going in circles for several minutes. Eventually they say, 'I'm not sure what I want to work on today. What do you think we should focus on?' What is the most appropriate coaching response?",
+    "options": {
+      "A": "Suggest a topic from the previous session that seemed unresolved.",
+      "B": "Ask the client to pause, check in with themselves, and share what has been most on their mind lately.",
+      "C": "Tell the client it is okay not to have a goal and invite them to talk about whatever comes to mind.",
+      "D": "Offer two or three possible topics from previous sessions and ask the client to choose one."
+    },
+    "correct": "B",
+    "explanation": "Asking the client to pause and check in with themselves builds their capacity to access their own agenda — which is a growth skill. It is more empowering than providing options or accepting a goalless session."
+  },
+  {
+    "id": 125,
+    "competency": "Facilitates Client Growth",
+    "question": "Toward the end of a long-term engagement, a client says they feel ready to go it alone without coaching. They express gratitude and a new sense of confidence. The coach has found the client to be one of the most interesting people they have worked with. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Encourage the client to continue — deeper work often becomes possible after initial gains.",
+      "B": "Celebrate the client's readiness and explore what it means to them to feel confident without coaching.",
+      "C": "Suggest scheduling occasional check-in sessions to sustain the progress.",
+      "D": "Agree to end the engagement and ask if the client would be willing to provide a testimonial."
+    },
+    "correct": "B",
+    "explanation": "The client's readiness to move forward independently is a coaching success. Celebrating it and exploring its meaning honors their growth and facilitates a meaningful, dignified close."
+  },
+  {
+    "id": 126,
+    "competency": "Facilitates Client Growth",
+    "question": "A client makes an important breakthrough in session — recognizing a core belief that has been limiting them. The coach is excited and wants to build on this insight immediately with action planning. What should the coach do?",
+    "options": {
+      "A": "Help the client immediately identify action steps to translate the insight into change.",
+      "B": "Pause and allow the client to be with the insight, asking what it brings up for them before moving anywhere.",
+      "C": "Reflect back the insight enthusiastically to reinforce its significance.",
+      "D": "Ask the client how they feel about the insight and whether they are ready to move forward."
+    },
+    "correct": "B",
+    "explanation": "Breakthroughs need space before action. Pausing and allowing the client to be with what just happened honors the depth of the moment and may reveal even more before any action planning begins."
+  },
+  {
+    "id": 127,
+    "competency": "Facilitates Client Growth",
+    "question": "A client has been working on building confidence in public speaking. After completing a major presentation they were nervous about, they report it went well but say, 'I got lucky — the audience was easy.' What is the most coaching-aligned response?",
+    "options": {
+      "A": "Agree that audience dynamics play a role and explore how to prepare for a harder audience next time.",
+      "B": "Invite the client to identify specifically what they did that contributed to the presentation going well.",
+      "C": "Tell the client directly that luck had nothing to do with it and they should own their success.",
+      "D": "Explore whether the client has a pattern of attributing successes to external factors."
+    },
+    "correct": "B",
+    "explanation": "Inviting the client to identify their own contributions shifts attribution from external luck to internal capability — building self-efficacy and ownership of growth."
+  },
+  {
+    "id": 128,
+    "competency": "Facilitates Client Growth",
+    "question": "A client has been working toward a major goal for the duration of the engagement. With two sessions remaining, they say they are not sure the goal still matters to them. The coach has invested significantly in this direction. What is the most appropriate response?",
+    "options": {
+      "A": "Encourage the client to see it through since they have come so far.",
+      "B": "Explore what has shifted for the client and whether the original goal still serves their current needs.",
+      "C": "Suggest the client revisit why they chose the goal at the start of the engagement.",
+      "D": "Accept the change and ask the client to identify a replacement goal for the final sessions."
+    },
+    "correct": "B",
+    "explanation": "Client growth is not served by completing a goal that no longer resonates. Exploring what has shifted and whether the goal still serves the client's current needs honors both the coaching agreement and the client's autonomy."
+  },
+  {
+    "id": 129,
+    "competency": "Facilitates Client Growth",
+    "question": "A client is working toward a goal but consistently focuses on barriers and reasons why progress is difficult. The coach has tried exploring the barriers, and the client always finds new ones. The pattern has repeated for three sessions. What is the most appropriate coaching response?",
+    "options": {
+      "A": "Accept the barriers as real and help the client problem-solve each one.",
+      "B": "Name the pattern directly and invite the client to explore what the barriers are serving.",
+      "C": "Suggest the client may not truly want to achieve the goal.",
+      "D": "Shift the focus to a different goal that appears more achievable."
+    },
+    "correct": "B",
+    "explanation": "When a pattern is persistent and consistent, naming it with curiosity and exploring what it serves is more likely to create breakthrough than continuing to address each barrier as if it were independent."
+  },
+  {
+    "id": 130,
+    "competency": "Facilitates Client Growth",
+    "question": "A client has been working on a significant personal change. They arrive to this session and say, 'I don't know why I'm even trying. It never works out for me anyway.' The coach has not heard this kind of resigned language before. This is session eight. What is the most appropriate response?",
+    "options": {
+      "A": "Challenge the belief immediately by listing examples of things that have worked out for the client.",
+      "B": "Acknowledge the statement, ask what happened since the last session, and explore what is underneath the resignation.",
+      "C": "Reassure the client that this is normal and encourage them to keep going.",
+      "D": "Ask the client whether they want to continue the engagement or pause."
+    },
+    "correct": "B",
+    "explanation": "A sudden shift into resigned, global thinking — especially in a client who has not spoken this way before — warrants acknowledgment and gentle exploration rather than challenge, reassurance, or premature decisions about the engagement."
+  },
+  {
+    "id": 131,
+    "competency": "Facilitates Client Growth",
+    "question": "A client has been successfully completing actions between sessions. In this session, they mention a new action they want to take but express doubt about it: 'I'm not sure I'm ready for this one.' What is the most coaching-aligned response?",
+    "options": {
+      "A": "Encourage the client since their track record shows they are capable.",
+      "B": "Explore what 'ready' means to this client and what readiness would look and feel like.",
+      "C": "Suggest the client break the action into smaller steps to build readiness.",
+      "D": "Ask the client to rate their readiness on a scale of 1-10 and explore what would shift it."
+    },
+    "correct": "B",
+    "explanation": "Exploring what 'ready' means to this specific client opens the concept itself as a subject of inquiry — which may reveal an important belief, standard, or fear that is more useful than any encouragement or tactic."
+  },
+  {
+    "id": 132,
+    "competency": "Facilitates Client Growth",
+    "question": "A client is skilled at identifying insights in sessions but reports that they rarely act on what they discover. This pattern has been present throughout the engagement. What is the most appropriate coaching response in the current session?",
+    "options": {
+      "A": "Work with the client to create a detailed action plan to bridge the insight-action gap.",
+      "B": "Name the pattern directly and invite the client to explore what happens between insight and action.",
+      "C": "Focus exclusively on actions this session and skip the exploratory part of the work.",
+      "D": "Suggest the client keep a journal between sessions to reinforce the insights they develop."
+    },
+    "correct": "B",
+    "explanation": "When a pattern is persistent and well-established, naming it and exploring it as a subject in its own right is more likely to produce growth than repeating what hasn't worked. The gap itself is the territory."
+  },
+  {
+    "id": 133,
+    "competency": "Facilitates Client Growth",
+    "question": "A client has just had a session where they expressed significant emotional distress and vulnerability. At the start of the following session, they show up matter-of-fact and businesslike, as though the previous session did not happen. What should the coach do?",
+    "options": {
+      "A": "Match the client's businesslike energy and proceed with a goal-focused session.",
+      "B": "Bring up the previous session's content to ensure it is processed.",
+      "C": "Gently acknowledge the previous session and check how the client is doing before proceeding.",
+      "D": "Ask the client directly how they feel about what they shared last session."
+    },
+    "correct": "C",
+    "explanation": "A gentle acknowledgment of the previous session honors the continuity of the relationship and gives the client the choice of whether to revisit the material or move forward. This facilitates growth without forcing it."
+  },
+  {
+    "id": 134,
+    "competency": "Facilitates Client Growth",
+    "question": "A client is approaching the final session of their engagement. When the coach asks what they are most proud of from the work, the client says they cannot think of anything. They list only areas where they feel they still fall short. What is the most appropriate coaching response?",
+    "options": {
+      "A": "List the achievements the coach has observed on the client's behalf.",
+      "B": "Ask the client to describe who they were when the engagement began and contrast that with who they are now.",
+      "C": "Reassure the client that growth takes time and encourage them to be patient with themselves.",
+      "D": "Suggest the client extend the engagement to work on the remaining gaps."
+    },
+    "correct": "B",
+    "explanation": "Asking the client to compare their past and present self invites them to witness their own growth rather than receiving it from the coach. This builds self-efficacy and creates a more lasting sense of accomplishment."
+  },
+  {
+    "id": 135,
+    "competency": "Facilitates Client Growth",
+    "question": "A client sets a goal at the start of a session and the coach recognizes it as a goal the client has set — and not achieved — in three previous sessions. The client seems unaware of this repetition. What should the coach do?",
+    "options": {
+      "A": "Accept the goal without comment and help the client plan their approach.",
+      "B": "Gently name the pattern — that this goal has come up before without completion — and invite the client to explore what that means.",
+      "C": "Point out that the client keeps setting the same goal and ask if they really want to achieve it.",
+      "D": "Suggest a different, more achievable version of the goal."
+    },
+    "correct": "B",
+    "explanation": "Naming the repetition with curiosity and care opens a conversation about what the pattern is saying — which is more likely to produce real movement than either accepting it silently or challenging the client's motivation. ─── ICF CODE OF ETHICS ─── Questions 136–150"
+  },
+  {
+    "id": 136,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is working with a client who discloses that they occasionally use a controlled substance recreationally. There is no indication the client is in crisis or a danger to themselves or others. The client has not asked for the coach's perspective. The coaching agreement does not address substance use. What is the most ethically aligned coaching response?",
+    "options": {
+      "A": "Express concern about the substance use and encourage the client to seek professional support.",
+      "B": "Continue coaching without comment, as the behavior does not appear to trigger any reporting obligation.",
+      "C": "Ask the client if the substance use connects to anything they want to explore in coaching.",
+      "D": "Disclose that coaches cannot support clients engaged in illegal behavior and end the session."
+    },
+    "correct": "C",
+    "explanation": "The client shared this in a coaching context. Asking whether it connects to something they want to explore respects autonomy and maintains non-judgment without moralizing or exceeding scope."
+  },
+  {
+    "id": 137,
+    "competency": "ICF Code of Ethics",
+    "question": "A client tells a coach they have been having thoughts of self-harm but insists they are 'not going to do anything.' The client says they have a therapist and are sharing this as context for why they have been distracted at work. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Continue the session and focus on the work distraction, since the client already has a therapist.",
+      "B": "Acknowledge what the client shared, express genuine care for their safety, encourage them to share this with their therapist, and check whether the client feels safe before proceeding.",
+      "C": "End the coaching engagement immediately and refer the client to emergency services.",
+      "D": "Ask the client to sign a safety contract agreeing not to harm themselves before continuing."
+    },
+    "correct": "B",
+    "explanation": "Acknowledging the disclosure with genuine care, encouraging the client to use their existing therapeutic support, and checking on safety before continuing is the appropriate ethical and relational response."
+  },
+  {
+    "id": 138,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is asked by a client to role-play a difficult conversation they need to have with their manager. The coach is comfortable with this technique and believes it will be helpful. What should the coach consider before proceeding?",
+    "options": {
+      "A": "Proceed with the role-play; it is an effective coaching tool supported by the ICF.",
+      "B": "Decline; role-playing is a therapeutic technique that coaches should not use.",
+      "C": "Check whether the role-play aligns with the coaching agreement and the client's goals, and ensure the client understands how it will work before beginning.",
+      "D": "Suggest a practice rehearsal instead, which is less therapeutic and more appropriate for coaching."
+    },
+    "correct": "C",
+    "explanation": "Role-playing is not inherently non-coaching, but any technique should be introduced with transparency and in alignment with the coaching agreement. Ensuring the client understands and agrees to the method before starting is good practice."
+  },
+  {
+    "id": 139,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach notices over several sessions that a client's presenting challenges — difficulty with relationships, recurring sadness, trouble concentrating — sound more consistent with depression than with a developmental coaching goal. What is the most appropriate action for the coach?",
+    "options": {
+      "A": "Continue coaching and observe further before making any assumptions about the client's mental health.",
+      "B": "Tell the client the coach believes they may be depressed and should see a doctor.",
+      "C": "Share the observation with care, note the limits of the coach's role, and suggest the client speak with a mental health professional — while leaving the decision to the client.",
+      "D": "End the coaching engagement to avoid working outside scope of practice."
+    },
+    "correct": "C",
+    "explanation": "When a client's challenges appear to exceed the scope of coaching, the coach's obligation is to name the concern with care and refer to appropriate support — while respecting the client's autonomy to decide."
+  },
+  {
+    "id": 140,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is trained in a specific psychological assessment tool and believes it would provide valuable data for the client's development. The coaching agreement does not include assessment. The coach wants to administer the tool and share the results in the next session. What should the coach do?",
+    "options": {
+      "A": "Administer the assessment; it supports the coaching work and benefits the client.",
+      "B": "Introduce the assessment to the client, explain its purpose and how results will be used, and obtain the client's consent before proceeding.",
+      "C": "Administer the assessment only if the coach is certified in its use.",
+      "D": "Avoid using the assessment; introducing tools not included in the original coaching agreement is inappropriate."
+    },
+    "correct": "B",
+    "explanation": "Introducing any tool not originally agreed upon requires transparency and informed consent. Explaining the purpose and obtaining explicit consent before use is an ethical standard."
+  },
+  {
+    "id": 141,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is asked by a client to coach their adult child, who is struggling with career decisions. The coach has been coaching the parent for eight months and knows significant personal details about the family dynamics. The adult child is unaware of the extent of the parent-coach relationship. What is the most appropriate response?",
+    "options": {
+      "A": "Agree to coach the adult child since they are an independent individual with separate goals.",
+      "B": "Decline because coaching both parent and adult child creates an unavoidable conflict of interest.",
+      "C": "Agree, but set strict boundaries about discussing family topics.",
+      "D": "Disclose to the adult child that you coach their parent before agreeing to take them on."
+    },
+    "correct": "B",
+    "explanation": "The coach holds significant family context from the parent's sessions that would inevitably influence their work with the adult child — creating a conflict that strict boundaries cannot fully resolve."
+  },
+  {
+    "id": 142,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is asked by a CEO to coach an employee placed on a performance improvement plan. The employee is told coaching is part of their PIP requirements. The employee attends the first session but appears guarded and does not seem to have voluntarily chosen coaching. What is the most appropriate action from the coach?",
+    "options": {
+      "A": "Proceed with the coaching as contracted by the CEO.",
+      "B": "Address the voluntary nature of coaching with the employee, ensure they understand what coaching is, and explore whether they want to engage with it — even if attendance is required.",
+      "C": "Decline to coach anyone who has not voluntarily chosen the process.",
+      "D": "Report to the CEO that the employee appears uncooperative."
+    },
+    "correct": "B",
+    "explanation": "Coaching requires a willing participant. When a client has been mandated, the coach's first obligation is to ensure the client understands what coaching is and to create the conditions for genuine engagement — even within a required structure."
+  },
+  {
+    "id": 143,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach who is also a trained therapist is working with a coaching client when the client begins processing childhood trauma that has surfaced. The coach believes they could effectively support the client therapeutically given their dual training. What is the most appropriate response?",
+    "options": {
+      "A": "Support the client therapeutically within the session, since the coach has the training to do so safely.",
+      "B": "Acknowledge what has surfaced, stay within the coaching frame, and discuss with the client whether a therapeutic referral — separate from this coaching engagement — might serve them.",
+      "C": "Pause the coaching engagement and transition it into therapy.",
+      "D": "Tell the client that what came up is important but cannot be addressed in coaching."
+    },
+    "correct": "B",
+    "explanation": "Even with dual credentials, the coach contracted as a coach and cannot unilaterally shift into therapy within that engagement. Acknowledging what surfaced and discussing a separate referral is the ethical response."
+  },
+  {
+    "id": 144,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach discovers through a mutual contact that a current coaching client has been publicly misrepresenting their credentials online. The situation does not involve anything the client has shared in coaching sessions. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Raise the issue directly with the client in the next session since integrity is a coaching value.",
+      "B": "Report the situation to the client's employer, since misrepresentation is an ethical violation.",
+      "C": "Reflect on whether the information is relevant to the coaching goals and whether raising it would serve the client — and consult a supervisor if uncertain.",
+      "D": "End the coaching engagement, since the coach cannot continue working with someone of questionable integrity."
+    },
+    "correct": "C",
+    "explanation": "Information from outside sessions requires careful discernment. The coach should reflect on relevance, consider how and whether to raise it, and consult supervision before taking any action."
+  },
+  {
+    "id": 145,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is invited to co-facilitate a workshop with a consultant colleague. The workshop is framed as 'coaching-informed leadership development.' The consultant's portion includes direct advice-giving and prescriptive frameworks alongside the coach's portions. What should the coach do before agreeing to co-facilitate?",
+    "options": {
+      "A": "Agree; workshop co-facilitation is a practical matter and does not need to fully align with coaching ethics.",
+      "B": "Agree, but make sure the coach's portion is clearly labeled as coaching.",
+      "C": "Discuss with the consultant how the workshop will be framed so participants are not misled about what is and is not coaching.",
+      "D": "Decline; co-facilitating with a consultant who gives advice is incompatible with ICF values."
+    },
+    "correct": "C",
+    "explanation": "The ICF Code of Ethics requires coaches to accurately represent the coaching profession. If participants are told the entire workshop is coaching when parts are consulting, that misrepresents coaching. Discussing accurate framing is the ethical step."
+  },
+  {
+    "id": 146,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach has been asked by a client to provide a reference for a board position the client is applying for. The coaching engagement is still active. What should the coach consider before agreeing?",
+    "options": {
+      "A": "Agree immediately; supporting client growth outside of sessions is an extension of the coaching role.",
+      "B": "Decline; coaches should not take on roles that extend beyond the coaching engagement.",
+      "C": "Consider whether providing the reference creates a dual relationship, how it might affect the coaching dynamic, and discuss it openly with the client before agreeing.",
+      "D": "Agree only if the engagement ends first so the reference does not compromise the coaching relationship."
+    },
+    "correct": "C",
+    "explanation": "Taking on the role of reference while still in an active coaching engagement creates a potential dual relationship. Reflecting on this and discussing it with the client — rather than simply agreeing or declining — is the ethical path."
+  },
+  {
+    "id": 147,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach trained in a specific somatic technique believes it would benefit a client who has been struggling to access emotions. The coaching agreement does not include somatic methods. What is the most appropriate approach if the coach wants to introduce this technique?",
+    "options": {
+      "A": "Introduce the technique when it feels relevant and explain it afterward.",
+      "B": "Describe the technique to the client, explain how it might help, and obtain explicit consent before using it.",
+      "C": "Use the technique subtly without labeling it, since naming it might make the client self-conscious.",
+      "D": "Avoid using it entirely since it was not in the original agreement."
+    },
+    "correct": "B",
+    "explanation": "Introducing a new technique requires transparency and informed consent. The client should understand what the technique involves and why the coach believes it may help before agreeing to try it."
+  },
+  {
+    "id": 148,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is working with a client who has disclosed a history of significant trauma. The client has said they are not currently in therapy and does not want to pursue it. The trauma seems to be influencing the coaching work. What is the most appropriate response from the coach?",
+    "options": {
+      "A": "Continue coaching and address the trauma's impact on the client's goals indirectly through the coaching work.",
+      "B": "Refuse to continue coaching until the client has therapeutic support in place.",
+      "C": "Acknowledge the influence of the client's history on their coaching work, share honest perspective on the limits of coaching with trauma, and leave the decision about seeking additional support to the client.",
+      "D": "Coach around the trauma and avoid any topics that might surface it."
+    },
+    "correct": "C",
+    "explanation": "The coach's obligation is transparency about scope and honest communication about what coaching can and cannot address. Respecting the client's choice about therapy while being honest about coaching's limits honors both ethics and autonomy."
+  },
+  {
+    "id": 149,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is contacted by a journalist who wants to interview them about their coaching work with corporate clients. The journalist mentions they have heard specific things about a notable client the coach works with. The coach has not disclosed any client information publicly. What should the coach do?",
+    "options": {
+      "A": "Participate in the interview and address only general coaching practices, not specific clients.",
+      "B": "Decline to participate in the interview entirely.",
+      "C": "Decline to confirm or deny working with any specific client, and participate only in discussing general coaching practices if they choose to do so.",
+      "D": "Contact the client mentioned by the journalist to ask whether they may discuss the engagement."
+    },
+    "correct": "C",
+    "explanation": "Even confirming or denying a coaching relationship is a confidentiality issue. The coach should not confirm client relationships without client consent, even indirectly. Discussing general coaching practice is permissible if done carefully."
+  },
+  {
+    "id": 150,
+    "competency": "ICF Code of Ethics",
+    "question": "A coach is working with a client in a culture where the client's family members are expected to be involved in major life decisions. The client asks whether they can bring a family member to their next coaching session to help them think through an important goal. The coaching agreement does not address third-party attendance. What should the coach do?",
+    "options": {
+      "A": "Decline; coaching is always a one-on-one relationship and third parties are not permitted.",
+      "B": "Agree immediately since respecting the client's cultural context is important.",
+      "C": "Explore the client's request, discuss the implications for the coaching dynamic, and make a transparent and considered decision together — updating the agreement if proceeding.",
+      "D": "Suggest the client involve the family member before or after the session instead."
+    },
+    "correct": "C",
+    "explanation": "Cultural responsiveness is a coaching value, and the client's request deserves genuine exploration rather than a reflexive yes or no. Understanding the client's needs, discussing the implications, and updating the agreement if appropriate reflects both respect and ethical practice."
+  }
+]

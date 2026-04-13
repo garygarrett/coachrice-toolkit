@@ -8,3 +8,7 @@ body {
   font-family: Inter, system-ui, sans-serif;
   min-height: 100vh;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

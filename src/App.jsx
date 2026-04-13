@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
 import CoachDashboard from './pages/CoachDashboard'
 import AdminPanel from './pages/AdminPanel'
+import Exam from './pages/tools/Exam'
 
 /**
  * Detects when a user arrives via an invite email link.
@@ -45,6 +46,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/exam"
+          element={
+            <ProtectedRoute allowedRole="coach">
+              <Exam />
             </ProtectedRoute>
           }
         />

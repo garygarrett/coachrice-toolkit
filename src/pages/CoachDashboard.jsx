@@ -1,6 +1,18 @@
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+const tools = [
+  {
+    id: 'exam',
+    title: 'ACC Practice Exam',
+    description: '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
+    path: '/tools/exam',
+    tag: 'Exam Prep',
+  },
+]
+
 export default function CoachDashboard() {
+  const navigate = useNavigate()
   const { profile, signOut } = useAuth()
 
   return (
@@ -9,8 +21,21 @@ export default function CoachDashboard() {
         <span style={s.name}>{profile?.full_name ?? 'Coach'}</span>
         <button onClick={signOut} style={s.signOut}>Sign Out</button>
       </header>
-      <h1 style={s.heading}>Coach Dashboard</h1>
-      <p style={s.sub}>Your tools and progress will appear here.</p>
+
+      <h1 style={s.heading}>Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}.</h1>
+      <p style={s.sub}>Doerr Institute · CoachRICE Toolkit</p>
+
+      <h2 style={s.sectionTitle}>Tools</h2>
+      <div style={s.grid}>
+        {tools.map(tool => (
+          <button key={tool.id} onClick={() => navigate(tool.path)} style={s.toolCard}>
+            <span style={s.toolTag}>{tool.tag}</span>
+            <p style={s.toolTitle}>{tool.title}</p>
+            <p style={s.toolDesc}>{tool.description}</p>
+            <span style={s.toolArrow}>Start →</span>
+          </button>
+        ))}
+      </div>
     </main>
   )
 }
@@ -41,13 +66,69 @@ const s = {
     color: '#555',
   },
   heading: {
-    fontSize: '1.75rem',
+    fontSize: '1.6rem',
     fontWeight: '700',
     color: '#00205B',
-    marginBottom: '0.5rem',
+    marginBottom: '0.25rem',
   },
   sub: {
-    color: '#666',
-    fontSize: '0.95rem',
+    color: '#888',
+    fontSize: '0.85rem',
+    marginBottom: '2.5rem',
+  },
+  sectionTitle: {
+    fontSize: '0.8rem',
+    fontWeight: '700',
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: '1rem',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '1rem',
+  },
+  toolCard: {
+    background: '#fff',
+    border: '1.5px solid #e5e7eb',
+    borderRadius: '10px',
+    padding: '1.5rem',
+    textAlign: 'left',
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.4rem',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+  },
+  toolTag: {
+    display: 'inline-block',
+    background: '#e8ecf5',
+    color: '#00205B',
+    fontSize: '0.7rem',
+    fontWeight: '700',
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
+    padding: '0.2rem 0.5rem',
+    borderRadius: '4px',
+    marginBottom: '0.25rem',
+  },
+  toolTitle: {
+    fontSize: '1rem',
+    fontWeight: '700',
+    color: '#00205B',
+    margin: 0,
+  },
+  toolDesc: {
+    fontSize: '0.83rem',
+    color: '#555',
+    lineHeight: '1.55',
+    margin: 0,
+  },
+  toolArrow: {
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    color: '#00205B',
+    marginTop: '0.5rem',
   },
 }
