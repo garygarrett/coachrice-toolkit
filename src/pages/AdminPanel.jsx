@@ -50,6 +50,8 @@ const ALL_CONTENT_KEYS = [
   'transcript_card_tag', 'transcript_card_title', 'transcript_card_description',
   'exam_start_badge', 'exam_start_title', 'exam_start_subtitle',
   'exam_start_info_1', 'exam_start_info_2', 'exam_start_info_3',
+  'transcript_start_badge', 'transcript_start_title', 'transcript_start_subtitle',
+  'transcript_start_info_1', 'transcript_start_info_2', 'transcript_start_info_3',
 ]
 
 export default function AdminPanel() {
@@ -855,6 +857,65 @@ export default function AdminPanel() {
                         <button style={{ padding: '0.5rem 1.1rem', background: primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'default', fontFamily: font }}>
                           Start Exam
                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* ── Transcript Scorer Start Screen ── */}
+              <div style={s.formCard}>
+                <h2 style={s.formHeading}>Transcript Scorer — Start Screen</h2>
+                <p style={s.cardDesc}>Text shown to participants before they submit a transcript for scoring.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
+
+                  {/* Edit fields */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <label style={s.label}>Badge (small label at top)
+                      <input style={s.input} value={cv('transcript_start_badge')} onChange={e => set('transcript_start_badge', e.target.value)} placeholder="Application Scoring" />
+                    </label>
+                    <label style={s.label}>Title
+                      <input style={s.input} value={cv('transcript_start_title')} onChange={e => set('transcript_start_title', e.target.value)} placeholder="Transcript Scorer" />
+                    </label>
+                    <label style={s.label}>Subtitle paragraph
+                      <textarea rows={4} style={s.textarea} value={cv('transcript_start_subtitle')} onChange={e => set('transcript_start_subtitle', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 1
+                      <input style={s.input} value={cv('transcript_start_info_1')} onChange={e => set('transcript_start_info_1', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 2
+                      <input style={s.input} value={cv('transcript_start_info_2')} onChange={e => set('transcript_start_info_2', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 3
+                      <input style={s.input} value={cv('transcript_start_info_3')} onChange={e => set('transcript_start_info_3', e.target.value)} />
+                    </label>
+                  </div>
+
+                  {/* Live preview */}
+                  <div>
+                    <p style={s.previewLabel}>Live Preview</p>
+                    <div style={{ background: pageBg, padding: '1.25rem', borderRadius: '8px' }}>
+                      <div style={{ background: '#fff', borderRadius: '10px', padding: '1.25rem', fontFamily: font }}>
+                        <span style={{ display: 'inline-block', background: '#e8ecf5', color: primary, fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0.2rem 0.5rem', borderRadius: '4px', marginBottom: '0.5rem' }}>
+                          {cv('transcript_start_badge') || 'Application Scoring'}
+                        </span>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: primary, margin: '0 0 0.4rem' }}>
+                          {cv('transcript_start_title') || 'Transcript Scorer'}
+                        </h3>
+                        <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: '0 0 0.6rem' }}>
+                          {cv('transcript_start_subtitle')}
+                        </p>
+                        <ul style={{ fontSize: '0.78rem', color: '#444', paddingLeft: '1.1rem', margin: '0 0 0.75rem', lineHeight: '1.75' }}>
+                          {[cv('transcript_start_info_1'), cv('transcript_start_info_2'), cv('transcript_start_info_3')]
+                            .filter(Boolean)
+                            .map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button style={{ padding: '0.5rem 1.1rem', background: primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'default', fontFamily: font }}>
+                            Score Transcript
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

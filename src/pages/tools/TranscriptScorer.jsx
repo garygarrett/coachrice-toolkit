@@ -1,8 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Anthropic from '@anthropic-ai/sdk'
+import * as pdfjsLib from 'pdfjs-dist'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).href
+
+const CONTENT_DEFAULTS = {
+  transcript_start_badge:    'Application Scoring',
+  transcript_start_title:    'Transcript Scorer',
+  transcript_start_subtitle: 'Paste or upload a coaching session transcript. Claude will evaluate it against all ICF ACC behavioral indicators using the BARS framework and return a detailed per-statement score report.',
+  transcript_start_info_1:   'Scored against the ICF ACC BARS rubric (Competencies 1, 3–8)',
+  transcript_start_info_2:   'Per-statement feedback citing evidence from your transcript',
+  transcript_start_info_3:   'Results saved to your progress record',
+  theme_primary_color:       '#00205B',
+  theme_page_bg:             '#f0f2f5',
+  theme_font_family:         'system-ui, -apple-system, sans-serif',
+}
 
 const RATING_COLORS = {
   'Exceeds the Standard':   { color: '#15803d', bg: '#f0fdf4' },
@@ -22,6 +40,9 @@ export default function TranscriptScorer() {
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   const [statusText, setStatusText] = useState('Scoring your transcript…')
+  const [content, setContent] = useState(CONTENT_DEFAULTS)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     supabase
@@ -29,7 +50,42 @@ export default function TranscriptScorer() {
       .select('*')
       .order('sort_order')
       .then(({ data }) => { if (data) setRubrics(data) })
+
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .in('key', Object.keys(CONTENT_DEFAULTS))
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {}
+          data.forEach(row => { map[row.key] = row.value })
+          setContent(prev => ({ ...prev, ...map }))
+        }
+      })
   }, [])
+
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPdfLoading(true)
+    setError(null)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      let text = ''
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const pageContent = await page.getTextContent()
+        text += pageContent.items.map(item => item.str).join(' ') + '\n'
+      }
+      setTranscript(text.trim())
+    } catch (err) {
+      setError('Could not read the PDF. Try copy-pasting the transcript instead.')
+    }
+    setPdfLoading(false)
+    // Reset file input so the same file can be re-selected if needed
+    e.target.value = ''
+  }
 
   async function handleScore() {
     if (!transcript.trim() || rubrics.length === 0) return
@@ -177,44 +233,62 @@ ${transcript}`
       ).sort((a, b) => a.competency_number - b.competency_number)
     : []
 
+  const primary = content.theme_primary_color
+  const pageBg  = content.theme_page_bg
+  const font    = content.theme_font_family
+
   // ─── START SCREEN ───
   if (phase === 'start') {
     return (
-      <main style={s.page}>
+      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
         <div style={s.card}>
-          <p style={s.badge}>Application Scoring</p>
-          <h1 style={s.title}>Transcript Scorer</h1>
-          <p style={s.subtitle}>
-            Paste a coaching session transcript below. Claude will evaluate it against all ICF ACC behavioral indicators
-            using the BARS framework and return a per-statement score report.
-          </p>
+          <p style={{ ...s.badge, color: primary }}>{content.transcript_start_badge}</p>
+          <h1 style={{ ...s.title, color: primary }}>{content.transcript_start_title}</h1>
+          <p style={s.subtitle}>{content.transcript_start_subtitle}</p>
           <ul style={s.infoList}>
-            <li>Scored against the ICF ACC BARS rubric (Competencies 1, 3–8)</li>
-            <li>Per-statement feedback citing evidence from your transcript</li>
-            <li>Results saved to your progress record</li>
+            {[content.transcript_start_info_1, content.transcript_start_info_2, content.transcript_start_info_3]
+              .filter(Boolean)
+              .map((item, i) => <li key={i}>{item}</li>)}
           </ul>
 
-          <label style={s.textareaLabel}>
-            Coaching Transcript
-            <textarea
-              value={transcript}
-              onChange={e => setTranscript(e.target.value)}
-              rows={14}
-              style={s.transcriptArea}
-              placeholder="Paste your full coaching session transcript here…"
-            />
-          </label>
+          <div style={s.transcriptHeader}>
+            <span style={s.textareaLabelText}>Coaching Transcript</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {pdfLoading && <span style={{ fontSize: '0.8rem', color: '#888' }}>Reading PDF…</span>}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                style={{ display: 'none' }}
+                onChange={handlePdfUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={pdfLoading}
+                style={{ ...s.uploadBtn, borderColor: primary, color: primary, opacity: pdfLoading ? 0.5 : 1 }}
+              >
+                Upload PDF
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={transcript}
+            onChange={e => setTranscript(e.target.value)}
+            rows={14}
+            style={s.transcriptArea}
+            placeholder="Paste your full coaching session transcript here, or upload a PDF above…"
+          />
 
           {error && <p style={s.errorMsg}>{error}</p>}
 
           <button
             onClick={handleScore}
             disabled={!transcript.trim() || rubrics.length === 0}
-            style={{ ...s.primaryBtn, opacity: (!transcript.trim() || rubrics.length === 0) ? 0.45 : 1 }}
+            style={{ ...s.primaryBtn, background: primary, opacity: (!transcript.trim() || rubrics.length === 0) ? 0.45 : 1 }}
           >
             {rubrics.length === 0 ? 'Loading rubrics…' : 'Score Transcript'}
           </button>
-          <button onClick={() => navigate('/dashboard')} style={s.linkBtn}>Back to Dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={{ ...s.linkBtn, color: primary }}>Back to Dashboard</button>
         </div>
       </main>
     )
@@ -223,7 +297,7 @@ ${transcript}`
   // ─── ANALYZING SCREEN ───
   if (phase === 'analyzing') {
     return (
-      <main style={s.page}>
+      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
         <style>{`@keyframes ts-spin { to { transform: rotate(360deg) } }`}</style>
         <div style={{ ...s.card, textAlign: 'center', padding: '3rem 2rem' }}>
           <div style={s.spinner} />
@@ -238,7 +312,7 @@ ${transcript}`
 
   // ─── RESULTS SCREEN ───
   return (
-    <main style={s.page}>
+    <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
       <div style={{ ...s.card, maxWidth: '720px' }}>
         <p style={s.badge}>Score Report</p>
         <h1 style={s.title}>Transcript Results</h1>
@@ -346,14 +420,25 @@ const s = {
     margin: '0 0 1.5rem',
     lineHeight: '1.8',
   },
-  textareaLabel: {
+  transcriptHeader: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '0.375rem',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '0.375rem',
+  },
+  textareaLabelText: {
     fontSize: '0.875rem',
     fontWeight: '500',
     color: '#374151',
-    marginBottom: '1.25rem',
+  },
+  uploadBtn: {
+    background: '#fff',
+    border: '1.5px solid',
+    borderRadius: '6px',
+    padding: '0.3rem 0.75rem',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   transcriptArea: {
     padding: '0.75rem',
