@@ -43,38 +43,13 @@ const FONT_OPTIONS = [
   { label: 'Georgia (serif)',              value: "Georgia, 'Times New Roman', serif" },
 ]
 
-// Content fields shown in the Content tab, grouped by section
-const CONTENT_FIELDS = [
-  {
-    section: 'Theme & Branding',
-    description: 'Colors and typography applied across all participant-facing pages.',
-    keys: [
-      { key: 'theme_primary_color', label: 'Primary Color',   type: 'color' },
-      { key: 'theme_page_bg',       label: 'Page Background', type: 'color' },
-      { key: 'theme_font_family',   label: 'Font',            type: 'font'  },
-    ],
-  },
-  {
-    section: 'Dashboard — Exam Tool Card',
-    description: 'The card participants see on their dashboard.',
-    keys: [
-      { key: 'exam_card_tag',         label: 'Tag (small label above title)', type: 'text' },
-      { key: 'exam_card_title',       label: 'Title',                         type: 'text' },
-      { key: 'exam_card_description', label: 'Description',                   type: 'textarea' },
-    ],
-  },
-  {
-    section: 'Exam — Start Screen',
-    description: 'Text shown before the participant begins the exam.',
-    keys: [
-      { key: 'exam_start_badge',    label: 'Badge (small label at top)', type: 'text'     },
-      { key: 'exam_start_title',    label: 'Title',                      type: 'text'     },
-      { key: 'exam_start_subtitle', label: 'Subtitle paragraph',         type: 'textarea' },
-      { key: 'exam_start_info_1',   label: 'Bullet 1',                   type: 'text'     },
-      { key: 'exam_start_info_2',   label: 'Bullet 2',                   type: 'text'     },
-      { key: 'exam_start_info_3',   label: 'Bullet 3',                   type: 'text'     },
-    ],
-  },
+// All keys stored in site_content — used by the save function
+const ALL_CONTENT_KEYS = [
+  'theme_primary_color', 'theme_page_bg', 'theme_font_family',
+  'exam_card_tag', 'exam_card_title', 'exam_card_description',
+  'transcript_card_tag', 'transcript_card_title', 'transcript_card_description',
+  'exam_start_badge', 'exam_start_title', 'exam_start_subtitle',
+  'exam_start_info_1', 'exam_start_info_2', 'exam_start_info_3',
 ]
 
 export default function AdminPanel() {
@@ -198,8 +173,7 @@ export default function AdminPanel() {
     setContentError(null)
     setContentSuccess(null)
 
-    const allKeys = CONTENT_FIELDS.flatMap(g => g.keys.map(f => f.key))
-    const upsertRows = allKeys.map(key => ({ key, value: contentValues[key] ?? '' }))
+    const upsertRows = ALL_CONTENT_KEYS.map(key => ({ key, value: contentValues[key] ?? '' }))
 
     const { error } = await supabase
       .from('site_content')
@@ -716,199 +690,186 @@ export default function AdminPanel() {
           </>
         )}
         {/* ─── CONTENT TAB ─── */}
-        {activeTab === 'content' && (
-          <>
-            <div style={s.titleRow}>
-              <h1 style={s.heading}>Page Content</h1>
-              <button onClick={handleContentSave} disabled={contentSaving} style={s.addBtn}>
-                {contentSaving ? 'Saving…' : 'Save All Changes'}
-              </button>
-            </div>
+        {activeTab === 'content' && (() => {
+          const cv = key => contentValues[key] ?? ''
+          const set = (key, val) => setContentValues(v => ({ ...v, [key]: val }))
+          const primary = cv('theme_primary_color') || '#00205B'
+          const pageBg  = cv('theme_page_bg')       || '#f0f2f5'
+          const font    = cv('theme_font_family')    || 'inherit'
 
-            <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.75rem', marginTop: '-0.75rem' }}>
-              Edit text, colors, and fonts. The preview updates live as you type. Changes go live for participants after saving.
-            </p>
+          // Reusable mini tool card for dashboard preview
+          function MiniCard({ tag, title, desc }) {
+            return (
+              <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: '10px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', fontFamily: font }}>
+                <span style={{ display: 'inline-block', background: '#e8ecf5', color: primary, fontSize: '0.62rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>{tag || '—'}</span>
+                <p style={{ fontSize: '0.88rem', fontWeight: '700', color: primary, margin: 0 }}>{title || '—'}</p>
+                <p style={{ fontSize: '0.75rem', color: '#555', lineHeight: '1.45', margin: 0 }}>{desc || ''}</p>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: primary, marginTop: '0.25rem' }}>Start →</span>
+              </div>
+            )
+          }
 
-            {contentSuccess && <p style={s.successBanner}>{contentSuccess}</p>}
-            {contentError && <p style={s.errorMsg}>{contentError}</p>}
+          return (
+            <>
+              <div style={s.titleRow}>
+                <h1 style={s.heading}>Page Content</h1>
+                <button onClick={handleContentSave} disabled={contentSaving} style={s.addBtn}>
+                  {contentSaving ? 'Saving…' : 'Save All Changes'}
+                </button>
+              </div>
 
-            {CONTENT_FIELDS.map(group => (
-              <div key={group.section} style={s.formCard}>
-                <h2 style={s.formHeading}>{group.section}</h2>
-                {group.description && (
-                  <p style={{ color: '#6b7280', fontSize: '0.82rem', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
-                    {group.description}
-                  </p>
-                )}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: group.section === 'Theme & Branding'
-                    ? 'repeat(auto-fill, minmax(200px, 1fr))'
-                    : '1fr',
-                  gap: '1rem',
-                }}>
-                  {group.keys.map(field => (
-                    <label key={field.key} style={s.label}>
-                      {field.label}
-                      {field.type === 'color' ? (
+              {contentSuccess && <p style={s.successBanner}>{contentSuccess}</p>}
+              {contentError   && <p style={s.errorMsg}>{contentError}</p>}
+
+              {/* ── Theme & Branding ── */}
+              <div style={s.formCard}>
+                <h2 style={s.formHeading}>Theme & Branding</h2>
+                <p style={s.cardDesc}>Colors and font applied across all participant-facing pages.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {[
+                    { key: 'theme_primary_color', label: 'Primary Color',   type: 'color' },
+                    { key: 'theme_page_bg',       label: 'Page Background', type: 'color' },
+                    { key: 'theme_font_family',   label: 'Font',            type: 'font'  },
+                  ].map(f => (
+                    <label key={f.key} style={s.label}>
+                      {f.label}
+                      {f.type === 'color' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <input
-                            type="color"
-                            value={contentValues[field.key] ?? '#00205B'}
-                            onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
-                            style={{ width: '48px', height: '36px', padding: '2px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', background: '#fff' }}
-                          />
-                          <input
-                            type="text"
-                            value={contentValues[field.key] ?? ''}
-                            onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
-                            style={{ ...s.input, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
-                            placeholder="#000000"
-                          />
+                          <input type="color" value={cv(f.key) || '#00205B'} onChange={e => set(f.key, e.target.value)}
+                            style={{ width: '48px', height: '36px', padding: '2px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }} />
+                          <input type="text" value={cv(f.key)} onChange={e => set(f.key, e.target.value)}
+                            style={{ ...s.input, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }} placeholder="#000000" />
                         </div>
-                      ) : field.type === 'font' ? (
-                        <select
-                          value={contentValues[field.key] ?? FONT_OPTIONS[0].value}
-                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
-                          style={{ ...s.input, fontFamily: contentValues[field.key] || 'inherit' }}
-                        >
-                          {FONT_OPTIONS.map(f => (
-                            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
-                          ))}
-                        </select>
-                      ) : field.type === 'textarea' ? (
-                        <textarea
-                          rows={3}
-                          style={s.textarea}
-                          value={contentValues[field.key] ?? ''}
-                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
-                        />
                       ) : (
-                        <input
-                          style={s.input}
-                          value={contentValues[field.key] ?? ''}
-                          onChange={e => setContentValues(v => ({ ...v, [field.key]: e.target.value }))}
-                        />
+                        <select value={cv(f.key) || FONT_OPTIONS[0].value} onChange={e => set(f.key, e.target.value)}
+                          style={{ ...s.input, fontFamily: cv(f.key) || 'inherit' }}>
+                          {FONT_OPTIONS.map(opt => <option key={opt.value} value={opt.value} style={{ fontFamily: opt.value }}>{opt.label}</option>)}
+                        </select>
                       )}
                     </label>
                   ))}
                 </div>
               </div>
-            ))}
 
-            {/* ── Live Preview ── */}
-            <div style={s.formCard}>
-              <h2 style={s.formHeading}>Live Preview</h2>
-              <p style={{ color: '#6b7280', fontSize: '0.82rem', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
-                This is exactly what participants will see. Updates instantly as you edit above.
-              </p>
+              {/* ── Participant Dashboard ── */}
+              <div style={s.formCard}>
+                <h2 style={s.formHeading}>Participant Dashboard</h2>
+                <p style={s.cardDesc}>The tool cards participants see after logging in. Preview updates as you type.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                  {/* Edit fields */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div>
+                      <p style={s.fieldGroupLabel}>Exam Tool Card</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={s.label}>Tag
+                          <input style={s.input} value={cv('exam_card_tag')} onChange={e => set('exam_card_tag', e.target.value)} placeholder="Exam Prep" />
+                        </label>
+                        <label style={s.label}>Title
+                          <input style={s.input} value={cv('exam_card_title')} onChange={e => set('exam_card_title', e.target.value)} placeholder="ACC Practice Exam" />
+                        </label>
+                        <label style={s.label}>Description
+                          <textarea rows={3} style={s.textarea} value={cv('exam_card_description')} onChange={e => set('exam_card_description', e.target.value)} />
+                        </label>
+                      </div>
+                    </div>
 
-                {/* Dashboard card preview */}
-                <div>
-                  <p style={s.previewLabel}>Participant Dashboard</p>
-                  <div style={{
-                    background: contentValues.theme_page_bg || '#f0f2f5',
-                    padding: '1.25rem',
-                    borderRadius: '8px',
-                  }}>
-                    <p style={{
-                      fontSize: '0.65rem', fontWeight: '700', color: '#888',
-                      textTransform: 'uppercase', letterSpacing: '0.06em',
-                      marginBottom: '0.6rem', fontFamily: contentValues.theme_font_family || 'inherit',
-                    }}>Tools</p>
-                    <div style={{
-                      background: '#fff',
-                      border: '1.5px solid #e5e7eb',
-                      borderRadius: '10px',
-                      padding: '1.25rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.4rem',
-                      fontFamily: contentValues.theme_font_family || 'inherit',
-                    }}>
-                      <span style={{
-                        display: 'inline-block',
-                        background: '#e8ecf5',
-                        color: contentValues.theme_primary_color || '#00205B',
-                        fontSize: '0.65rem', fontWeight: '700',
-                        textTransform: 'uppercase', letterSpacing: '0.05em',
-                        padding: '0.2rem 0.5rem', borderRadius: '4px',
-                      }}>
-                        {contentValues.exam_card_tag || 'Exam Prep'}
-                      </span>
-                      <p style={{ fontSize: '0.95rem', fontWeight: '700', color: contentValues.theme_primary_color || '#00205B', margin: 0 }}>
-                        {contentValues.exam_card_title || 'ACC Practice Exam'}
-                      </p>
-                      <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: 0 }}>
-                        {contentValues.exam_card_description || ''}
-                      </p>
-                      <span style={{ fontSize: '0.78rem', fontWeight: '600', color: contentValues.theme_primary_color || '#00205B', marginTop: '0.35rem' }}>
-                        Start →
-                      </span>
+                    <div>
+                      <p style={s.fieldGroupLabel}>Transcript Scorer Card</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={s.label}>Tag
+                          <input style={s.input} value={cv('transcript_card_tag')} onChange={e => set('transcript_card_tag', e.target.value)} placeholder="Application Scoring" />
+                        </label>
+                        <label style={s.label}>Title
+                          <input style={s.input} value={cv('transcript_card_title')} onChange={e => set('transcript_card_title', e.target.value)} placeholder="Transcript Scorer" />
+                        </label>
+                        <label style={s.label}>Description
+                          <textarea rows={3} style={s.textarea} value={cv('transcript_card_description')} onChange={e => set('transcript_card_description', e.target.value)} />
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Exam start screen preview */}
-                <div>
-                  <p style={s.previewLabel}>Exam Start Screen</p>
-                  <div style={{
-                    background: contentValues.theme_page_bg || '#f0f2f5',
-                    padding: '1.25rem',
-                    borderRadius: '8px',
-                  }}>
-                    <div style={{
-                      background: '#fff',
-                      borderRadius: '10px',
-                      padding: '1.25rem',
-                      fontFamily: contentValues.theme_font_family || 'inherit',
-                    }}>
-                      <span style={{
-                        display: 'inline-block',
-                        background: '#e8ecf5',
-                        color: contentValues.theme_primary_color || '#00205B',
-                        fontSize: '0.65rem', fontWeight: '700',
-                        textTransform: 'uppercase', letterSpacing: '0.05em',
-                        padding: '0.2rem 0.5rem', borderRadius: '4px', marginBottom: '0.5rem',
-                      }}>
-                        {contentValues.exam_start_badge || 'ACC Exam Prep'}
-                      </span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: contentValues.theme_primary_color || '#00205B', margin: '0 0 0.4rem' }}>
-                        {contentValues.exam_start_title || 'ICF Practice Exam'}
-                      </h3>
-                      <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: '0 0 0.6rem' }}>
-                        {contentValues.exam_start_subtitle || ''}
-                      </p>
-                      <ul style={{ fontSize: '0.78rem', color: '#444', paddingLeft: '1.1rem', margin: '0 0 0.75rem', lineHeight: '1.75' }}>
-                        {[contentValues.exam_start_info_1, contentValues.exam_start_info_2, contentValues.exam_start_info_3]
-                          .filter(Boolean)
-                          .map((item, i) => <li key={i}>{item}</li>)}
-                      </ul>
-                      <button style={{
-                        padding: '0.5rem 1.1rem',
-                        background: contentValues.theme_primary_color || '#00205B',
-                        color: '#fff', border: 'none', borderRadius: '6px',
-                        fontSize: '0.85rem', fontWeight: '600', cursor: 'default',
-                        fontFamily: contentValues.theme_font_family || 'inherit',
-                      }}>
-                        Start Exam
-                      </button>
+                  {/* Live dashboard preview */}
+                  <div>
+                    <p style={s.previewLabel}>Live Preview</p>
+                    <div style={{ background: pageBg, padding: '1.25rem', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '0.62rem', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.6rem', fontFamily: font }}>Tools</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <MiniCard tag={cv('exam_card_tag') || 'Exam Prep'} title={cv('exam_card_title') || 'ACC Practice Exam'} desc={cv('exam_card_description')} />
+                        <MiniCard tag={cv('transcript_card_tag') || 'Application Scoring'} title={cv('transcript_card_title') || 'Transcript Scorer'} desc={cv('transcript_card_description')} />
+                      </div>
                     </div>
                   </div>
-                </div>
 
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button onClick={handleContentSave} disabled={contentSaving} style={s.submitBtn}>
-                {contentSaving ? 'Saving…' : 'Save All Changes'}
-              </button>
-            </div>
-          </>
-        )}
+              {/* ── Exam Start Screen ── */}
+              <div style={s.formCard}>
+                <h2 style={s.formHeading}>Exam — Start Screen</h2>
+                <p style={s.cardDesc}>Text shown to participants before they begin the exam.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'start' }}>
+
+                  {/* Edit fields */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <label style={s.label}>Badge (small label at top)
+                      <input style={s.input} value={cv('exam_start_badge')} onChange={e => set('exam_start_badge', e.target.value)} placeholder="ACC Exam Prep" />
+                    </label>
+                    <label style={s.label}>Title
+                      <input style={s.input} value={cv('exam_start_title')} onChange={e => set('exam_start_title', e.target.value)} placeholder="ICF Practice Exam" />
+                    </label>
+                    <label style={s.label}>Subtitle paragraph
+                      <textarea rows={4} style={s.textarea} value={cv('exam_start_subtitle')} onChange={e => set('exam_start_subtitle', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 1
+                      <input style={s.input} value={cv('exam_start_info_1')} onChange={e => set('exam_start_info_1', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 2
+                      <input style={s.input} value={cv('exam_start_info_2')} onChange={e => set('exam_start_info_2', e.target.value)} />
+                    </label>
+                    <label style={s.label}>Bullet 3
+                      <input style={s.input} value={cv('exam_start_info_3')} onChange={e => set('exam_start_info_3', e.target.value)} />
+                    </label>
+                  </div>
+
+                  {/* Live exam start preview */}
+                  <div>
+                    <p style={s.previewLabel}>Live Preview</p>
+                    <div style={{ background: pageBg, padding: '1.25rem', borderRadius: '8px' }}>
+                      <div style={{ background: '#fff', borderRadius: '10px', padding: '1.25rem', fontFamily: font }}>
+                        <span style={{ display: 'inline-block', background: '#e8ecf5', color: primary, fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0.2rem 0.5rem', borderRadius: '4px', marginBottom: '0.5rem' }}>
+                          {cv('exam_start_badge') || 'ACC Exam Prep'}
+                        </span>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: primary, margin: '0 0 0.4rem' }}>
+                          {cv('exam_start_title') || 'ICF Practice Exam'}
+                        </h3>
+                        <p style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.5', margin: '0 0 0.6rem' }}>
+                          {cv('exam_start_subtitle')}
+                        </p>
+                        <ul style={{ fontSize: '0.78rem', color: '#444', paddingLeft: '1.1rem', margin: '0 0 0.75rem', lineHeight: '1.75' }}>
+                          {[cv('exam_start_info_1'), cv('exam_start_info_2'), cv('exam_start_info_3')]
+                            .filter(Boolean)
+                            .map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                        <button style={{ padding: '0.5rem 1.1rem', background: primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'default', fontFamily: font }}>
+                          Start Exam
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button onClick={handleContentSave} disabled={contentSaving} style={s.submitBtn}>
+                  {contentSaving ? 'Saving…' : 'Save All Changes'}
+                </button>
+              </div>
+            </>
+          )
+        })()}
 
         {/* ─── RUBRICS TAB ─── */}
         {activeTab === 'rubrics' && (
@@ -1077,4 +1038,6 @@ const s = {
   compBadge: { display: 'inline-block', background: '#e8ecf5', color: '#00205B', fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '4px', whiteSpace: 'nowrap' },
   qText: { fontSize: '0.85rem', color: '#374151', lineHeight: '1.4' },
   previewLabel: { fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', marginTop: 0 },
+  cardDesc: { color: '#6b7280', fontSize: '0.82rem', marginTop: '-0.75rem', marginBottom: '1.25rem' },
+  fieldGroupLabel: { fontSize: '0.75rem', fontWeight: '700', color: '#00205B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', marginTop: 0 },
 }
