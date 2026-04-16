@@ -65,17 +65,19 @@ export default function TranscriptScorer() {
         }
       })
 
-    if (user) {
-      supabase
-        .from('sessions')
-        .select('id, created_at')
-        .eq('user_id', user.id)
-        .eq('tool', 'transcript_scorer')
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .then(({ data }) => { if (data) setPastSessions(data) })
-    }
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('sessions')
+      .select('id, created_at')
+      .eq('user_id', user.id)
+      .eq('tool', 'transcript_scorer')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setPastSessions(data) })
+  }, [user])
 
   async function loadPastSession(sessionId, createdAt) {
     setError(null)
