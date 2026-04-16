@@ -188,10 +188,12 @@ export default function Exam() {
               .filter(Boolean)
               .map((item, i) => <li key={i}>{item}</li>)}
           </ul>
-          <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
-            {loadingBank ? 'Loading questions…' : 'Start Exam'}
-          </button>
-          <button onClick={() => navigate('/dashboard')} style={{ ...s.linkBtn, color: primary }}>Back to Dashboard</button>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
+              {loadingBank ? 'Loading questions…' : 'Start Exam'}
+            </button>
+            <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back to Dashboard</button>
+          </div>
         </div>
       </main>
     )

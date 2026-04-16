@@ -251,44 +251,47 @@ ${transcript}`
               .map((item, i) => <li key={i}>{item}</li>)}
           </ul>
 
-          <div style={s.transcriptHeader}>
-            <span style={s.textareaLabelText}>Coaching Transcript</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {pdfLoading && <span style={{ fontSize: '0.8rem', color: '#888' }}>Reading PDF…</span>}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                style={{ display: 'none' }}
-                onChange={handlePdfUpload}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={pdfLoading}
-                style={{ ...s.uploadBtn, borderColor: primary, color: primary, opacity: pdfLoading ? 0.5 : 1 }}
-              >
-                Upload PDF
-              </button>
-            </div>
-          </div>
-          <textarea
-            value={transcript}
-            onChange={e => setTranscript(e.target.value)}
-            rows={14}
-            style={s.transcriptArea}
-            placeholder="Paste your full coaching session transcript here, or upload a PDF above…"
+          <label style={s.textareaLabel}>
+            Coaching Transcript
+            <textarea
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              rows={14}
+              style={s.transcriptArea}
+              placeholder="Paste your full coaching session transcript here, or upload a PDF below…"
+            />
+          </label>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={handlePdfUpload}
           />
 
           {error && <p style={s.errorMsg}>{error}</p>}
 
-          <button
-            onClick={handleScore}
-            disabled={!transcript.trim() || rubrics.length === 0}
-            style={{ ...s.primaryBtn, background: primary, opacity: (!transcript.trim() || rubrics.length === 0) ? 0.45 : 1 }}
-          >
-            {rubrics.length === 0 ? 'Loading rubrics…' : 'Score Transcript'}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={pdfLoading}
+              style={{ ...s.secondaryBtn, borderColor: primary, color: primary, opacity: pdfLoading ? 0.5 : 1 }}
+            >
+              {pdfLoading ? 'Reading PDF…' : 'Upload PDF'}
+            </button>
+            <button
+              onClick={handleScore}
+              disabled={!transcript.trim() || rubrics.length === 0}
+              style={{ ...s.primaryBtn, background: primary, opacity: (!transcript.trim() || rubrics.length === 0) ? 0.45 : 1 }}
+            >
+              {rubrics.length === 0 ? 'Loading…' : 'Score Transcript'}
+            </button>
+          </div>
+
+          <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, borderColor: primary, color: primary }}>
+            Back to Dashboard
           </button>
-          <button onClick={() => navigate('/dashboard')} style={{ ...s.linkBtn, color: primary }}>Back to Dashboard</button>
         </div>
       </main>
     )
@@ -359,11 +362,11 @@ ${transcript}`
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => { setPhase('start'); setTranscript(''); setResults(null) }}
-            style={s.primaryBtn}
+            style={{ ...s.primaryBtn, background: primary }}
           >
             Score Another Transcript
           </button>
-          <button onClick={() => navigate('/dashboard')} style={s.secondaryBtn}>Dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back to Dashboard</button>
         </div>
       </div>
     </main>
@@ -420,25 +423,14 @@ const s = {
     margin: '0 0 1.5rem',
     lineHeight: '1.8',
   },
-  transcriptHeader: {
+  textareaLabel: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.375rem',
-  },
-  textareaLabelText: {
+    flexDirection: 'column',
+    gap: '0.375rem',
     fontSize: '0.875rem',
     fontWeight: '500',
     color: '#374151',
-  },
-  uploadBtn: {
-    background: '#fff',
-    border: '1.5px solid',
-    borderRadius: '6px',
-    padding: '0.3rem 0.75rem',
-    fontSize: '0.8rem',
-    fontWeight: '600',
-    cursor: 'pointer',
+    marginBottom: '1rem',
   },
   transcriptArea: {
     padding: '0.75rem',
@@ -475,22 +467,11 @@ const s = {
     padding: '0.7rem 1.25rem',
     background: '#fff',
     color: PRIMARY,
-    border: `1.5px solid ${PRIMARY}`,
+    border: '1.5px solid',
     borderRadius: '6px',
     fontSize: '0.9rem',
     fontWeight: '600',
     cursor: 'pointer',
-  },
-  linkBtn: {
-    display: 'block',
-    background: 'none',
-    border: 'none',
-    color: PRIMARY,
-    fontSize: '0.875rem',
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    marginTop: '0.75rem',
-    padding: 0,
   },
   spinner: {
     width: '40px',
