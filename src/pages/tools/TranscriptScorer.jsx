@@ -77,7 +77,7 @@ export default function TranscriptScorer() {
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        console.log('[TranscriptScorer] past sessions:', data, error)
+        if (error) console.error('[TranscriptScorer] past sessions error:', error.message)
         if (data) setPastSessions(data)
       })
   }, [user])
