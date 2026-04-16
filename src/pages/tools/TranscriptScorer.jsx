@@ -38,10 +38,12 @@ export default function TranscriptScorer() {
   const [transcript, setTranscript] = useState('')
   const [rubrics, setRubrics] = useState([])
   const [results, setResults] = useState(null)
+  const [resultDate, setResultDate] = useState(null)
   const [error, setError] = useState(null)
   const [statusText, setStatusText] = useState('Scoring your transcript…')
   const [content, setContent] = useState(CONTENT_DEFAULTS)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [pastSessions, setPastSessions] = useState([])
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -62,7 +64,37 @@ export default function TranscriptScorer() {
           setContent(prev => ({ ...prev, ...map }))
         }
       })
+
+    if (user) {
+      supabase
+        .from('sessions')
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .eq('tool', 'transcript_scorer')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => { if (data) setPastSessions(data) })
+    }
   }, [])
+
+  async function loadPastSession(sessionId, createdAt) {
+    setError(null)
+    setPhase('analyzing')
+    setStatusText('Loading past results…')
+    const { data, error: err } = await supabase
+      .from('application_scores')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('competency_number')
+    if (err || !data?.length) {
+      setError('Could not load that session.')
+      setPhase('start')
+      return
+    }
+    setResults(data)
+    setResultDate(createdAt)
+    setPhase('results')
+  }
 
   async function handlePdfUpload(e) {
     const file = e.target.files?.[0]
@@ -210,9 +242,21 @@ ${transcript}`
           }))
           const { error: scErr } = await supabase.from('application_scores').insert(appRows)
           if (scErr) console.error('[TranscriptScorer] application_scores insert error:', scErr.message)
+
+          // Refresh past sessions list
+          const { data: updatedSessions } = await supabase
+            .from('sessions')
+            .select('id, created_at')
+            .eq('user_id', user.id)
+            .eq('tool', 'transcript_scorer')
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(10)
+          if (updatedSessions) setPastSessions(updatedSessions)
         }
       }
 
+      setResultDate(new Date().toISOString())
       setPhase('results')
     } catch (err) {
       console.error('[TranscriptScorer] error:', err)
@@ -292,6 +336,25 @@ ${transcript}`
           <button onClick={() => navigate('/dashboard')} style={s.backBtn}>
             Back to Dashboard
           </button>
+
+          {pastSessions.length > 0 && (
+            <div style={s.historySection}>
+              <h2 style={{ ...s.historyHeading, color: primary }}>Past Sessions</h2>
+              {pastSessions.map(session => (
+                <div key={session.id} style={s.historyRow}>
+                  <span style={s.historyDate}>
+                    {new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <button
+                    onClick={() => loadPastSession(session.id, session.created_at)}
+                    style={{ ...s.historyBtn, color: primary, borderColor: primary }}
+                  >
+                    View Results
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     )
@@ -317,8 +380,13 @@ ${transcript}`
   return (
     <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
       <div style={{ ...s.card, maxWidth: '720px' }}>
-        <p style={s.badge}>Score Report</p>
-        <h1 style={s.title}>Transcript Results</h1>
+        <p style={{ ...s.badge, color: primary }}>Score Report</p>
+        <h1 style={{ ...s.title, color: primary }}>Transcript Results</h1>
+        {resultDate && (
+          <p style={{ color: '#888', fontSize: '0.8rem', margin: '-0.25rem 0 0.5rem' }}>
+            {new Date(resultDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+          </p>
+        )}
         <p style={{ color: '#555', fontSize: '0.875rem', margin: '0 0 1.75rem' }}>
           Scored against the ICF ACC BARS framework. Ratings reflect the evidence found in your transcript.
         </p>
@@ -554,6 +622,38 @@ const s = {
     color: '#374151',
     lineHeight: '1.5',
     margin: '0 0 0.25rem',
+  },
+  historySection: {
+    marginTop: '2rem',
+    paddingTop: '1.5rem',
+    borderTop: '1px solid #e5e7eb',
+  },
+  historyHeading: {
+    fontSize: '0.8rem',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    margin: '0 0 0.75rem',
+  },
+  historyRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0.6rem 0',
+    borderBottom: '1px solid #f3f4f6',
+  },
+  historyDate: {
+    fontSize: '0.875rem',
+    color: '#374151',
+  },
+  historyBtn: {
+    background: '#fff',
+    border: '1.5px solid',
+    borderRadius: '6px',
+    padding: '0.3rem 0.75rem',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   feedbackText: {
     fontSize: '0.82rem',
