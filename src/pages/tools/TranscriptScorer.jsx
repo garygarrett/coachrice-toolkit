@@ -76,7 +76,10 @@ export default function TranscriptScorer() {
       .eq('tool', 'transcript_scorer')
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setPastSessions(data) })
+      .then(({ data, error }) => {
+        console.log('[TranscriptScorer] past sessions:', data, error)
+        if (data) setPastSessions(data)
+      })
   }, [user])
 
   async function loadPastSession(sessionId, createdAt) {
