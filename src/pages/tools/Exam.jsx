@@ -192,7 +192,7 @@ export default function Exam() {
             <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
               {loadingBank ? 'Loading questions…' : 'Start Exam'}
             </button>
-            <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back to Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
           </div>
         </div>
       </main>
@@ -256,7 +256,7 @@ export default function Exam() {
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
             <button onClick={startExam} style={{ ...s.primaryBtn, background: primary }}>Take Another Exam</button>
-            <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
           </div>
         </div>
       </main>
@@ -381,16 +381,15 @@ const s = {
     fontWeight: '600',
     cursor: 'pointer',
   },
-  linkBtn: {
-    display: 'block',
-    background: 'none',
+  backBtn: {
+    padding: '0.7rem 1.25rem',
+    background: '#f5821f',
+    color: '#fff',
     border: 'none',
-    color: '#00205B',
-    fontSize: '0.875rem',
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+    fontWeight: '600',
     cursor: 'pointer',
-    textDecoration: 'underline',
-    marginTop: '0.75rem',
-    padding: 0,
   },
   quizHeader: {
     display: 'flex',

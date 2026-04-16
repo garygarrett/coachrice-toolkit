@@ -289,7 +289,7 @@ ${transcript}`
             </button>
           </div>
 
-          <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, borderColor: primary, color: primary }}>
+          <button onClick={() => navigate('/dashboard')} style={s.backBtn}>
             Back to Dashboard
           </button>
         </div>
@@ -366,7 +366,7 @@ ${transcript}`
           >
             Score Another Transcript
           </button>
-          <button onClick={() => navigate('/dashboard')} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back to Dashboard</button>
+          <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
         </div>
       </div>
     </main>
@@ -468,6 +468,16 @@ const s = {
     background: '#fff',
     color: PRIMARY,
     border: '1.5px solid',
+    borderRadius: '6px',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  backBtn: {
+    padding: '0.7rem 1.25rem',
+    background: '#f5821f',
+    color: '#fff',
+    border: 'none',
     borderRadius: '6px',
     fontSize: '0.9rem',
     fontWeight: '600',
