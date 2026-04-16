@@ -111,9 +111,17 @@ export default function AdminPanel() {
   const [contentSuccess, setContentSuccess] = useState(null)
   const [contentError, setContentError] = useState(null)
 
+  // ── Rubrics state ──
+  const [rubricsData, setRubricsData] = useState([])
+  const [rubricEdits, setRubricEdits] = useState({}) // id → { exceeds_standard, meets_standard, below_standard, does_not_meet }
+  const [rubricSaving, setRubricSaving] = useState(false)
+  const [rubricSuccess, setRubricSuccess] = useState(null)
+  const [rubricError, setRubricError] = useState(null)
+
   useEffect(() => { loadUsers() }, [])
   useEffect(() => { if (activeTab === 'questions') loadQuestions() }, [activeTab])
   useEffect(() => { if (activeTab === 'content') loadContent() }, [activeTab])
+  useEffect(() => { if (activeTab === 'rubrics') loadRubrics() }, [activeTab])
 
   async function loadUsers() {
     const [{ data: usersData }, { data: cohortsData }, { data: mentorData }] =
@@ -130,6 +138,50 @@ export default function AdminPanel() {
   async function loadQuestions() {
     const { data } = await supabase.from('questions').select('*').order('id')
     if (data) setQuestions(data)
+  }
+
+  async function loadRubrics() {
+    const { data } = await supabase.from('rubrics').select('*').order('sort_order')
+    if (data) {
+      setRubricsData(data)
+      const edits = {}
+      data.forEach(r => {
+        edits[r.id] = {
+          exceeds_standard: r.exceeds_standard ?? '',
+          meets_standard:   r.meets_standard   ?? '',
+          below_standard:   r.below_standard   ?? '',
+          does_not_meet:    r.does_not_meet     ?? '',
+        }
+      })
+      setRubricEdits(edits)
+    }
+  }
+
+  async function handleRubricSave() {
+    setRubricSaving(true)
+    setRubricError(null)
+    setRubricSuccess(null)
+
+    const nonQualifiers = rubricsData.filter(r => !r.is_qualifier)
+    let errorMsg = null
+
+    for (const r of nonQualifiers) {
+      const edits = rubricEdits[r.id] ?? {}
+      const { error } = await supabase.from('rubrics').update({
+        exceeds_standard: edits.exceeds_standard,
+        meets_standard:   edits.meets_standard,
+        below_standard:   edits.below_standard,
+        does_not_meet:    edits.does_not_meet,
+      }).eq('id', r.id)
+      if (error) { errorMsg = error.message; break }
+    }
+
+    if (errorMsg) {
+      setRubricError(errorMsg)
+    } else {
+      setRubricSuccess('Scoring rubrics saved successfully.')
+    }
+    setRubricSaving(false)
   }
 
   async function loadContent() {
@@ -373,6 +425,7 @@ export default function AdminPanel() {
             { id: 'users',     label: 'Users' },
             { id: 'questions', label: 'Exam Questions' },
             { id: 'content',   label: 'Page Content' },
+            { id: 'rubrics',   label: 'Scoring Rubrics' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -852,6 +905,104 @@ export default function AdminPanel() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button onClick={handleContentSave} disabled={contentSaving} style={s.submitBtn}>
                 {contentSaving ? 'Saving…' : 'Save All Changes'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ─── RUBRICS TAB ─── */}
+        {activeTab === 'rubrics' && (
+          <>
+            <div style={s.titleRow}>
+              <h1 style={s.heading}>Scoring Rubrics</h1>
+              <button onClick={handleRubricSave} disabled={rubricSaving} style={s.addBtn}>
+                {rubricSaving ? 'Saving…' : 'Save All Changes'}
+              </button>
+            </div>
+
+            <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.75rem', marginTop: '-0.75rem' }}>
+              These descriptors define each performance level for every ICF ACC behavioral indicator. Claude uses them
+              when scoring transcripts. Competency 1 qualifiers are scored Demonstrated / Not Demonstrated only.
+            </p>
+
+            {rubricSuccess && <p style={s.successBanner}>{rubricSuccess}</p>}
+            {rubricError   && <p style={s.errorMsg}>{rubricError}</p>}
+
+            {/* Group by competency */}
+            {Object.values(
+              rubricsData.reduce((acc, r) => {
+                const k = r.competency_number
+                if (!acc[k]) acc[k] = { competency_number: k, competency_name: r.competency_name, rows: [] }
+                acc[k].rows.push(r)
+                return acc
+              }, {})
+            )
+              .sort((a, b) => a.competency_number - b.competency_number)
+              .map(group => (
+                <div key={group.competency_number} style={s.formCard}>
+                  <h2 style={s.formHeading}>
+                    C{group.competency_number} — {group.competency_name}
+                  </h2>
+
+                  {group.rows.map(r => (
+                    <div key={r.id} style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', letterSpacing: '0.04em' }}>
+                          {r.statement_code}
+                        </span>
+                        {r.is_qualifier && (
+                          <span style={{ fontSize: '0.7rem', fontWeight: '600', background: '#faf5ff', color: '#7e22ce', borderRadius: '4px', padding: '0.15rem 0.45rem' }}>
+                            Qualifier
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '0.875rem', color: '#374151', lineHeight: '1.5', margin: '0 0 0.75rem', fontStyle: 'italic' }}>
+                        {r.statement_text}
+                      </p>
+
+                      {r.is_qualifier ? (
+                        <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>
+                          Scored as Demonstrated / Not Demonstrated — no level descriptors required.
+                        </p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                          {[
+                            { key: 'exceeds_standard', label: 'Exceeds the Standard (4)', color: '#15803d' },
+                            { key: 'meets_standard',   label: 'Meets the Standard (3)',   color: '#1d4ed8' },
+                            { key: 'below_standard',   label: 'Below the Standard (2)',   color: '#b45309' },
+                            { key: 'does_not_meet',    label: 'Does Not Meet Standard (1)', color: '#b91c1c' },
+                          ].map(({ key, label, color }) => (
+                            <label key={key} style={{ ...s.label, gap: '0.3rem' }}>
+                              <span style={{ color, fontSize: '0.8rem', fontWeight: '600' }}>{label}</span>
+                              <textarea
+                                rows={3}
+                                style={s.textarea}
+                                value={rubricEdits[r.id]?.[key] ?? ''}
+                                onChange={e => setRubricEdits(prev => ({
+                                  ...prev,
+                                  [r.id]: { ...prev[r.id], [key]: e.target.value },
+                                }))}
+                                placeholder={`Describe what "${label}" looks like…`}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))
+            }
+
+            {rubricsData.length === 0 && (
+              <p style={{ color: '#999', textAlign: 'center', padding: '2rem' }}>
+                No rubrics found. Make sure the rubrics table has been seeded.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button onClick={handleRubricSave} disabled={rubricSaving} style={s.submitBtn}>
+                {rubricSaving ? 'Saving…' : 'Save All Changes'}
               </button>
             </div>
           </>

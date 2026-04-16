@@ -7,6 +7,7 @@ import SetPassword from './pages/SetPassword'
 import CoachDashboard from './pages/CoachDashboard'
 import AdminPanel from './pages/AdminPanel'
 import Exam from './pages/tools/Exam'
+import TranscriptScorer from './pages/tools/TranscriptScorer'
 
 /**
  * Detects when a user arrives via an invite email link.
@@ -54,6 +55,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="coach">
               <Exam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/transcript"
+          element={
+            <ProtectedRoute allowedRole="coach">
+              <TranscriptScorer />
             </ProtectedRoute>
           }
         />

@@ -4,12 +4,15 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
 const DEFAULTS = {
-  exam_card_tag:         'Exam Prep',
-  exam_card_title:       'ACC Practice Exam',
-  exam_card_description: '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
-  theme_primary_color:   '#00205B',
-  theme_page_bg:         '#f0f2f5',
-  theme_font_family:     'system-ui, -apple-system, sans-serif',
+  exam_card_tag:                'Exam Prep',
+  exam_card_title:              'ACC Practice Exam',
+  exam_card_description:        '10 scenario-based questions across all 9 ICF competencies. Get a personalized score report and AI feedback.',
+  transcript_card_tag:          'Application Scoring',
+  transcript_card_title:        'Transcript Scorer',
+  transcript_card_description:  'Paste a coaching transcript and receive a per-statement score against the ICF ACC BARS rubric across all applicable competencies.',
+  theme_primary_color:          '#00205B',
+  theme_page_bg:                '#f0f2f5',
+  theme_font_family:            'system-ui, -apple-system, sans-serif',
 }
 
 export default function CoachDashboard() {
@@ -50,6 +53,12 @@ export default function CoachDashboard() {
           <span style={{ ...s.toolTag, color: primary }}>{content.exam_card_tag}</span>
           <p style={{ ...s.toolTitle, color: primary }}>{content.exam_card_title}</p>
           <p style={s.toolDesc}>{content.exam_card_description}</p>
+          <span style={{ ...s.toolArrow, color: primary }}>Start →</span>
+        </button>
+        <button onClick={() => navigate('/tools/transcript')} style={s.toolCard}>
+          <span style={{ ...s.toolTag, color: primary }}>{content.transcript_card_tag}</span>
+          <p style={{ ...s.toolTitle, color: primary }}>{content.transcript_card_title}</p>
+          <p style={s.toolDesc}>{content.transcript_card_description}</p>
           <span style={{ ...s.toolArrow, color: primary }}>Start →</span>
         </button>
       </div>
