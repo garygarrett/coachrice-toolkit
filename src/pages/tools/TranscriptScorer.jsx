@@ -13,7 +13,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const CONTENT_DEFAULTS = {
   transcript_start_badge:    'Application Scoring',
   transcript_start_title:    'Transcript Scorer',
-  transcript_start_subtitle: 'Paste or upload a coaching session transcript. Claude will evaluate it against all ICF ACC behavioral indicators using the BARS framework and return a detailed per-statement score report.',
+  transcript_start_subtitle: 'Paste or upload a coaching session transcript. Your transcript will be evaluated against all ICF ACC behavioral indicators using the BARS framework and return a detailed per-statement score report.',
   transcript_start_info_1:   'Scored against the ICF ACC BARS rubric (Competencies 1, 3–8)',
   transcript_start_info_2:   'Per-statement feedback citing evidence from your transcript',
   transcript_start_info_3:   'Results saved to your progress record',
@@ -128,7 +128,7 @@ export default function TranscriptScorer() {
     if (!transcript.trim() || rubrics.length === 0) return
     setError(null)
     setPhase('analyzing')
-    setStatusText('Scoring your transcript with Claude AI…')
+    setStatusText('Scoring your transcript…')
 
     try {
       const rubricContext = rubrics.map(r => {
