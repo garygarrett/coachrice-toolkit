@@ -221,7 +221,6 @@ ${transcript}`
             user_id:        user.id,
             tool:           'transcript_scorer',
             score_category: 'application',
-            raw_input:      transcript,
             raw_output:     JSON.stringify(scores),
             status:         'completed',
           })
