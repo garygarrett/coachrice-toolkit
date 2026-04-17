@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import * as pdfjsLib from 'pdfjs-dist'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -181,18 +181,17 @@ Return ONLY valid JSON — no markdown, no explanation, just the JSON object:
 COACHING TRANSCRIPT:
 ${transcript}`
 
-      const client = new Anthropic({
+      const client = new OpenAI({
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
         dangerouslyAllowBrowser: true,
-        apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
       })
 
-      const message = await client.messages.create({
-        model: 'claude-opus-4-6',
-        max_tokens: 4096,
+      const message = await client.chat.completions.create({
+        model: 'gpt-4-turbo',
         messages: [{ role: 'user', content: prompt }],
       })
 
-      let responseText = message.content[0].text.trim()
+      let responseText = message.choices[0].message.content.trim()
 
       // Strip markdown code fences if present
       const fenceMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/)
