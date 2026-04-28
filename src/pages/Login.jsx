@@ -181,7 +181,7 @@ export default function Login() {
                 required
                 style={s.input}
                 autoComplete="email"
-                placeholder="you@rice.edu"
+                placeholder="CoachRICE@rice.edu"
               />
             </div>
 
