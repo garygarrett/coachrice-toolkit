@@ -83,31 +83,44 @@ export default function Login() {
             <img src={logoImage} alt="CoachRICE" style={{ height: '44px', maxWidth: '160px', objectFit: 'contain' }} />
           </div>
           <div style={s.brandBody}>
-            <div style={s.brandTitle}>CoachRICE Coaching Toolkit</div>
-            <div style={s.brandSub}>Practice exams, session review, AI coaching practice, and transcript tools — all in one place.</div>
+            <div style={s.brandEyebrow}>Account Security</div>
+            <div style={s.brandTitle}>Forgot your password? No problem.</div>
+            <div style={s.brandSub}>Enter your email address and we'll send you a secure link to reset your password. The link expires after 24 hours.</div>
+          </div>
+          <div style={s.brandHelp}>
+            <div style={s.brandHelpTitle}>Need help?</div>
+            <div style={s.brandHelpBody}>If you're unable to access your account, contact <a href="mailto:CoachRICE@rice.edu" style={{ color: '#69cce6', textDecoration: 'none' }}>CoachRICE@rice.edu</a></div>
           </div>
         </div>
 
         <div style={s.formPanel}>
           <div style={s.formInner}>
-            <div style={s.formTitle}>Reset Your Password</div>
-
             {resetSent ? (
               <>
-                <p style={s.successMsg}>Check your inbox — a reset link is on its way.</p>
+                <div style={{ ...s.iconBox, background: '#e4f5e9' }}>✅</div>
+                <div style={s.formTitle}>Check your email</div>
+                <div style={s.formSub}>We've sent a password reset link to <strong>{resetEmail}</strong>. The link will expire in 24 hours.</div>
+                <div style={s.notice}>
+                  <div style={s.noticeTitle}>Didn't receive the email?</div>
+                  <div style={s.noticeBody}>Check your spam folder, or <button type="button" onClick={() => { setResetSent(false); setResetEmail(''); }} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0 }}>click here to resend</button>.</div>
+                </div>
                 <button
                   onClick={() => {
                     setView('login')
                     setResetSent(false)
                     setResetEmail('')
                   }}
-                  style={s.linkBtn}
+                  style={{ ...s.btnSignin, background: 'none', border: '1px solid #e2e6ec', color: '#0f1c3a' }}
                 >
                   Back to Sign In
                 </button>
               </>
             ) : (
               <form onSubmit={handleForgotPassword}>
+                <div style={{ ...s.iconBox, background: '#e6f7fc' }}>🔑</div>
+                <div style={s.formTitle}>Reset your password</div>
+                <div style={s.formSub}>Enter the email address associated with your account and we'll send you a reset link.</div>
+
                 <div style={s.field}>
                   <label htmlFor="reset-email" style={s.label}>Email address</label>
                   <input
@@ -128,13 +141,9 @@ export default function Login() {
                   {resetSubmitting ? 'Sending…' : 'Send Reset Link'}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setView('login')}
-                  style={s.linkBtn}
-                >
-                  Back to Sign In
-                </button>
+                <div style={s.backLink}>
+                  Remember your password? <button type="button" onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0 }}>Back to sign in</button>
+                </div>
               </form>
             )}
           </div>
@@ -276,6 +285,34 @@ const s = {
     lineHeight: '1.7',
     fontFamily: "'Montserrat', sans-serif",
   },
+  brandEyebrow: {
+    fontSize: '10px',
+    fontWeight: '700',
+    letterSpacing: '1.6px',
+    textTransform: 'uppercase',
+    color: '#69cce6',
+    marginBottom: '14px',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  brandHelp: {
+    background: 'rgba(255,255,255,0.06)',
+    borderRadius: '10px',
+    padding: '14px 18px',
+    marginTop: '24px',
+  },
+  brandHelpTitle: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: '#69cce6',
+    marginBottom: '4px',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  brandHelpBody: {
+    fontSize: '10px',
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: '1.6',
+    fontFamily: "'Montserrat', sans-serif",
+  },
   formPanel: {
     flex: '1',
     background: '#fff',
@@ -296,6 +333,23 @@ const s = {
     marginBottom: '28px',
     letterSpacing: '-0.3px',
     fontFamily: "'Montserrat', sans-serif",
+  },
+  formSub: {
+    fontSize: '11px',
+    color: '#6b7a99',
+    marginBottom: '28px',
+    lineHeight: '1.6',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  iconBox: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '22px',
+    marginBottom: '20px',
   },
   field: {
     marginBottom: '18px',
@@ -408,6 +462,32 @@ const s = {
     textDecoration: 'underline',
     padding: 0,
     fontWeight: '600',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  notice: {
+    background: '#f0f2f5',
+    border: '1px solid #e2e6ec',
+    borderRadius: '8px',
+    padding: '14px 16px',
+    marginBottom: '24px',
+  },
+  noticeTitle: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: '#0f1c3a',
+    marginBottom: '4px',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  noticeBody: {
+    fontSize: '10px',
+    color: '#6b7a99',
+    lineHeight: '1.6',
+    fontFamily: "'Montserrat', sans-serif",
+  },
+  backLink: {
+    textAlign: 'center',
+    fontSize: '10px',
+    color: '#6b7a99',
     fontFamily: "'Montserrat', sans-serif",
   },
 }
