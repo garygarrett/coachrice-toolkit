@@ -119,7 +119,7 @@ export default function Login() {
               <form onSubmit={handleForgotPassword}>
                 <div style={{ ...s.iconBox, background: '#e6f7fc' }}>🔑</div>
                 <div style={s.formTitle}>Reset your password</div>
-                <div style={s.formSub}>Enter the email address associated with your account and we'll send you a reset link.</div>
+                <div style={s.formSub}>If this email exists in our system, you will receive a password reset link.</div>
 
                 <div style={s.field}>
                   <label htmlFor="reset-email" style={s.label}>Email address</label>
