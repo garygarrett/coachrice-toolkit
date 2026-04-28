@@ -99,10 +99,10 @@ export default function Login() {
               <>
                 <div style={{ ...s.iconBox, background: '#e4f5e9' }}>✅</div>
                 <div style={s.formTitle}>Check your email</div>
-                <div style={s.formSub}>We've sent a password reset link to <strong>{resetEmail}</strong>. The link will expire in 24 hours.</div>
+                <div style={s.formSub}>We've sent a password reset link to <strong>CoachRICE@rice.edu</strong>. The link will expire in 24 hours.</div>
                 <div style={s.notice}>
                   <div style={s.noticeTitle}>Didn't receive the email?</div>
-                  <div style={s.noticeBody}>Check your spam folder, or <button type="button" onClick={() => { setResetSent(false); setResetEmail(''); }} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0 }}>click here to resend</button>.</div>
+                  <div style={s.noticeBody}>Check your spam folder, or <button type="button" onClick={() => { setResetSent(false); setResetEmail(''); }} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0, fontFamily: "'Montserrat', sans-serif", fontSize: '10px' }}>click here to resend</button>.</div>
                 </div>
                 <button
                   onClick={() => {
@@ -110,7 +110,7 @@ export default function Login() {
                     setResetSent(false)
                     setResetEmail('')
                   }}
-                  style={{ ...s.btnSignin, background: 'none', border: '1px solid #e2e6ec', color: '#0f1c3a' }}
+                  style={{ ...s.btnSignin, background: 'none', border: '1px solid #e2e6ec', color: '#0f1c3a', fontSize: '10px', fontFamily: "'Montserrat', sans-serif" }}
                 >
                   Back to Sign In
                 </button>
@@ -142,7 +142,7 @@ export default function Login() {
                 </button>
 
                 <div style={s.backLink}>
-                  Remember your password? <button type="button" onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0 }}>Back to sign in</button>
+                  Remember your password? <button type="button" onClick={() => setView('login')} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0, fontFamily: "'Montserrat', sans-serif", fontSize: '10px' }}>Back to sign in</button>
                 </div>
               </form>
             )}
