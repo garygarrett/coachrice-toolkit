@@ -99,7 +99,7 @@ export default function Login() {
               <>
                 <div style={{ ...s.iconBox, background: '#e4f5e9' }}>✅</div>
                 <div style={s.formTitle}>Check your email</div>
-                <div style={s.formSub}>We've sent a password reset link to <strong>CoachRICE@rice.edu</strong>. The link will expire in 24 hours.</div>
+                <div style={s.formSub}>We've sent a password reset link to <strong>{resetEmail}</strong>. The link will expire in 24 hours.</div>
                 <div style={s.notice}>
                   <div style={s.noticeTitle}>Didn't receive the email?</div>
                   <div style={s.noticeBody}>Check your spam folder, or <button type="button" onClick={() => { setResetSent(false); setResetEmail(''); }} style={{ background: 'none', border: 'none', color: '#00205B', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', padding: 0, fontFamily: "'Montserrat', sans-serif", fontSize: '10px' }}>click here to resend</button>.</div>
