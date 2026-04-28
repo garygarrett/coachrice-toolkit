@@ -434,10 +434,10 @@ const s = {
     fontFamily: "'Montserrat', sans-serif",
   },
   errorMsg: {
-    color: '#b91c1c',
+    color: '#00205B',
     fontSize: '10px',
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
+    background: '#fff3e6',
+    border: '1px solid #ffe0b2',
     borderRadius: '6px',
     padding: '10px 12px',
     marginBottom: '12px',
