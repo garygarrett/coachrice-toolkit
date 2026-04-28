@@ -91,7 +91,6 @@ export default function Login() {
         <div style={s.formPanel}>
           <div style={s.formInner}>
             <div style={s.formTitle}>Reset Your Password</div>
-            <div style={s.formSubtitle}>We'll send a password reset link to your email.</div>
 
             {resetSent ? (
               <>
@@ -160,8 +159,7 @@ export default function Login() {
 
       <div style={s.formPanel}>
         <div style={s.formInner}>
-          <div style={s.formTitle}>Sign in to CoachRICE</div>
-          <div style={s.formSubtitle}>Welcome back. Enter your credentials to continue.</div>
+          <div style={s.formTitle}>Sign in to CoachRICE Coaching Toolkit</div>
 
           <form onSubmit={handleSubmit}>
             <div style={s.field}>
@@ -270,11 +268,13 @@ const s = {
     lineHeight: '1.2',
     marginBottom: '16px',
     letterSpacing: '-0.5px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   brandSub: {
     fontSize: '12px',
     color: 'rgba(255,255,255,0.55)',
     lineHeight: '1.7',
+    fontFamily: "'Montserrat', sans-serif",
   },
   formPanel: {
     flex: '1',
@@ -293,13 +293,9 @@ const s = {
     fontSize: '20px',
     fontWeight: '800',
     color: '#00205B',
-    marginBottom: '6px',
+    marginBottom: '22px',
     letterSpacing: '-0.3px',
-  },
-  formSubtitle: {
-    fontSize: '11px',
-    color: '#6b7a99',
-    marginBottom: '28px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   field: {
     marginBottom: '12px',
@@ -312,6 +308,7 @@ const s = {
     marginBottom: '4px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   input: {
     width: '100%',
@@ -340,6 +337,7 @@ const s = {
     border: 'none',
     cursor: 'pointer',
     padding: 0,
+    fontFamily: "'Montserrat', sans-serif",
   },
   btnSignin: {
     width: '100%',
@@ -367,16 +365,19 @@ const s = {
     fontWeight: '700',
     color: '#0f1c3a',
     marginBottom: '5px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   needAccountBody: {
     fontSize: '10px',
     color: '#6b7a99',
     lineHeight: '1.7',
+    fontFamily: "'Montserrat', sans-serif",
   },
   accountLink: {
     color: '#00205B',
     fontWeight: '600',
     textDecoration: 'none',
+    fontFamily: "'Montserrat', sans-serif",
   },
   errorMsg: {
     color: '#b91c1c',
@@ -386,6 +387,7 @@ const s = {
     borderRadius: '6px',
     padding: '10px 12px',
     marginBottom: '12px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   successMsg: {
     color: '#15803d',
@@ -395,6 +397,7 @@ const s = {
     borderRadius: '6px',
     padding: '10px 12px',
     marginBottom: '12px',
+    fontFamily: "'Montserrat', sans-serif",
   },
   linkBtn: {
     background: 'none',
@@ -405,5 +408,6 @@ const s = {
     textDecoration: 'underline',
     padding: 0,
     fontWeight: '600',
+    fontFamily: "'Montserrat', sans-serif",
   },
 }
