@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children, allowedRole }) {
   // Profile is still being fetched — hold here rather than redirecting
   if (!profile) return <div style={loadingStyle}>Loading…</div>
 
-  if (profile.role !== allowedRole) {
+  if (allowedRole !== 'any' && profile.role !== allowedRole) {
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />
   }
 

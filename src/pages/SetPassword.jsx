@@ -36,15 +36,7 @@ export default function SetPassword() {
       return
     }
 
-    // Fetch role to send the user to the right page
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    navigate(profile?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+    navigate('/dashboard', { replace: true })
   }
 
   return (

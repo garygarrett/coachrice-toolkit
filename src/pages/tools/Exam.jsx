@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import Layout from '../../components/Layout'
 
 const EXAM_LENGTH = 10
 
@@ -178,24 +179,26 @@ export default function Exam() {
   // ─── START SCREEN ───
   if (phase === 'start') {
     return (
-      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
-        <div style={s.card}>
-          <p style={{ ...s.badge, color: primary }}>{content.exam_start_badge}</p>
-          <h1 style={{ ...s.title, color: primary }}>{content.exam_start_title}</h1>
-          <p style={s.subtitle}>{content.exam_start_subtitle}</p>
-          <ul style={s.infoList}>
-            {[content.exam_start_info_1, content.exam_start_info_2, content.exam_start_info_3]
-              .filter(Boolean)
-              .map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
-              {loadingBank ? 'Loading questions…' : 'Start Exam'}
-            </button>
-            <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
+      <Layout active="exam" pageTitle="ACC Practice Exam">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={s.card}>
+            <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.exam_start_badge}</p>
+            <h1 style={{ ...s.title, color: '#00205B' }}>{content.exam_start_title}</h1>
+            <p style={s.subtitle}>{content.exam_start_subtitle}</p>
+            <ul style={s.infoList}>
+              {[content.exam_start_info_1, content.exam_start_info_2, content.exam_start_info_3]
+                .filter(Boolean)
+                .map((item, i) => <li key={i}>{item}</li>)}
+            </ul>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button onClick={startExam} disabled={loadingBank} style={{ ...s.primaryBtn, background: primary, opacity: loadingBank ? 0.5 : 1 }}>
+                {loadingBank ? 'Loading questions…' : 'Start Exam'}
+              </button>
+              <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
+            </div>
           </div>
         </div>
-      </main>
+      </Layout>
     )
   }
 
@@ -205,61 +208,63 @@ export default function Exam() {
     const overall = proficiencyLabel(pct)
 
     return (
-      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
-        <div style={{ ...s.card, maxWidth: '600px' }}>
-          <p style={s.badge}>Exam Complete</p>
-          <h1 style={s.title}>Your Results</h1>
+      <Layout active="exam" pageTitle="ACC Practice Exam">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ ...s.card, maxWidth: '600px' }}>
+            <p style={s.badge}>Exam Complete</p>
+            <h1 style={s.title}>Your Results</h1>
 
-          <div style={{ ...s.scoreCircle, borderColor: primary }}>
-            <span style={{ ...s.scoreNumber, color: primary }}>{results.score}/{results.total}</span>
-            <span style={{ ...s.scoreLabel, color: overall.color }}>{overall.label}</span>
-          </div>
+            <div style={{ ...s.scoreCircle, borderColor: primary }}>
+              <span style={{ ...s.scoreNumber, color: primary }}>{results.score}/{results.total}</span>
+              <span style={{ ...s.scoreLabel, color: overall.color }}>{overall.label}</span>
+            </div>
 
-          <h2 style={s.sectionTitle}>By Competency</h2>
-          <div style={s.breakdownList}>
-            {results.competencyBreakdown.map(c => {
-              const p = proficiencyLabel(c.pct)
-              return (
-                <div key={c.competency} style={s.breakdownRow}>
-                  <span style={s.competencyName}>{c.competency}</span>
-                  <span style={{ ...s.profBadge, color: p.color, background: p.bg }}>
-                    {c.correct}/{c.total}
-                  </span>
+            <h2 style={s.sectionTitle}>By Competency</h2>
+            <div style={s.breakdownList}>
+              {results.competencyBreakdown.map(c => {
+                const p = proficiencyLabel(c.pct)
+                return (
+                  <div key={c.competency} style={s.breakdownRow}>
+                    <span style={s.competencyName}>{c.competency}</span>
+                    <span style={{ ...s.profBadge, color: p.color, background: p.bg }}>
+                      {c.correct}/{c.total}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <h2 style={s.sectionTitle}>Question Review</h2>
+            <div style={s.reviewList}>
+              {results.scored.map((q, i) => (
+                <div key={q.id} style={{ ...s.reviewItem, borderLeftColor: q.isCorrect ? '#15803d' : '#b91c1c' }}>
+                  <p style={s.reviewQ}><strong>Q{i + 1}.</strong> {q.question}</p>
+                  {q.isCorrect ? (
+                    <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0.3rem 0 0' }}>
+                      ✓ Correct — {q.options[q.correct]}
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ color: '#b91c1c', fontSize: '0.8rem', margin: '0.3rem 0 0.1rem' }}>
+                        ✗ You chose ({q.userAnswer}) {q.options[q.userAnswer]}
+                      </p>
+                      <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0 0 0.3rem' }}>
+                        ✓ Correct: ({q.correct}) {q.options[q.correct]}
+                      </p>
+                      <p style={s.reviewExpl}>{q.explanation}</p>
+                    </>
+                  )}
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
 
-          <h2 style={s.sectionTitle}>Question Review</h2>
-          <div style={s.reviewList}>
-            {results.scored.map((q, i) => (
-              <div key={q.id} style={{ ...s.reviewItem, borderLeftColor: q.isCorrect ? '#15803d' : '#b91c1c' }}>
-                <p style={s.reviewQ}><strong>Q{i + 1}.</strong> {q.question}</p>
-                {q.isCorrect ? (
-                  <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0.3rem 0 0' }}>
-                    ✓ Correct — {q.options[q.correct]}
-                  </p>
-                ) : (
-                  <>
-                    <p style={{ color: '#b91c1c', fontSize: '0.8rem', margin: '0.3rem 0 0.1rem' }}>
-                      ✗ You chose ({q.userAnswer}) {q.options[q.userAnswer]}
-                    </p>
-                    <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0 0 0.3rem' }}>
-                      ✓ Correct: ({q.correct}) {q.options[q.correct]}
-                    </p>
-                    <p style={s.reviewExpl}>{q.explanation}</p>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
-            <button onClick={startExam} style={{ ...s.primaryBtn, background: primary }}>Take Another Exam</button>
-            <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
+              <button onClick={startExam} style={{ ...s.primaryBtn, background: primary }}>Take Another Exam</button>
+              <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
+            </div>
           </div>
         </div>
-      </main>
+      </Layout>
     )
   }
 
@@ -270,46 +275,48 @@ export default function Exam() {
   const progress = (currentIndex / questions.length) * 100
 
   return (
-    <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
-      <div style={s.card}>
-        <div style={s.quizHeader}>
-          <span style={{ ...s.badge, color: primary }}>{q.competency}</span>
-          <span style={s.counter}>Question {currentIndex + 1} of {questions.length}</span>
-        </div>
+    <Layout active="exam" pageTitle="ACC Practice Exam">
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={s.card}>
+          <div style={s.quizHeader}>
+            <span style={{ ...s.badge, color: primary }}>{q.competency}</span>
+            <span style={s.counter}>Question {currentIndex + 1} of {questions.length}</span>
+          </div>
 
-        <div style={s.progressTrack}>
-          <div style={{ ...s.progressFill, width: `${progress}%`, background: primary }} />
-        </div>
+          <div style={s.progressTrack}>
+            <div style={{ ...s.progressFill, width: `${progress}%`, background: primary }} />
+          </div>
 
-        <p style={s.questionText}>{q.question}</p>
+          <p style={s.questionText}>{q.question}</p>
 
-        <div style={s.optionsList}>
-          {['A', 'B', 'C', 'D'].map(letter => (
+          <div style={s.optionsList}>
+            {['A', 'B', 'C', 'D'].map(letter => (
+              <button
+                key={letter}
+                onClick={() => selectAnswer(letter)}
+                style={{ ...s.optionBtn, ...(selected === letter ? { ...s.optionSelected, borderColor: primary } : {}) }}
+              >
+                <span style={{ ...s.optionLetter, background: primary }}>{letter}</span>
+                <span style={s.optionText}>{q[`option_${letter.toLowerCase()}`]}</span>
+              </button>
+            ))}
+          </div>
+
+          <div style={s.navRow}>
+            {currentIndex > 0 && (
+              <button onClick={() => setCurrentIndex(i => i - 1)} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back</button>
+            )}
             <button
-              key={letter}
-              onClick={() => selectAnswer(letter)}
-              style={{ ...s.optionBtn, ...(selected === letter ? { ...s.optionSelected, borderColor: primary } : {}) }}
+              onClick={advance}
+              disabled={!selected}
+              style={{ ...s.primaryBtn, background: primary, marginLeft: 'auto', opacity: selected ? 1 : 0.45 }}
             >
-              <span style={{ ...s.optionLetter, background: primary }}>{letter}</span>
-              <span style={s.optionText}>{q[`option_${letter.toLowerCase()}`]}</span>
+              {isLast ? 'Submit Exam' : 'Next'}
             </button>
-          ))}
-        </div>
-
-        <div style={s.navRow}>
-          {currentIndex > 0 && (
-            <button onClick={() => setCurrentIndex(i => i - 1)} style={{ ...s.secondaryBtn, color: primary, borderColor: primary }}>Back</button>
-          )}
-          <button
-            onClick={advance}
-            disabled={!selected}
-            style={{ ...s.primaryBtn, background: primary, marginLeft: 'auto', opacity: selected ? 1 : 0.45 }}
-          >
-            {isLast ? 'Submit Exam' : 'Next'}
-          </button>
+          </div>
         </div>
       </div>
-    </main>
+    </Layout>
   )
 }
 

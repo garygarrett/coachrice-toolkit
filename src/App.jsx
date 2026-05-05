@@ -8,6 +8,8 @@ import CoachDashboard from './pages/CoachDashboard'
 import AdminPanel from './pages/AdminPanel'
 import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
+import AIClient from './pages/tools/AIClient'
+import AudioToTranscript from './pages/tools/AudioToTranscript'
 
 /**
  * Detects when a user arrives via an invite email link.
@@ -37,7 +39,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRole="coach">
+            <ProtectedRoute allowedRole="any">
               <CoachDashboard />
             </ProtectedRoute>
           }
@@ -53,7 +55,7 @@ export default function App() {
         <Route
           path="/tools/exam"
           element={
-            <ProtectedRoute allowedRole="coach">
+            <ProtectedRoute allowedRole="any">
               <Exam />
             </ProtectedRoute>
           }
@@ -61,8 +63,24 @@ export default function App() {
         <Route
           path="/tools/transcript"
           element={
-            <ProtectedRoute allowedRole="coach">
+            <ProtectedRoute allowedRole="any">
               <TranscriptScorer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/ai"
+          element={
+            <ProtectedRoute allowedRole="any">
+              <AIClient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/audio"
+          element={
+            <ProtectedRoute allowedRole="any">
+              <AudioToTranscript />
             </ProtectedRoute>
           }
         />

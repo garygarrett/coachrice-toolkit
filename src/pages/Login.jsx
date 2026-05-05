@@ -21,7 +21,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user && profile) {
-      navigate(profile.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+      navigate('/dashboard', { replace: true })
     }
   }, [user, profile, loading, navigate])
 
@@ -46,13 +46,7 @@ export default function Login() {
       return
     }
 
-    const { data: profileData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
-
-    navigate(profileData?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+    navigate('/dashboard', { replace: true })
   }
 
   async function handleForgotPassword(e) {

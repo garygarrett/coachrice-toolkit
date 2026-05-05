@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import Layout from '../../components/Layout'
 import OpenAI from 'openai'
 import * as pdfjsLib from 'pdfjs-dist'
 
@@ -287,10 +288,11 @@ ${transcript}`
   // ─── START SCREEN ───
   if (phase === 'start') {
     return (
-      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
-        <div style={s.card}>
-          <p style={{ ...s.badge, color: primary }}>{content.transcript_start_badge}</p>
-          <h1 style={{ ...s.title, color: primary }}>{content.transcript_start_title}</h1>
+      <Layout active="transcript" pageTitle="Transcript Reviewer">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={s.card}>
+          <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.transcript_start_badge}</p>
+          <h1 style={{ ...s.title, color: '#00205B' }}>{content.transcript_start_title}</h1>
           <p style={s.subtitle}>{content.transcript_start_subtitle}</p>
           <ul style={s.infoList}>
             {[content.transcript_start_info_1, content.transcript_start_info_2, content.transcript_start_info_3]
@@ -358,31 +360,35 @@ ${transcript}`
               ))}
             </div>
           )}
+          </div>
         </div>
-      </main>
+      </Layout>
     )
   }
 
   // ─── ANALYZING SCREEN ───
   if (phase === 'analyzing') {
     return (
-      <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
+      <Layout active="transcript" pageTitle="Transcript Reviewer">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
         <style>{`@keyframes ts-spin { to { transform: rotate(360deg) } }`}</style>
-        <div style={{ ...s.card, textAlign: 'center', padding: '3rem 2rem' }}>
-          <div style={s.spinner} />
-          <p style={s.statusText}>{statusText}</p>
-          <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-            This may take up to 30 seconds…
-          </p>
+          <div style={{ ...s.card, textAlign: 'center', padding: '3rem 2rem' }}>
+            <div style={s.spinner} />
+            <p style={s.statusText}>{statusText}</p>
+            <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+              This may take up to 30 seconds…
+            </p>
+          </div>
         </div>
-      </main>
+      </Layout>
     )
   }
 
   // ─── RESULTS SCREEN ───
   return (
-    <main style={{ ...s.page, background: pageBg, fontFamily: font }}>
-      <div style={{ ...s.card, maxWidth: '720px' }}>
+    <Layout active="transcript" pageTitle="Transcript Reviewer">
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ ...s.card, maxWidth: '720px' }}>
         <p style={{ ...s.badge, color: primary }}>Score Report</p>
         <h1 style={{ ...s.title, color: primary }}>Transcript Results</h1>
         {resultDate && (
@@ -439,8 +445,9 @@ ${transcript}`
           </button>
           <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
         </div>
+        </div>
       </div>
-    </main>
+    </Layout>
   )
 }
 
