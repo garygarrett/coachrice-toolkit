@@ -151,6 +151,7 @@ export default function AIClient() {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
@@ -159,12 +160,16 @@ export default function AIClient() {
           messages: newMessages.map(m => ({ role: m.role === 'coach' ? 'user' : 'assistant', content: m.content })),
         }),
       })
-      if (!res.ok) throw new Error(`API error: ${res.status}`)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(`API error ${res.status}: ${errData.error?.message || 'Unknown error'}`)
+      }
       const data = await res.json()
       const reply = data.content?.[0]?.text || ''
       setMessages(prev => [...prev, { role: 'client', content: reply }])
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'client', content: '[Connection error — please try again]' }])
+      console.error('[AIClient] API error:', e.message)
+      setMessages(prev => [...prev, { role: 'client', content: `[Error: ${e.message}]` }])
     }
     setLoading(false)
   }
