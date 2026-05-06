@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
 import Layout from '../../components/Layout'
 
 const CONTENT_DEFAULTS = {
@@ -19,6 +20,20 @@ export default function AudioToTranscript() {
   const { profile } = useAuth()
   const [content, setContent] = useState(CONTENT_DEFAULTS)
   const primary = content.theme_primary_color
+
+  useEffect(() => {
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .in('key', ['audio_start_badge', 'audio_start_title', 'audio_start_subtitle', 'audio_start_info_1', 'audio_start_info_2', 'audio_start_info_3'])
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {}
+          data.forEach(row => { map[row.key] = row.value })
+          setContent(prev => ({ ...prev, ...map }))
+        }
+      })
+  }, [])
 
   return (
     <Layout active="audio" pageTitle="Audio to Transcript">
