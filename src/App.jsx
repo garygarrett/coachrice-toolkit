@@ -10,6 +10,7 @@ import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
 import AudioToTranscript from './pages/tools/AudioToTranscript'
+import Assessor from './pages/tools/Assessor'
 
 /**
  * Detects when a user arrives via an invite email link.
@@ -81,6 +82,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="any">
               <AudioToTranscript />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/assessor"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <Assessor />
             </ProtectedRoute>
           }
         />

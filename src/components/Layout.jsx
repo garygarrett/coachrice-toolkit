@@ -118,6 +118,12 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
                 <ToolIcon id="history" size={14} color={active === 'admin-history' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
                 <span>History</span>
               </div>
+              <div style={styles.navDivider}></div>
+              <div style={styles.navLabel}>Assessor</div>
+              <div style={{ ...styles.navItem, ...(active === 'assessor' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/tools/assessor')}>
+                <ToolIcon id="transcript" size={14} color={active === 'assessor' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
+                <span style={{ fontSize: 10 }}>Internal Assessor</span>
+              </div>
             </>
           )}
         </div>

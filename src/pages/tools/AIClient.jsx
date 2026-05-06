@@ -88,13 +88,13 @@ export default function AIClient() {
     supabase
       .from('config')
       .select('key, value')
-      .in('key', ['api_key_chatbot', 'ai_client_system_prompt'])
+      .in('key', ['api_key_chatbot', 'ai_client_chatbot_prompt'])
       .then(({ data }) => {
         if (data) {
           const map = {}
           data.forEach(row => { map[row.key] = row.value })
           if (map.api_key_chatbot) setApiKey(map.api_key_chatbot)
-          if (map.ai_client_system_prompt) setSystemPrompt(map.ai_client_system_prompt)
+          if (map.ai_client_chatbot_prompt) setSystemPrompt(map.ai_client_chatbot_prompt)
         }
       })
   }, [])

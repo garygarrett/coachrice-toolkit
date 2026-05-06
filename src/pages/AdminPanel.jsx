@@ -241,7 +241,7 @@ export default function AdminPanel() {
   const [apiKeysError, setApiKeysError] = useState(null)
 
   // ── Prompts state ──
-  const [prompts, setPrompts] = useState({ clientSystem: '' })
+  const [prompts, setPrompts] = useState({ aiClientChatbot: '', aiClientFeedback: '', assessor: '' })
   const [promptsSaving, setPromptsSaving] = useState(false)
   const [promptsSuccess, setPromptsSuccess] = useState(null)
   const [promptsError, setPromptsError] = useState(null)
@@ -324,7 +324,9 @@ export default function AdminPanel() {
       const map = {}
       data.forEach(row => { map[row.key] = row.value })
       setPrompts({
-        clientSystem: map.ai_client_system_prompt ?? getDefaultClientPrompt(),
+        aiClientChatbot: map.ai_client_chatbot_prompt ?? getDefaultClientPrompt(),
+        aiClientFeedback: map.ai_client_feedback_prompt ?? 'You are an expert coaching evaluator. Analyze the coaching session transcript and provide detailed feedback on the coach\'s performance, strengths, and areas for development based on ICF competencies.',
+        assessor: map.ai_assessor_prompt ?? '',
       })
     }
   }
@@ -335,7 +337,9 @@ export default function AdminPanel() {
     setPromptsSuccess(null)
 
     const updates = [
-      { key: 'ai_client_system_prompt', value: prompts.clientSystem },
+      { key: 'ai_client_chatbot_prompt', value: prompts.aiClientChatbot },
+      { key: 'ai_client_feedback_prompt', value: prompts.aiClientFeedback },
+      { key: 'ai_assessor_prompt', value: prompts.assessor },
     ]
 
     const { error } = await supabase.from('config').upsert(updates, { onConflict: 'key' })
@@ -1055,19 +1059,45 @@ export default function AdminPanel() {
             {promptsError && <p style={s.errorMsg}>{promptsError}</p>}
 
             <div style={s.formCard}>
-              <h2 style={s.formHeading}>AI Client System Prompt</h2>
+              <h2 style={s.formHeading}>System Prompts</h2>
               <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1.5rem' }}>
-                Edit the system prompt used to configure the AI coaching client. This prompt controls the client's personality, persona settings, and behavioral guidelines.
+                Edit the system prompts used by different tools. Defaults are shown below—update as needed.
               </p>
 
-              <label style={s.label}>System Prompt
-                <textarea
-                  value={prompts.clientSystem}
-                  onChange={e => setPrompts(v => ({ ...v, clientSystem: e.target.value }))}
-                  style={{ ...s.textarea, fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '400px' }}
-                  placeholder="Enter the system prompt for the AI coaching client..."
-                />
-              </label>
+              <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #e2e6ec' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' }}>AI Client</h3>
+
+                <label style={s.label}>Chatbot System Prompt
+                  <textarea
+                    value={prompts.aiClientChatbot}
+                    onChange={e => setPrompts(v => ({ ...v, aiClientChatbot: e.target.value }))}
+                    style={{ ...s.textarea, fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '250px' }}
+                    placeholder="Prompt for the AI coaching client bot..."
+                  />
+                </label>
+
+                <label style={s.label}>Feedback Bot Prompt
+                  <textarea
+                    value={prompts.aiClientFeedback}
+                    onChange={e => setPrompts(v => ({ ...v, aiClientFeedback: e.target.value }))}
+                    style={{ ...s.textarea, fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '150px' }}
+                    placeholder="Prompt for the AI feedback evaluator..."
+                  />
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' }}>Internal Assessor</h3>
+
+                <label style={s.label}>Assessor System Prompt
+                  <textarea
+                    value={prompts.assessor}
+                    onChange={e => setPrompts(v => ({ ...v, assessor: e.target.value }))}
+                    style={{ ...s.textarea, fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '300px' }}
+                    placeholder="Prompt for the ICF ACC assessor tool..."
+                  />
+                </label>
+              </div>
 
               <div style={s.formActions}>
                 <button
@@ -1075,7 +1105,7 @@ export default function AdminPanel() {
                   disabled={promptsSaving}
                   style={s.submitBtn}
                 >
-                  {promptsSaving ? 'Saving…' : 'Save Prompt'}
+                  {promptsSaving ? 'Saving…' : 'Save All Prompts'}
                 </button>
               </div>
             </div>
