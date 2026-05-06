@@ -189,7 +189,7 @@ export default function AIClient() {
       <Layout active="ai" pageTitle="AI Client">
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
           <div style={{ marginBottom: '32px' }}>
-            <p style={{ ...s.badge, color: COLORS.orange }}>{content.ai_start_badge}</p>
+            <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.ai_start_badge}</p>
             <h1 style={{ ...s.title, color: '#00205B' }}>{content.ai_start_title}</h1>
             <p style={s.subtitle}>{content.ai_start_subtitle}</p>
             <ul style={{ color: '#444', fontSize: '0.875rem', paddingLeft: '1.25rem', margin: '0 0 1.75rem', lineHeight: '1.8' }}>
