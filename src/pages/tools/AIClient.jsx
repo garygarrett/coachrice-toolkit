@@ -89,6 +89,8 @@ export default function AIClient() {
   const [systemPrompt, setSystemPrompt] = useState(null)
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [content, setContent] = useState(CONTENT_DEFAULTS)
+  const [acknowledgments, setAcknowledgments] = useState({ aiClient: false, aiFeedback: false, dataPrivacy: false })
+  const allAcknowledged = Object.values(acknowledgments).every(Boolean)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -125,7 +127,7 @@ export default function AIClient() {
   }, [])
 
   const startSession = () => {
-    if (!coachName.trim()) return
+    if (!coachName.trim() || !allAcknowledged) return
     setCfg(prev => ({ ...prev, coachName: coachName.trim() }))
     setMessages([])
     setSessionStartTime(new Date())
@@ -354,10 +356,44 @@ export default function AIClient() {
                 </div>
               )}
 
+              {/* Acknowledgments */}
+              <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '12px', fontWeight: 700, color: COLORS.navy, marginBottom: '14px', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Acknowledgments</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={acknowledgments.aiClient}
+                      onChange={(e) => setAcknowledgments(v => ({ ...v, aiClient: e.target.checked }))}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '12px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that the client in this practice session is an AI simulation. While it is designed to behave like a real coaching client, it may occasionally respond in ways that don't reflect genuine human behavior, and I will use my own judgment as a developing coach.</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={acknowledgments.aiFeedback}
+                      onChange={(e) => setAcknowledgments(v => ({ ...v, aiFeedback: e.target.checked }))}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '12px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that the session feedback is AI-generated and may contain inaccuracies. This tool is intended to support my development — not to replace the judgment of a credentialed ICF mentor coach or official evaluation.</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={acknowledgments.dataPrivacy}
+                      onChange={(e) => setAcknowledgments(v => ({ ...v, dataPrivacy: e.target.checked }))}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '12px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that this tool is powered by a third-party AI (Anthropic). I will not include any real client names or identifying information in my coaching responses.</span>
+                  </label>
+                </div>
+              </div>
+
               <button
                 onClick={startSession}
-                disabled={!coachName.trim() || !apiKey}
-                style={s.startBtn}
+                disabled={!coachName.trim() || !apiKey || !allAcknowledged}
+                style={{ ...s.startBtn, opacity: (!coachName.trim() || !apiKey || !allAcknowledged) ? 0.5 : 1 }}
               >
                 <div style={s.startBtnTitle}>Start session with {cfg.clientName}</div>
                 <ToolIcon id="arrow" size={18} color="#fff" />
