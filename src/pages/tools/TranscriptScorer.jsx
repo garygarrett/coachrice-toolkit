@@ -259,34 +259,34 @@ export default function TranscriptScorer() {
 
           {/* Consent Checkboxes */}
           <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px', margin: '0 0 16px' }}>Before you continue</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px', margin: '0 0 16px' }}>SUBMISSION CONSENT</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={consentChecked.anonymized}
                   onChange={(e) => setConsentChecked(v => ({ ...v, anonymized: e.target.checked }))}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>This is an anonymized coaching session with consent to use for development</span>
+                <span style={{ fontSize: '13px', color: COLORS['text-main'], lineHeight: '1.5' }}>I have anonymized this transcript to the best of my ability, removing my client's name and any other identifying information.</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={consentChecked.consent}
                   onChange={(e) => setConsentChecked(v => ({ ...v, consent: e.target.checked }))}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>I have the client's consent to submit this session</span>
+                <span style={{ fontSize: '13px', color: COLORS['text-main'], lineHeight: '1.5' }}>I have obtained informed consent from my client before submitting this transcript for evaluation.</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={consentChecked.data}
                   onChange={(e) => setConsentChecked(v => ({ ...v, data: e.target.checked }))}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>I understand this AI assessment may contain inaccuracies and should be reviewed with a mentor coach</span>
+                <span style={{ fontSize: '13px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that the Doerr Institute will not store this transcript and is not responsible for any breach of data associated with this AI tool.</span>
               </label>
             </div>
           </div>
