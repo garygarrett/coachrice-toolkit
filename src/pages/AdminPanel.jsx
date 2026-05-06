@@ -313,7 +313,9 @@ export default function AdminPanel() {
       `${tool.contentPrefix}_card_description`,
       `${tool.contentPrefix}_start_badge`,
       `${tool.contentPrefix}_start_subtitle`,
-      `${tool.contentPrefix}_start_info`,
+      `${tool.contentPrefix}_start_info_1`,
+      `${tool.contentPrefix}_start_info_2`,
+      `${tool.contentPrefix}_start_info_3`,
     ]
 
     const upsertRows = keysToSave.map(key => ({ key, value: contentValues[key] ?? '' }))
@@ -793,11 +795,15 @@ export default function AdminPanel() {
                 {contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle}
               </p>
             )}
-            {(contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info) && (
-              <p style={{ fontSize: '12px', lineHeight: '1.6', color: COLORS['text-main'], margin: 0 }}>
-                {contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info}
-              </p>
-            )}
+            {[1, 2, 3].map(i => {
+              const infoValue = contentValues[`${tool.contentPrefix}_start_info_${i}`];
+              if (!infoValue) return null;
+              return (
+                <div key={`info_${i}`} style={{ fontSize: '12px', lineHeight: '1.6', color: COLORS['text-main'], margin: '4px 0' }}>
+                  • {infoValue}
+                </div>
+              );
+            })}
           </div>
 
           {/* Inputs */}
@@ -820,16 +826,18 @@ export default function AdminPanel() {
                 style={s.input}
               />
             </label>
-            <label style={s.label}>
-              Info Text
-              <textarea
-                value={contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info ?? ''}
-                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info`]: e.target.value }))}
-                style={{ ...s.textarea, minHeight: '100px' }}
-                rows={4}
-                placeholder="Enter the info text that appears on the tool page"
-              />
-            </label>
+            {[1, 2, 3].map(i => (
+              <label key={`info_${i}`} style={s.label}>
+                Info Item {i}
+                <input
+                  type="text"
+                  value={contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? ''}
+                  onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info_${i}`]: e.target.value }))}
+                  style={s.input}
+                  placeholder={`Info item ${i}`}
+                />
+              </label>
+            ))}
             <button onClick={() => handleToolContentSave(tool.id)} disabled={toolLoading} style={s.submitBtn}>
               {toolLoading ? 'Saving…' : 'Save Page Content'}
             </button>
