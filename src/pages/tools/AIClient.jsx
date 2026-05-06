@@ -160,15 +160,16 @@ export default function AIClient() {
   if (stage === 'setup') {
     return (
       <Layout active="ai" pageTitle="AI Client">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={s.card}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <p style={{ ...s.badge, color: COLORS.orange }}>AI CLIENT</p>
             <h1 style={{ ...s.title, color: '#00205B' }}>Who are you coaching today?</h1>
             <p style={s.subtitle}>
               These settings shape how your simulated client shows up. There's no right combination — try different mixes across sessions to stretch different muscles.
             </p>
+          </div>
 
-            <div style={s.setupGrid}>
+          <div style={s.setupGrid}>
             {/* Left: form */}
             <div style={s.formColumn}>
               {/* Names + topic card */}
@@ -336,7 +337,6 @@ export default function AIClient() {
                 Start over anytime to try a different client configuration.
               </div>
             </div>
-          </div>
           </div>
         </div>
       </Layout>

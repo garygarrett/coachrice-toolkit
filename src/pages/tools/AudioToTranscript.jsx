@@ -22,8 +22,8 @@ export default function AudioToTranscript() {
 
   return (
     <Layout active="audio" pageTitle="Audio to Transcript">
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <div style={styles.card}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+        <div style={{ marginBottom: '32px' }}>
           <span style={{ ...styles.badge, background: '#e8ecf5', color: '#00205B' }}>{content.audio_start_badge || 'Utility'}</span>
           <h1 style={{ ...styles.title, color: '#00205B' }}>{content.audio_start_title || 'Audio to Transcript'}</h1>
           <p style={styles.subtitle}>{content.audio_start_subtitle}</p>

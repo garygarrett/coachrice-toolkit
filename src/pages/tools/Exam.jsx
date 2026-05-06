@@ -180,8 +180,8 @@ export default function Exam() {
   if (phase === 'start') {
     return (
       <Layout active="exam" pageTitle="ACC Practice Exam">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={s.card}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.exam_start_badge}</p>
             <h1 style={{ ...s.title, color: '#00205B' }}>{content.exam_start_title}</h1>
             <p style={s.subtitle}>{content.exam_start_subtitle}</p>
