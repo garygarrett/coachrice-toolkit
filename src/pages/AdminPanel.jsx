@@ -235,7 +235,7 @@ export default function AdminPanel() {
   const [rubricError, setRubricError] = useState(null)
 
   // ── Settings/API Keys state ──
-  const [apiKeys, setApiKeys] = useState({ chatbot: '', feedback: '' })
+  const [apiKeys, setApiKeys] = useState({ chatbot: '', feedback: '', assessor: '' })
   const [apiKeysSaving, setApiKeysSaving] = useState(false)
   const [apiKeysSuccess, setApiKeysSuccess] = useState(null)
   const [apiKeysError, setApiKeysError] = useState(null)
@@ -294,6 +294,7 @@ export default function AdminPanel() {
       setApiKeys({
         chatbot: map.api_key_chatbot ?? '',
         feedback: map.api_key_feedback ?? '',
+        assessor: map.api_key_assessor ?? '',
       })
     }
   }
@@ -306,6 +307,7 @@ export default function AdminPanel() {
     const updates = [
       { key: 'api_key_chatbot', value: apiKeys.chatbot },
       { key: 'api_key_feedback', value: apiKeys.feedback },
+      { key: 'api_key_assessor', value: apiKeys.assessor },
     ]
 
     const { error } = await supabase.from('config').upsert(updates, { onConflict: 'key' })
@@ -325,7 +327,7 @@ export default function AdminPanel() {
       data.forEach(row => { map[row.key] = row.value })
       setPrompts({
         aiClientChatbot: map.ai_client_chatbot_prompt ?? getDefaultClientPrompt(),
-        aiClientFeedback: map.ai_client_feedback_prompt ?? 'You are an expert coaching evaluator. Analyze the coaching session transcript and provide detailed feedback on the coach\'s performance, strengths, and areas for development based on ICF competencies.',
+        aiClientFeedback: map.ai_client_feedback_prompt ?? '',
         assessor: map.ai_assessor_prompt ?? '',
       })
     }
@@ -1019,30 +1021,48 @@ export default function AdminPanel() {
             {apiKeysError && <p style={s.errorMsg}>{apiKeysError}</p>}
 
             <div style={s.formCard}>
-              <h2 style={s.formHeading}>API Keys for Coaching Bots</h2>
+              <h2 style={s.formHeading}>API Keys</h2>
               <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1.5rem' }}>
-                Configure the API keys used by different AI features. These keys are used server-side and are never exposed to users.
+                Configure the API keys used by different tools. These keys are used server-side and are never exposed to users.
               </p>
 
-              <label style={s.label}>Chatbot API Key (for AI Client practice sessions)
-                <input
-                  type="password"
-                  value={apiKeys.chatbot}
-                  onChange={e => setApiKeys(v => ({ ...v, chatbot: e.target.value }))}
-                  style={s.input}
-                  placeholder="sk-..."
-                />
-              </label>
+              <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #e2e6ec' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' }}>AI Client</h3>
 
-              <label style={s.label}>Feedback Bot API Key (for session evaluations)
-                <input
-                  type="password"
-                  value={apiKeys.feedback}
-                  onChange={e => setApiKeys(v => ({ ...v, feedback: e.target.value }))}
-                  style={s.input}
-                  placeholder="sk-..."
-                />
-              </label>
+                <label style={s.label}>Chatbot API Key
+                  <input
+                    type="password"
+                    value={apiKeys.chatbot}
+                    onChange={e => setApiKeys(v => ({ ...v, chatbot: e.target.value }))}
+                    style={s.input}
+                    placeholder="sk-..."
+                  />
+                </label>
+
+                <label style={s.label}>Feedback Bot API Key
+                  <input
+                    type="password"
+                    value={apiKeys.feedback}
+                    onChange={e => setApiKeys(v => ({ ...v, feedback: e.target.value }))}
+                    style={s.input}
+                    placeholder="sk-..."
+                  />
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' }}>Internal Assessor</h3>
+
+                <label style={s.label}>Assessor API Key
+                  <input
+                    type="password"
+                    value={apiKeys.assessor}
+                    onChange={e => setApiKeys(v => ({ ...v, assessor: e.target.value }))}
+                    style={s.input}
+                    placeholder="sk-..."
+                  />
+                </label>
+              </div>
 
               <div style={s.formActions}>
                 <button

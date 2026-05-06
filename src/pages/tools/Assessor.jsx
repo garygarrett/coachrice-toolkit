@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../../components/Layout";
+import { supabase } from "../../lib/supabase";
 
 // ============================================================================
 // SYSTEM PROMPT — UNCHANGED FROM CALIBRATED VERSION
@@ -316,6 +317,21 @@ export default function Assessor() {
     document.head.appendChild(link);
   }, []);
 
+  // Load API key from Supabase
+  useEffect(() => {
+    async function loadApiKey() {
+      const { data } = await supabase.from('config').select('key, value')
+      if (data) {
+        const map = {}
+        data.forEach(row => { map[row.key] = row.value })
+        if (map.api_key_assessor) {
+          setApiKey(map.api_key_assessor)
+        }
+      }
+    }
+    loadApiKey()
+  }, []);
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -355,7 +371,7 @@ export default function Assessor() {
       return;
     }
     if (!apiKey.trim()) {
-      setError("Please enter your Anthropic API key before running.");
+      setError("API key not loaded. Please check admin settings and ensure the API key is configured.");
       return;
     }
     setError("");
@@ -1433,89 +1449,6 @@ export default function Assessor() {
             </p>
           </div>
 
-          {/* API Configuration */}
-          <div style={{ marginBottom: "28px", padding: "16px 20px", backgroundColor: colors.white, border: `1px solid ${colors.border}`, borderRadius: "8px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: colors.navy, letterSpacing: "1px", marginBottom: "10px" }}>
-              API CONFIGURATION
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <input
-                type={showApiKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                style={{
-                  flex: 1,
-                  padding: "9px 12px",
-                  fontSize: "13px",
-                  fontFamily: fontStack,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: "6px",
-                  color: "#1a1a1a",
-                  backgroundColor: "#F9FAFB",
-                }}
-              />
-              <button
-                onClick={() => setShowApiKey((p) => !p)}
-                style={{
-                  padding: "9px 14px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  fontFamily: fontStack,
-                  backgroundColor: "transparent",
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  color: colors.gray,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {showApiKey ? "Hide" : "Show"}
-              </button>
-            </div>
-            <div style={{ fontSize: "11px", color: colors.gray, marginTop: "7px" }}>
-              Your key is used only for this session and is never stored. Model: Claude Opus 4.7 ($5/MTok input, $25/MTok output).
-            </div>
-
-            {usageLog.length > 0 && (
-              <div style={{ marginTop: "14px", borderTop: `1px solid ${colors.border}`, paddingTop: "12px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: colors.navy, letterSpacing: "1px", marginBottom: "8px" }}>
-                  USAGE LOG
-                </div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-                    <thead>
-                      <tr style={{ backgroundColor: colors.lightBg }}>
-                        {["Date", "Input Tokens", "Output Tokens", "Est. Cost (USD)"].map((h) => (
-                          <th key={h} style={{ padding: "5px 10px", textAlign: "left", fontWeight: 600, color: colors.gray, borderBottom: `1px solid ${colors.border}` }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usageLog.map((row, i) => (
-                        <tr key={i} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                          <td style={{ padding: "5px 10px", color: "#374151" }}>{row.date}</td>
-                          <td style={{ padding: "5px 10px", color: "#374151" }}>{row.inputTokens.toLocaleString()}</td>
-                          <td style={{ padding: "5px 10px", color: "#374151" }}>{row.outputTokens.toLocaleString()}</td>
-                          <td style={{ padding: "5px 10px", color: colors.navy, fontWeight: 600 }}>${row.cost}</td>
-                        </tr>
-                      ))}
-                      {usageLog.length > 1 && (
-                        <tr style={{ backgroundColor: colors.lightBg }}>
-                          <td style={{ padding: "5px 10px", fontWeight: 700, color: colors.navy }} colSpan={3}>Total</td>
-                          <td style={{ padding: "5px 10px", fontWeight: 700, color: colors.navy }}>
-                            ${usageLog.reduce((sum, r) => sum + parseFloat(r.cost), 0).toFixed(4)}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Upload area */}
           <div
@@ -1908,7 +1841,7 @@ export default function Assessor() {
                 gap: "10px",
               }}
             >
-              {evaluation.score_calculation?.result === "Pass" && ✓}
+              {evaluation.score_calculation?.result === "Pass" && "✓"}
               {evaluation.score_calculation?.result === "Pass" ? "PASS" : "BELOW PASSING"}
             </div>
           </div>
