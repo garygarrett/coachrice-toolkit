@@ -66,6 +66,12 @@ export default function CoachDashboard() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [content, setContent] = useState({})
+  const [visibility, setVisibility] = useState({
+    exam: true,
+    transcript: true,
+    ai: true,
+    audio: true,
+  })
 
   useEffect(() => {
     const keys = ['exam_card_tag', 'exam_card_title', 'exam_card_description',
@@ -83,10 +89,29 @@ export default function CoachDashboard() {
           setContent(map)
         }
       })
+
+    const loadVisibility = async () => {
+      const { data } = await supabase
+        .from('config')
+        .select('key, value')
+        .in('key', ['tool_exam_visible', 'tool_transcript_visible', 'tool_ai_visible', 'tool_audio_visible'])
+
+      if (data) {
+        const visibilityMap = {}
+        data.forEach(row => {
+          const toolId = row.key.replace('tool_', '').replace('_visible', '')
+          visibilityMap[toolId] = row.value === 'true'
+        })
+        setVisibility(prev => ({ ...prev, ...visibilityMap }))
+      }
+    }
+
+    loadVisibility()
   }, [])
 
-  const tools = [
+  const allTools = [
     {
+      id: 'exam',
       icon: 'exam',
       bg: '#e6f7fc',
       color: '#0a7fa8',
@@ -96,6 +121,7 @@ export default function CoachDashboard() {
       path: '/tools/exam',
     },
     {
+      id: 'transcript',
       icon: 'transcript',
       bg: '#fff0e0',
       color: '#c06000',
@@ -105,6 +131,7 @@ export default function CoachDashboard() {
       path: '/tools/transcript',
     },
     {
+      id: 'ai',
       icon: 'ai',
       bg: '#fff0e0',
       color: '#c06000',
@@ -114,6 +141,7 @@ export default function CoachDashboard() {
       path: '/tools/ai',
     },
     {
+      id: 'audio',
       icon: 'audio',
       bg: '#f0f2f5',
       color: COLORS.gray,
@@ -123,6 +151,9 @@ export default function CoachDashboard() {
       path: '/tools/audio',
     },
   ]
+
+  const isAdmin = profile?.role === 'admin'
+  const tools = isAdmin ? allTools : allTools.filter(t => visibility[t.id])
 
   const activities = [
     { dot: '#0a7fa8', title: 'Practice Exam', time: 'Apr 18', note: '92% — Pass' },

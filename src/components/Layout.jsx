@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import logo from '../CoachRICE_White.png'
 
 const COLORS = {
@@ -67,18 +69,45 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
 export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
+  const [visibility, setVisibility] = useState({
+    exam: true,
+    transcript: true,
+    ai: true,
+    audio: true,
+  })
+
+  useEffect(() => {
+    const loadVisibility = async () => {
+      const { data } = await supabase
+        .from('config')
+        .select('key, value')
+        .in('key', ['tool_exam_visible', 'tool_transcript_visible', 'tool_ai_visible', 'tool_audio_visible'])
+
+      if (data) {
+        const visibilityMap = {}
+        data.forEach(row => {
+          const toolId = row.key.replace('tool_', '').replace('_visible', '')
+          visibilityMap[toolId] = row.value === 'true'
+        })
+        setVisibility(prev => ({ ...prev, ...visibilityMap }))
+      }
+    }
+
+    loadVisibility()
+  }, [])
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'history', label: 'History' },
   ]
-  const toolItems = [
+  const allToolItems = [
     { id: 'exam', label: 'ACC Practice Exam', path: '/tools/exam' },
     { id: 'transcript', label: 'Transcript Reviewer', path: '/tools/transcript' },
     { id: 'ai', label: 'AI Client', path: '/tools/ai' },
     { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' },
   ]
   const isAdmin = profile?.role === 'admin'
+  const toolItems = isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
   return (
     <div style={styles.container}>
