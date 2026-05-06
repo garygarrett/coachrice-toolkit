@@ -103,6 +103,7 @@ const styles = {
     fontSize: '0.95rem',
     fontWeight: '600',
     cursor: 'pointer',
+    fontFamily: "'Montserrat', sans-serif",
   },
   placeholder: {
     background: '#fff',
