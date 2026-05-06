@@ -63,6 +63,7 @@ export default function Exam() {
   const [results, setResults] = useState(null)
   const [content, setContent] = useState(CONTENT_DEFAULTS)
   const [contentLoaded, setContentLoaded] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   // Load question bank and start-screen content from Supabase on mount
   useEffect(() => {
@@ -102,6 +103,7 @@ export default function Exam() {
   }
 
   async function submitExam() {
+    setSubmitting(true)
     const scored = questions.map(q => ({
       ...q,
       options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
@@ -164,6 +166,7 @@ export default function Exam() {
         if (scoresError) console.error('[Exam] competency_scores insert error:', scoresError.message, scoresError.details, scoresError.hint)
       }
     }
+    setSubmitting(false)
   }
 
   function advance() {
@@ -199,6 +202,27 @@ export default function Exam() {
               <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
             </div>
           </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // ─── SUBMITTING SCREEN ───
+  if (submitting) {
+    return (
+      <Layout active="exam" pageTitle="ACC Practice Exam">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 200px)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px', animation: 'spinHourglass 2s linear infinite' }}>⏳</div>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#00205B', margin: '0 0 8px' }}>Saving your results</h2>
+            <p style={{ fontSize: '14px', color: '#666' }}>Please wait while we process your exam submission...</p>
+          </div>
+          <style>{`
+            @keyframes spinHourglass {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </Layout>
     )

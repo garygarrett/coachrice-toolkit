@@ -194,7 +194,7 @@ export default function AIClient() {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1000,
+          max_tokens: 2000,
           system: feedbackPrompt,
           messages: [{
             role: 'user',
@@ -208,7 +208,14 @@ export default function AIClient() {
       }
       const data = await res.json()
       const feedbackText = data.content?.[0]?.text || 'No feedback generated'
-      setFeedback(feedbackText)
+      let parsed = feedbackText
+      try {
+        const cleaned = feedbackText.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim()
+        parsed = JSON.parse(cleaned)
+      } catch (e) {
+        console.log('[AIClient] Feedback is not JSON, using raw text:', e.message)
+      }
+      setFeedback(parsed)
       setStage('feedback')
     } catch (e) {
       console.error('[AIClient] Feedback error:', e.message)
@@ -468,6 +475,16 @@ export default function AIClient() {
 
   return (
     <Layout active="ai" pageTitle="AI Client">
+      <style>{`
+        @keyframes spinHourglass {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .hourglass-spin {
+          animation: spinHourglass 2s linear infinite;
+          display: inline-block;
+        }
+      `}</style>
       <div style={s.sessionContainer}>
         {/* Client header */}
         <div style={s.clientHeader}>
@@ -486,8 +503,17 @@ export default function AIClient() {
               Transcript
             </button>
             <button onClick={getFeedback} disabled={loading || !feedbackApiKey} style={{ ...s.feedbackBtn, opacity: (loading || !feedbackApiKey) ? 0.5 : 1 }}>
-              <ToolIcon id="spark" size={11} color="#fff" />
-              {loading ? 'Getting Feedback...' : 'End & Get Feedback'}
+              {loading ? (
+                <>
+                  <span className="hourglass-spin" style={{ display: 'inline-block', marginRight: '4px' }}>⏳</span>
+                  Getting Feedback...
+                </>
+              ) : (
+                <>
+                  <ToolIcon id="spark" size={11} color="#fff" />
+                  End & Get Feedback
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -555,6 +581,18 @@ export default function AIClient() {
 
   // Feedback screen
   if (stage === 'feedback' && feedback) {
+    const isStructured = typeof feedback === 'object' && feedback !== null
+    const compTitles = { 3: 'Establishes and Maintains Agreements', 4: 'Cultivates Trust and Safety', 5: 'Maintains Presence', 6: 'Listens Actively', 7: 'Evokes Awareness', 8: 'Facilitates Client Growth' }
+
+    let grouped = {}
+    if (isStructured && feedback.behavioral_statements) {
+      feedback.behavioral_statements.forEach(s => {
+        const c = parseInt(s.code.split('.')[0], 10)
+        if (!grouped[c]) grouped[c] = []
+        grouped[c].push(s)
+      })
+    }
+
     return (
       <Layout active="ai" pageTitle="AI Client">
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
@@ -563,11 +601,104 @@ export default function AIClient() {
             <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#00205B', margin: '0 0 1.5rem' }}>Coaching Session Feedback</h1>
           </div>
 
-          <div style={{ background: '#fff', borderRadius: '10px', border: `1px solid ${COLORS['gray-border']}`, padding: '24px', marginBottom: '24px' }}>
-            <div style={{ fontSize: '14px', lineHeight: '1.7', color: COLORS['text-main'], whiteSpace: 'pre-wrap' }}>
-              {feedback}
+          {isStructured ? (
+            <>
+              {/* Structured feedback display */}
+              {feedback.behavioral_statements && (
+                <>
+                  <div style={{ background: '#fff', borderRadius: '10px', border: `1px solid ${COLORS['gray-border']}`, padding: '24px', marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Skills Observed</h3>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: COLORS.navy, marginBottom: '8px' }}>
+                      {feedback.behavioral_statements.filter(s => s.result === 'Observed').length} / {feedback.behavioral_statements.length}
+                    </div>
+                    <div style={{ background: '#e5e7eb', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
+                      <div style={{ background: COLORS.teal, width: `${(feedback.behavioral_statements.filter(s => s.result === 'Observed').length / feedback.behavioral_statements.length) * 100}%`, height: '100%', transition: 'width 0.5s ease' }} />
+                    </div>
+                  </div>
+
+                  {[3, 4, 5, 6, 7, 8].map(comp => (
+                    grouped[comp] && (
+                      <div key={comp} style={{ marginBottom: '28px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {comp}. {compTitles[comp]}
+                        </h3>
+                        {grouped[comp].map(skill => (
+                          <div key={skill.code} style={{ background: '#fff', borderRadius: '8px', border: `1px solid ${COLORS['gray-border']}`, padding: '16px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '12px', fontWeight: '700', color: COLORS.navy }}>{skill.code}</div>
+                                <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#1a1a1a', marginTop: '4px' }}>{skill.title}</div>
+                              </div>
+                              <span style={{ display: 'inline-block', padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '4px', background: skill.result === 'Observed' ? '#eff6ff' : '#fef2f2', color: skill.result === 'Observed' ? '#1d4ed8' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                                {skill.result}
+                              </span>
+                            </div>
+                            {skill.note && <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>{skill.note}</div>}
+                            {skill.evidence && skill.evidence.length > 0 && (
+                              <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                                <strong>Evidence:</strong> {skill.evidence.map((e, i) => `${e.timestamp}: "${e.quote}"`).join(' · ')}
+                              </div>
+                            )}
+                            {skill.contra_evidence && (
+                              <div style={{ fontSize: '11px', color: '#b45309', marginTop: '8px', paddingTop: '8px', borderTop: `1px dashed ${COLORS['gray-border']}` }}>
+                                <strong>Contra:</strong> {skill.contra_evidence}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ))}
+
+                  {feedback.strengths && feedback.strengths.length > 0 && (
+                    <div style={{ marginBottom: '28px' }}>
+                      <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Coaching Strengths</h3>
+                      {feedback.strengths.map((strength, idx) => (
+                        <div key={idx} style={{ background: '#fff', borderRadius: '8px', border: `1px solid ${COLORS['gray-border']}`, borderLeft: `4px solid ${COLORS.lime}`, padding: '16px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {strength.competency_name} · {strength.code}
+                          </div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.navy, marginBottom: '8px' }}>{strength.statement_title}</div>
+                          <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#374151' }}>{strength.explanation}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {feedback.suggestions && feedback.suggestions.length > 0 && (
+                    <div style={{ marginBottom: '28px' }}>
+                      <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggestions for Development</h3>
+                      {feedback.suggestions.map((suggestion, idx) => (
+                        <div key={idx} style={{ background: '#fff', borderRadius: '8px', border: `1px solid ${COLORS['gray-border']}`, borderLeft: `4px solid ${COLORS.teal}`, padding: '16px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {suggestion.competency_name} · {suggestion.code}
+                          </div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.navy, marginBottom: '8px' }}>{suggestion.statement_title}</div>
+                          <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#374151', marginBottom: '8px' }}>{suggestion.missed_opportunity}</div>
+                          {suggestion.example_prompts && suggestion.example_prompts.length > 0 && (
+                            <div style={{ fontSize: '12px', color: COLORS['text-main'] }}>
+                              <strong>Example prompts:</strong>
+                              <ul style={{ margin: '6px 0 0', paddingLeft: '20px' }}>
+                                {suggestion.example_prompts.map((prompt, i) => (
+                                  <li key={i} style={{ marginBottom: '3px', fontStyle: 'italic' }}>"{prompt}"</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <div style={{ background: '#fff', borderRadius: '10px', border: `1px solid ${COLORS['gray-border']}`, padding: '24px', marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', lineHeight: '1.7', color: COLORS['text-main'], whiteSpace: 'pre-wrap' }}>
+                {typeof feedback === 'string' ? feedback : JSON.stringify(feedback, null, 2)}
+              </div>
             </div>
-          </div>
+          )}
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
