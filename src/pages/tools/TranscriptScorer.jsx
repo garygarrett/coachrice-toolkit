@@ -435,6 +435,201 @@ export default function TranscriptScorer() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
+  const downloadPDF = () => {
+    if (!jsPdfLoaded || !evaluation) { alert("PDF library still loading. Try again in a moment."); return; }
+    try { doDownloadPDF(); }
+    catch (err) { console.error(err); alert("PDF failed. Use Download Text instead."); }
+  };
+
+  const doDownloadPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const NAVY = [0, 32, 91];
+    const GRAY = [124, 126, 127];
+    const LIGHT = [229, 231, 235];
+    const SOFT_BLUE = [120, 179, 224];
+    const TEXT = [26, 26, 26];
+    const PASS_GREEN = [22, 163, 74];
+    const FAIL_RED = [220, 38, 38];
+    const PW = 612, PH = 792, MX = 54, MT = 56, MB = 54, CW = 504;
+    let y = MT;
+
+    const ensureSpace = (n) => { if (y + n > PH - MB) { doc.addPage(); y = MT; } };
+    const measure = (text, width, size) => {
+      doc.setFontSize(size);
+      return doc.splitTextToSize(String(text || ""), width);
+    };
+    const LH = (size) => size * 1.35;
+
+    // Header
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text("ACC Coaching Session Feedback", MX, y); y += 18;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+    const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    doc.text("Coach: " + (evaluation.coach_identifier || "Submitted Coach"), MX, y);
+    doc.text("Date: " + dateStr, MX + 230, y);
+    doc.text("Rubric: ICF ACC BARS (March 2024)", MX + 390, y); y += 18;
+
+    // Skills observed
+    const obsCount = (evaluation.behavioral_statements || []).filter(s => s.result === "Observed").length;
+    const totCount = (evaluation.behavioral_statements || []).length;
+    ensureSpace(60);
+    doc.setFillColor(247, 248, 250); doc.setDrawColor(LIGHT[0], LIGHT[1], LIGHT[2]); doc.setLineWidth(1);
+    doc.roundedRect(MX, y, CW, 50, 4, 4, "FD");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+    doc.text("SKILLS OBSERVED", MX + 14, y + 15);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(24);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text(obsCount + " / " + totCount, MX + 14, y + 40);
+    var barX = MX + 150, barY = y + 18, barW = CW - 168, barH = 10;
+    doc.setFillColor(229, 231, 235); doc.roundedRect(barX, barY, barW, barH, 3, 3, "F");
+    var fillW = Math.max(2, Math.round((obsCount / totCount) * barW));
+    doc.setFillColor(SOFT_BLUE[0], SOFT_BLUE[1], SOFT_BLUE[2]);
+    doc.roundedRect(barX, barY, fillW, barH, 3, 3, "F");
+    y += 62;
+
+    // Competencies 3-8
+    const compTitles = { 3: "Establishes and Maintains Agreements", 4: "Cultivates Trust and Safety", 5: "Maintains Presence", 6: "Listens Actively", 7: "Evokes Awareness", 8: "Facilitates Client Growth" };
+    const grouped = {};
+    (evaluation.behavioral_statements || []).forEach(s => {
+      const c = parseInt(s.code.split(".")[0], 10);
+      if (!grouped[c]) grouped[c] = [];
+      grouped[c].push(s);
+    });
+
+    [3, 4, 5, 6, 7, 8].forEach(n => {
+      ensureSpace(22);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text(n + ". " + compTitles[n], MX, y); y += 14;
+
+      (grouped[n] || []).forEach(s => {
+        const titleLines = measure(s.title, CW - 20, 9);
+        const noteLines = s.note ? measure(s.note, CW - 20, 8) : [];
+        const evLines = [];
+        (s.evidence || []).forEach(e => {
+          const el = measure(e.timestamp + ": \"" + e.quote + "\"", CW - 20, 8);
+          el.forEach(l => evLines.push(l));
+        });
+        const contraLines = s.contra_evidence ? measure("Contra: " + s.contra_evidence, CW - 20, 8) : [];
+        const rowH = titleLines.length * LH(9) + noteLines.length * LH(8) + evLines.length * LH(8) + contraLines.length * LH(8) + 20;
+        ensureSpace(rowH);
+
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+        doc.text(s.code, MX + 8, y + 12);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+        doc.text(titleLines, MX + 30, y + 12);
+        const badgeText = s.result === "Observed" ? "OBSERVED" : "NOT OBSERVED";
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+        doc.setTextColor(s.result === "Observed" ? PASS_GREEN[0] : FAIL_RED[0], s.result === "Observed" ? PASS_GREEN[1] : FAIL_RED[1], s.result === "Observed" ? PASS_GREEN[2] : FAIL_RED[2]);
+        doc.text(badgeText, PW - MX - 40, y + 12, { align: "right" });
+        var iy = y + titleLines.length * LH(9) + 12;
+
+        if (noteLines.length) {
+          doc.setFont("helvetica", "italic"); doc.setFontSize(8);
+          doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+          doc.text(noteLines, MX + 30, iy);
+          iy += noteLines.length * LH(8);
+        }
+        if (evLines.length) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+          doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+          doc.text(evLines, MX + 30, iy);
+          iy += evLines.length * LH(8);
+        }
+        if (contraLines.length) {
+          doc.setFont("helvetica", "italic"); doc.setFontSize(8);
+          doc.setTextColor(146, 64, 14);
+          doc.text(contraLines, MX + 30, iy);
+        }
+        y += rowH;
+      });
+      y += 8;
+    });
+
+    // Strengths
+    if (evaluation.strengths && evaluation.strengths.length > 0) {
+      ensureSpace(20);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text("Coaching Strengths", MX, y); y += 16;
+      (evaluation.strengths || []).forEach(s => {
+        const titleLines = measure(s.statement_title, CW - 20, 10);
+        const explLines = measure(s.explanation || "", CW - 20, 9);
+        const rowH = titleLines.length * LH(10) + explLines.length * LH(9) + 24;
+        ensureSpace(rowH);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(LIGHT[0], LIGHT[1], LIGHT[2]); doc.setLineWidth(0.75);
+        doc.rect(MX, y, CW, rowH, "FD");
+        doc.setFillColor(201, 214, 71); doc.rect(MX, y, 4, rowH, "F");
+        var sy = y + 10;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+        doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+        doc.text(titleLines, MX + 12, sy);
+        sy += titleLines.length * LH(10);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+        doc.text(explLines, MX + 12, sy);
+        y += rowH + 8;
+      });
+    }
+
+    // Suggestions
+    if (evaluation.suggestions && evaluation.suggestions.length > 0) {
+      ensureSpace(20);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text("Suggestions for Development", MX, y); y += 16;
+      (evaluation.suggestions || []).forEach(s => {
+        const titleLines = measure(s.statement_title, CW - 20, 10);
+        const moLines = measure(s.missed_opportunity || "", CW - 20, 9);
+        var pLines = [];
+        (s.example_prompts || []).forEach(p => {
+          const pl = measure("• \"" + p + "\"", CW - 28, 8);
+          pl.forEach(l => pLines.push(l));
+        });
+        const promptH = pLines.length ? pLines.length * LH(8) + 12 : 0;
+        const rowH = titleLines.length * LH(10) + moLines.length * LH(9) + promptH + 24;
+        ensureSpace(rowH);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(LIGHT[0], LIGHT[1], LIGHT[2]); doc.setLineWidth(0.75);
+        doc.rect(MX, y, CW, rowH, "FD");
+        doc.setFillColor(SOFT_BLUE[0], SOFT_BLUE[1], SOFT_BLUE[2]); doc.rect(MX, y, 4, rowH, "F");
+        var sy = y + 10;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+        doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+        doc.text(titleLines, MX + 12, sy);
+        sy += titleLines.length * LH(10);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+        doc.text(moLines, MX + 12, sy);
+        sy += moLines.length * LH(9);
+        if (pLines.length) {
+          doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+          doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+          doc.text("Example prompts:", MX + 12, sy); sy += 10;
+          doc.setFont("helvetica", "italic"); doc.setFontSize(8);
+          doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+          doc.text(pLines, MX + 16, sy);
+        }
+        y += rowH + 8;
+      });
+    }
+
+    const sn = (downloadName.trim() || evaluation.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "ACC_Feedback_" + sn + ".pdf";
+    a.style.display = "none"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
   const COLORS = {
     navy: '#00205B',
     teal: '#69cce6',
@@ -586,9 +781,9 @@ export default function TranscriptScorer() {
   if (stage === "report" && evaluation) {
     return (
       <Layout active="transcript" pageTitle="Transcript Reviewer">
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px" }}>
-          <div style={{ display: "flex", gap: "12px", marginBottom: "24px", alignItems: "center" }}>
-            <div style={{ flex: 1 }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px", fontFamily: "'Montserrat', sans-serif" }}>
+          <div style={{ display: "flex", gap: "12px", marginBottom: "24px", alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: "240px" }}>
               <label style={{ fontSize: "12px", fontWeight: 600, color: COLORS.gray, letterSpacing: "0.5px" }}>
                 DOWNLOAD NAME (optional)
               </label>
@@ -601,6 +796,7 @@ export default function TranscriptScorer() {
                   width: "100%",
                   padding: "10px 12px",
                   fontSize: "14px",
+                  fontFamily: "'Montserrat', sans-serif",
                   border: `1px solid ${COLORS['gray-border']}`,
                   borderRadius: "6px",
                   boxSizing: "border-box",
@@ -612,23 +808,41 @@ export default function TranscriptScorer() {
               <button
                 onClick={downloadText}
                 style={{
-                  background: COLORS.navy,
+                  background: 'transparent',
+                  color: COLORS.navy,
+                  border: `1px solid ${COLORS.navy}`,
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: "'Montserrat', sans-serif",
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                📄 Download Text
+              </button>
+              <button
+                onClick={downloadPDF}
+                disabled={!jsPdfLoaded}
+                style={{
+                  background: jsPdfLoaded ? COLORS.navy : COLORS.gray,
                   color: '#fff',
                   border: 'none',
                   padding: '10px 16px',
                   fontSize: '13px',
                   fontWeight: 600,
+                  fontFamily: "'Montserrat', sans-serif",
                   borderRadius: '6px',
-                  cursor: 'pointer',
-                  marginTop: '28px',
+                  cursor: jsPdfLoaded ? 'pointer' : 'not-allowed',
+                  opacity: jsPdfLoaded ? 1 : 0.5,
                 }}
               >
-                📄 Download Text
+                📥 {jsPdfLoaded ? 'Download PDF' : 'Preparing...'}
               </button>
             </div>
           </div>
 
-          {/* Simple Feedback Display */}
+          {/* Detailed Feedback Display */}
           <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '32px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 700, color: COLORS.navy, marginBottom: '8px' }}>
               Your Coaching Feedback
@@ -645,30 +859,58 @@ export default function TranscriptScorer() {
               </div>
             </div>
 
-            {/* Behavioral Statements */}
-            <div style={{ marginBottom: '32px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Behavioral Statements</h3>
-              {(evaluation.behavioral_statements || []).map((s, i) => (
-                <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: `1px solid ${COLORS['gray-border']}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: COLORS.navy }}>{s.code}</span>
-                    <span style={{ fontWeight: 600, color: s.result === 'Observed' ? '#16a34a' : '#dc2626' }}>
-                      {s.result === 'Observed' ? '✓ Observed' : '✗ Not Observed'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '13px', color: COLORS['text-main'] }}>{s.title}</div>
+            {/* Competencies 3-8 Grouped */}
+            {(() => {
+              const compTitles = { 3: 'Establishes and Maintains Agreements', 4: 'Cultivates Trust and Safety', 5: 'Maintains Presence', 6: 'Listens Actively', 7: 'Evokes Awareness', 8: 'Facilitates Client Growth' };
+              const grouped = {};
+              (evaluation.behavioral_statements || []).forEach(s => {
+                const c = parseInt(s.code.split('.')[0], 10);
+                if (!grouped[c]) grouped[c] = [];
+                grouped[c].push(s);
+              });
+
+              return [3, 4, 5, 6, 7, 8].map(comp => (
+                <div key={comp} style={{ marginBottom: '28px' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {comp}. {compTitles[comp]}
+                  </h3>
+                  {(grouped[comp] || []).map(skill => (
+                    <div key={skill.code} style={{ background: '#f9fafc', borderRadius: '8px', border: `1px solid ${COLORS['gray-border']}`, padding: '16px', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '12px', fontWeight: '700', color: COLORS.navy }}>{skill.code}</div>
+                          <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#1a1a1a', marginTop: '4px' }}>{skill.title}</div>
+                        </div>
+                        <span style={{ display: 'inline-block', padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '4px', background: skill.result === 'Observed' ? '#dcfce7' : '#fee2e2', color: skill.result === 'Observed' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                          {skill.result === 'Observed' ? '✓ Observed' : '✗ Not Observed'}
+                        </span>
+                      </div>
+                      {skill.note && <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>{skill.note}</div>}
+                      {skill.evidence && skill.evidence.length > 0 && (
+                        <div style={{ fontSize: '11px', color: '#555', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                          <strong>Evidence:</strong> {skill.evidence.map((e, i) => `${e.timestamp}: "${e.quote}"`).join(' · ')}
+                        </div>
+                      )}
+                      {skill.contra_evidence && (
+                        <div style={{ fontSize: '11px', color: '#b45309', marginTop: '8px', paddingTop: '8px', borderTop: `1px dashed ${COLORS['gray-border']}` }}>
+                          <strong>Contra:</strong> {skill.contra_evidence}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              ));
+            })()}
 
             {/* Strengths */}
             {evaluation.strengths && evaluation.strengths.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Coaching Strengths</h3>
+              <div style={{ marginBottom: '32px', marginTop: '32px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Coaching Strengths</h3>
                 {evaluation.strengths.map((s, i) => (
-                  <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a' }}>
-                    <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: '4px' }}>{s.competency_name}</div>
-                    <div style={{ fontSize: '13px', color: COLORS['text-main'] }}>{s.explanation}</div>
+                  <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#f0fdf4', borderLeft: '4px solid #16a34a', borderRadius: '0 6px 6px 0', border: `1px solid ${COLORS['gray-border']}`, borderLeftWidth: '4px' }}>
+                    <div style={{ fontSize: '11px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.navy, marginBottom: '8px' }}>{s.statement_title}</div>
+                    <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#374151' }}>{s.explanation}</div>
                   </div>
                 ))}
               </div>
@@ -676,15 +918,21 @@ export default function TranscriptScorer() {
 
             {/* Suggestions */}
             {evaluation.suggestions && evaluation.suggestions.length > 0 && (
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Suggestions for Development</h3>
+              <div style={{ marginTop: '32px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggestions for Development</h3>
                 {evaluation.suggestions.map((s, i) => (
-                  <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626' }}>
-                    <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: '4px' }}>{s.competency_name}</div>
-                    <div style={{ fontSize: '13px', color: COLORS['text-main'], marginBottom: '8px' }}>{s.missed_opportunity}</div>
+                  <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '0 6px 6px 0', border: `1px solid ${COLORS['gray-border']}`, borderLeftWidth: '4px' }}>
+                    <div style={{ fontSize: '11px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.navy, marginBottom: '8px' }}>{s.statement_title}</div>
+                    <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#374151', marginBottom: '8px' }}>{s.missed_opportunity}</div>
                     {s.example_prompts && s.example_prompts.length > 0 && (
-                      <div style={{ fontSize: '12px', color: COLORS['text-muted'] }}>
-                        <strong>Try asking:</strong> "{s.example_prompts[0]}"
+                      <div style={{ fontSize: '12px', color: COLORS['text-main'] }}>
+                        <strong>Example prompts:</strong>
+                        <ul style={{ margin: '6px 0 0', paddingLeft: '20px' }}>
+                          {s.example_prompts.map((prompt, i) => (
+                            <li key={i} style={{ marginBottom: '3px', fontStyle: 'italic' }}>"{prompt}"</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
