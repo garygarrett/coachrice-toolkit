@@ -42,12 +42,12 @@ const COLORS = {
 }
 
 const CONTENT_DEFAULTS = {
-  ai_start_badge: 'Application',
-  ai_start_title: 'AI Client',
-  ai_start_subtitle: 'Practice coaching with an AI-powered client. Engage in realistic conversations and get feedback on your coaching approach.',
-  ai_start_info_1: 'Realistic AI-powered client',
-  ai_start_info_2: 'Customizable client personas',
-  ai_start_info_3: 'Safe practice environment',
+  ai_start_badge: '',
+  ai_start_title: '',
+  ai_start_subtitle: '',
+  ai_start_info_1: '',
+  ai_start_info_2: '',
+  ai_start_info_3: '',
   theme_primary_color: '#00205B',
 }
 

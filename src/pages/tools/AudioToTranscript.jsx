@@ -5,12 +5,12 @@ import { supabase } from '../../lib/supabase'
 import Layout from '../../components/Layout'
 
 const CONTENT_DEFAULTS = {
-  audio_start_badge: 'Utility',
-  audio_start_title: 'Audio to Transcript',
-  audio_start_subtitle: 'Convert your coaching session audio recordings into text transcripts. Upload an audio file and get an accurate transcription ready for analysis.',
-  audio_start_info_1: 'Supports MP3, WAV, and M4A formats',
-  audio_start_info_2: 'Fast, accurate transcription',
-  audio_start_info_3: 'Transcripts ready for the Transcript Scorer tool',
+  audio_start_badge: '',
+  audio_start_title: '',
+  audio_start_subtitle: '',
+  audio_start_info_1: '',
+  audio_start_info_2: '',
+  audio_start_info_3: '',
   theme_primary_color: '#00205B',
   theme_page_bg: '#f0f2f5',
 }

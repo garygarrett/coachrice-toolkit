@@ -39,12 +39,12 @@ function proficiencyLabel(pct) {
 }
 
 const CONTENT_DEFAULTS = {
-  exam_start_badge:    'ACC Exam Prep',
-  exam_start_title:    'ICF Practice Exam',
-  exam_start_subtitle: '10 scenario-based questions drawn from all 9 ICF competency areas. Select the best answer for each question, then review your results and explanations for every missed question.',
-  exam_start_info_1:   '10 questions · untimed',
-  exam_start_info_2:   'One question shown at a time',
-  exam_start_info_3:   'Results saved to your progress record',
+  exam_start_badge:    '',
+  exam_start_title:    '',
+  exam_start_subtitle: '',
+  exam_start_info_1:   '',
+  exam_start_info_2:   '',
+  exam_start_info_3:   '',
   theme_primary_color: '#00205B',
   theme_page_bg:       '#f0f2f5',
   theme_font_family:   'system-ui, -apple-system, sans-serif',
