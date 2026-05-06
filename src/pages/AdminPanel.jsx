@@ -168,6 +168,7 @@ export default function AdminPanel() {
   const [apiKeys, setApiKeys] = useState({ chatbot: '', feedback: '', assessor: '' })
   const [prompts, setPrompts] = useState({ aiClientChatbot: '', aiClientFeedback: '', assessor: '' })
   const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true })
+  const [tileColors, setTileColors] = useState({})
   const [toolLoading, setToolLoading] = useState(false)
   const [toolError, setToolError] = useState(null)
   const [toolSuccess, setToolSuccess] = useState(null)
@@ -243,6 +244,18 @@ export default function AdminPanel() {
         ai: configMap.tool_ai_visible !== 'false',
         audio: configMap.tool_audio_visible !== 'false',
       })
+
+      // Load tile colors (use defaults from TOOLS if not in config)
+      const colors = {}
+      TOOLS.forEach(tool => {
+        colors[tool.id] = {
+          bg: configMap[`tool_${tool.id}_card_bg`] || tool.cardBg,
+          color: configMap[`tool_${tool.id}_card_color`] || tool.cardColor,
+          tagColor: configMap[`tool_${tool.id}_tag_color`] || tool.tagColor,
+          tagTextColor: configMap[`tool_${tool.id}_tag_text_color`] || tool.tagTextColor,
+        }
+      })
+      setTileColors(colors)
 
       if (questionsRes.data) setQuestions(questionsRes.data)
     } catch (e) {
@@ -331,6 +344,29 @@ export default function AdminPanel() {
     } else {
       setToolSuccess(`${TOOLS.find(t => t.id === toolId)?.label} ${visibility[toolId] ? 'shown' : 'hidden'}.`)
     }
+  }
+
+  async function handleTileColorsSave(toolId) {
+    setToolLoading(true)
+    setToolError(null)
+    setToolSuccess(null)
+
+    const colors = tileColors[toolId]
+    const updates = [
+      { key: `tool_${toolId}_card_bg`, value: colors.bg },
+      { key: `tool_${toolId}_card_color`, value: colors.color },
+      { key: `tool_${toolId}_tag_color`, value: colors.tagColor },
+      { key: `tool_${toolId}_tag_text_color`, value: colors.tagTextColor },
+    ]
+
+    const { error } = await supabase.from('config').upsert(updates, { onConflict: 'key' })
+
+    if (error) {
+      setToolError(error.message)
+    } else {
+      setToolSuccess('Tile colors saved.')
+    }
+    setToolLoading(false)
   }
 
   // ── Questions functions ──
@@ -566,26 +602,26 @@ export default function AdminPanel() {
           <div
             style={{
               ...s.tilePreview,
-              backgroundColor: tool.cardBg,
-              color: tool.cardColor,
+              backgroundColor: tileColors[tool.id]?.bg || tool.cardBg,
+              color: tileColors[tool.id]?.color || tool.cardColor,
             }}
           >
             <div style={{ fontSize: '24px', marginBottom: '12px' }}>
-              <ToolIcon id={tool.id} size={24} color={tool.cardColor} />
+              <ToolIcon id={tool.id} size={24} color={tileColors[tool.id]?.color || tool.cardColor} />
             </div>
             <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
               {contentValues[`${tool.contentPrefix}_card_title`] || 'Title'}
             </div>
-            <div style={{ fontSize: '11px', marginBottom: '12px', color: tool.cardColor, opacity: 0.8 }}>
+            <div style={{ fontSize: '11px', marginBottom: '12px', color: tileColors[tool.id]?.color || tool.cardColor, opacity: 0.8 }}>
               {contentValues[`${tool.contentPrefix}_card_description`] || 'Description'}
             </div>
-            <div style={{ borderTop: `1px solid ${tool.cardColor}`, paddingTop: '8px' }}>
+            <div style={{ borderTop: `1px solid ${tileColors[tool.id]?.color || tool.cardColor}`, paddingTop: '8px' }}>
               <span
                 style={{
                   fontSize: '9px',
                   fontWeight: 600,
-                  backgroundColor: tool.tagColor,
-                  color: tool.tagTextColor,
+                  backgroundColor: tileColors[tool.id]?.tagColor || tool.tagColor,
+                  color: tileColors[tool.id]?.tagTextColor || tool.tagTextColor,
                   padding: '3px 8px',
                   borderRadius: '4px',
                   display: 'inline-block',
@@ -632,6 +668,84 @@ export default function AdminPanel() {
               {toolLoading ? 'Saving…' : 'Save Tile'}
             </button>
           </div>
+        </div>
+
+        {/* Tile Colors */}
+        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e2e6ec' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '12px', color: COLORS['text-main'] }}>Tile Colors</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+            <label style={s.label}>
+              Background
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={tileColors[tool.id]?.bg || tool.cardBg}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], bg: e.target.value } }))}
+                  style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={tileColors[tool.id]?.bg || tool.cardBg}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], bg: e.target.value } }))}
+                  style={{ ...s.input, flex: 1, fontSize: '12px' }}
+                />
+              </div>
+            </label>
+            <label style={s.label}>
+              Icon Color
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={tileColors[tool.id]?.color || tool.cardColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], color: e.target.value } }))}
+                  style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={tileColors[tool.id]?.color || tool.cardColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], color: e.target.value } }))}
+                  style={{ ...s.input, flex: 1, fontSize: '12px' }}
+                />
+              </div>
+            </label>
+            <label style={s.label}>
+              Tag Background
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={tileColors[tool.id]?.tagColor || tool.tagColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], tagColor: e.target.value } }))}
+                  style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={tileColors[tool.id]?.tagColor || tool.tagColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], tagColor: e.target.value } }))}
+                  style={{ ...s.input, flex: 1, fontSize: '12px' }}
+                />
+              </div>
+            </label>
+            <label style={s.label}>
+              Tag Text
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={tileColors[tool.id]?.tagTextColor || tool.tagTextColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], tagTextColor: e.target.value } }))}
+                  style={{ width: '40px', height: '40px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={tileColors[tool.id]?.tagTextColor || tool.tagTextColor}
+                  onChange={e => setTileColors(v => ({ ...v, [tool.id]: { ...v[tool.id], tagTextColor: e.target.value } }))}
+                  style={{ ...s.input, flex: 1, fontSize: '12px' }}
+                />
+              </div>
+            </label>
+          </div>
+          <button onClick={() => handleTileColorsSave(tool.id)} disabled={toolLoading} style={{ ...s.submitBtn, marginTop: '12px' }}>
+            {toolLoading ? 'Saving…' : 'Save Colors'}
+          </button>
         </div>
       </div>
 

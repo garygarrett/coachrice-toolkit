@@ -66,12 +66,8 @@ export default function CoachDashboard() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [content, setContent] = useState({})
-  const [visibility, setVisibility] = useState({
-    exam: true,
-    transcript: true,
-    ai: true,
-    audio: true,
-  })
+  const [visibility, setVisibility] = useState(null)
+  const [colors, setColors] = useState({})
 
   useEffect(() => {
     const keys = ['exam_card_tag', 'exam_card_title', 'exam_card_description',
@@ -97,24 +93,59 @@ export default function CoachDashboard() {
         .in('key', ['tool_exam_visible', 'tool_transcript_visible', 'tool_ai_visible', 'tool_audio_visible'])
 
       if (data) {
-        const visibilityMap = {}
+        const visibilityMap = {
+          exam: true,
+          transcript: true,
+          ai: true,
+          audio: true,
+        }
         data.forEach(row => {
           const toolId = row.key.replace('tool_', '').replace('_visible', '')
           visibilityMap[toolId] = row.value === 'true'
         })
-        setVisibility(prev => ({ ...prev, ...visibilityMap }))
+        setVisibility(visibilityMap)
+      } else {
+        setVisibility({ exam: true, transcript: true, ai: true, audio: true })
+      }
+    }
+
+    const loadColors = async () => {
+      const { data } = await supabase
+        .from('config')
+        .select('key, value')
+        .or('key.ilike.tool_exam_card_%,key.ilike.tool_transcript_card_%,key.ilike.tool_ai_card_%,key.ilike.tool_audio_card_%')
+
+      if (data) {
+        const colorMap = {
+          exam: { bg: '#e6f7fc', color: '#0a7fa8' },
+          transcript: { bg: '#fff0e0', color: '#c06000' },
+          ai: { bg: '#fff0e0', color: '#c06000' },
+          audio: { bg: '#f0f2f5', color: '#7C7E7F' },
+        }
+        data.forEach(row => {
+          const match = row.key.match(/tool_(\w+)_(\w+)_(\w+)/)
+          if (match) {
+            const toolId = match[1]
+            const colorType = match[3]
+            if (!colorMap[toolId]) colorMap[toolId] = {}
+            if (colorType === 'bg') colorMap[toolId].bg = row.value
+            if (colorType === 'color') colorMap[toolId].color = row.value
+          }
+        })
+        setColors(colorMap)
       }
     }
 
     loadVisibility()
+    loadColors()
   }, [])
 
   const allTools = [
     {
       id: 'exam',
       icon: 'exam',
-      bg: '#e6f7fc',
-      color: '#0a7fa8',
+      bg: colors.exam?.bg || '#e6f7fc',
+      color: colors.exam?.color || '#0a7fa8',
       title: content.exam_card_title || TOOL_DEFAULTS.exam.title,
       desc: content.exam_card_description || TOOL_DEFAULTS.exam.desc,
       tag: content.exam_card_tag || TOOL_DEFAULTS.exam.tag,
@@ -123,8 +154,8 @@ export default function CoachDashboard() {
     {
       id: 'transcript',
       icon: 'transcript',
-      bg: '#fff0e0',
-      color: '#c06000',
+      bg: colors.transcript?.bg || '#fff0e0',
+      color: colors.transcript?.color || '#c06000',
       title: content.transcript_card_title || TOOL_DEFAULTS.transcript.title,
       desc: content.transcript_card_description || TOOL_DEFAULTS.transcript.desc,
       tag: content.transcript_card_tag || TOOL_DEFAULTS.transcript.tag,
@@ -133,8 +164,8 @@ export default function CoachDashboard() {
     {
       id: 'ai',
       icon: 'ai',
-      bg: '#fff0e0',
-      color: '#c06000',
+      bg: colors.ai?.bg || '#fff0e0',
+      color: colors.ai?.color || '#c06000',
       title: content.ai_card_title || TOOL_DEFAULTS.ai.title,
       desc: content.ai_card_description || TOOL_DEFAULTS.ai.desc,
       tag: content.ai_card_tag || TOOL_DEFAULTS.ai.tag,
@@ -143,8 +174,8 @@ export default function CoachDashboard() {
     {
       id: 'audio',
       icon: 'audio',
-      bg: '#f0f2f5',
-      color: COLORS.gray,
+      bg: colors.audio?.bg || '#f0f2f5',
+      color: colors.audio?.color || COLORS.gray,
       title: content.audio_card_title || TOOL_DEFAULTS.audio.title,
       desc: content.audio_card_description || TOOL_DEFAULTS.audio.desc,
       tag: content.audio_card_tag || TOOL_DEFAULTS.audio.tag,
@@ -153,7 +184,7 @@ export default function CoachDashboard() {
   ]
 
   const isAdmin = profile?.role === 'admin'
-  const tools = isAdmin ? allTools : allTools.filter(t => visibility[t.id])
+  const tools = visibility === null ? [] : (isAdmin ? allTools : allTools.filter(t => visibility[t.id]))
 
   const activities = [
     { dot: '#0a7fa8', title: 'Practice Exam', time: 'Apr 18', note: '92% — Pass' },

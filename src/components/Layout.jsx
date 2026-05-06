@@ -69,12 +69,7 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
 export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
-  const [visibility, setVisibility] = useState({
-    exam: true,
-    transcript: true,
-    ai: true,
-    audio: true,
-  })
+  const [visibility, setVisibility] = useState(null)
 
   useEffect(() => {
     const loadVisibility = async () => {
@@ -84,12 +79,19 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
         .in('key', ['tool_exam_visible', 'tool_transcript_visible', 'tool_ai_visible', 'tool_audio_visible'])
 
       if (data) {
-        const visibilityMap = {}
+        const visibilityMap = {
+          exam: true,
+          transcript: true,
+          ai: true,
+          audio: true,
+        }
         data.forEach(row => {
           const toolId = row.key.replace('tool_', '').replace('_visible', '')
           visibilityMap[toolId] = row.value === 'true'
         })
-        setVisibility(prev => ({ ...prev, ...visibilityMap }))
+        setVisibility(visibilityMap)
+      } else {
+        setVisibility({ exam: true, transcript: true, ai: true, audio: true })
       }
     }
 
@@ -107,7 +109,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' },
   ]
   const isAdmin = profile?.role === 'admin'
-  const toolItems = isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
+  const toolItems = visibility === null ? [] : (isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id]))
 
   return (
     <div style={styles.container}>
