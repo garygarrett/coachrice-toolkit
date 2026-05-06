@@ -20,6 +20,16 @@ When in doubt, mark Not Observed.
 
 Respond with a single valid JSON object only. No prose. No markdown fences.`;
 
+const CONTENT_DEFAULTS = {
+  transcript_start_badge: 'Tool',
+  transcript_start_title: 'Transcript Reviewer',
+  transcript_start_subtitle: 'Submit your anonymized coaching session transcript for evaluation. Receive detailed feedback on your coaching skills against ICC ACC standards.',
+  transcript_start_info_1: 'Upload PDF or paste text',
+  transcript_start_info_2: 'Instant AI-powered feedback',
+  transcript_start_info_3: 'Evaluated against ICC ACC standards',
+  theme_primary_color: '#00205B',
+};
+
 export default function TranscriptScorer() {
   const [stage, setStage] = useState("input");
   const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false });
@@ -33,10 +43,24 @@ export default function TranscriptScorer() {
   const [downloadName, setDownloadName] = useState("");
   const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
+  const [content, setContent] = useState(CONTENT_DEFAULTS);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // Fetch API key and prompt from Supabase config
+    // Fetch page content from site_content table
+    supabase
+      .from("site_content")
+      .select("key, value")
+      .in("key", ["transcript_start_badge", "transcript_start_title", "transcript_start_subtitle", "transcript_start_info_1", "transcript_start_info_2", "transcript_start_info_3"])
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {};
+          data.forEach(row => { map[row.key] = row.value });
+          setContent(prev => ({ ...prev, ...map }));
+        }
+      });
+
+    // Fetch API key and prompt from config table
     supabase
       .from("config")
       .select("key, value")
@@ -49,7 +73,7 @@ export default function TranscriptScorer() {
           if (map.transcript_reviewer_prompt) setSystemPrompt(map.transcript_reviewer_prompt);
         }
         // Set default if not found
-        if (!map?.transcript_reviewer_prompt) setSystemPrompt(SYSTEM_PROMPT_DEFAULT);
+        if (!data?.some(r => r.key === 'transcript_reviewer_prompt')) setSystemPrompt(SYSTEM_PROMPT_DEFAULT);
       });
   }, []);
 
@@ -249,12 +273,16 @@ export default function TranscriptScorer() {
       <Layout active="transcript" pageTitle="Transcript Reviewer">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
           <div style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "28px", fontWeight: 700, color: COLORS.navy, margin: "0 0 12px" }}>
-              Submit Your Coaching Session Transcript
-            </h2>
-            <p style={{ fontSize: "15px", color: COLORS.gray, lineHeight: 1.6, margin: 0 }}>
-              Upload a PDF or paste the transcript of your coaching session. Your transcript will be evaluated and you'll receive detailed feedback on your coaching skills.
-            </p>
+            <p style={{ display: 'inline-block', background: '#e8ecf5', color: '#00205B', fontSize: '0.75rem', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.6rem', borderRadius: '4px', marginBottom: '0.75rem' }}>{content.transcript_start_badge}</p>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#00205B', margin: '0 0 0.5rem' }}>{content.transcript_start_title}</h1>
+            <p style={{ color: '#555', fontSize: '0.9rem', lineHeight: '1.6', margin: '0 0 1.25rem' }}>{content.transcript_start_subtitle}</p>
+            <ul style={{ color: '#444', fontSize: '0.875rem', paddingLeft: '1.25rem', margin: '0 0 1.75rem', lineHeight: '1.8' }}>
+              {[content.transcript_start_info_1, content.transcript_start_info_2, content.transcript_start_info_3]
+                .filter(Boolean)
+                .map((info, i) => (
+                  <li key={i}>{info}</li>
+                ))}
+            </ul>
           </div>
 
           {/* Consent Checkboxes */}

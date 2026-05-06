@@ -24,7 +24,7 @@ export default function AudioToTranscript() {
     <Layout active="audio" pageTitle="Audio to Transcript">
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
         <div style={{ marginBottom: '32px' }}>
-          <span style={{ ...styles.badge, background: '#e8ecf5', color: '#00205B' }}>{content.audio_start_badge || 'Utility'}</span>
+          <p style={{ ...styles.badge, background: '#e8ecf5', color: '#00205B' }}>{content.audio_start_badge || 'Utility'}</p>
           <h1 style={{ ...styles.title, color: '#00205B' }}>{content.audio_start_title || 'Audio to Transcript'}</h1>
           <p style={styles.subtitle}>{content.audio_start_subtitle}</p>
 
@@ -32,7 +32,7 @@ export default function AudioToTranscript() {
             {[content.audio_start_info_1, content.audio_start_info_2, content.audio_start_info_3]
               .filter(Boolean)
               .map((info, i) => (
-                <li key={i} style={styles.infoItem}>{info}</li>
+                <li key={i}>{info}</li>
               ))}
           </ul>
 
@@ -46,60 +46,46 @@ export default function AudioToTranscript() {
 }
 
 const styles = {
-  startScreen: {
-    maxWidth: '700px',
-    margin: '0 auto',
-  },
-  card: {
-    background: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 2px 16px rgba(0,0,0,0.09)',
-    padding: '2rem',
-    width: '100%',
-    maxWidth: '680px',
-  },
   badge: {
     display: 'inline-block',
     background: '#e8ecf5',
-    fontSize: '0.65rem',
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    color: '#00205B',
+    fontSize: '0.75rem',
+    fontWeight: '600',
     letterSpacing: '0.05em',
-    padding: '0.2rem 0.5rem',
+    textTransform: 'uppercase',
+    padding: '0.25rem 0.6rem',
     borderRadius: '4px',
-    marginBottom: '0.5rem',
+    marginBottom: '0.75rem',
   },
   title: {
-    fontSize: '1.75rem',
+    fontSize: '1.6rem',
     fontWeight: '700',
-    marginBottom: '0.5rem',
-    margin: '0.5rem 0 1rem',
+    color: '#00205B',
+    margin: '0 0 0.5rem',
   },
   subtitle: {
-    fontSize: '0.9rem',
     color: '#555',
+    fontSize: '0.9rem',
     lineHeight: '1.6',
-    marginBottom: '1.5rem',
+    margin: '0 0 1.25rem',
   },
   infoList: {
-    fontSize: '0.85rem',
     color: '#444',
-    paddingLeft: '1.5rem',
-    marginBottom: '1.5rem',
+    fontSize: '0.875rem',
+    paddingLeft: '1.25rem',
+    margin: '0 0 1.75rem',
     lineHeight: '1.8',
   },
-  infoItem: {
-    marginBottom: '0.5rem',
-  },
   startBtn: {
-    padding: '0.75rem 1.5rem',
+    padding: '0.7rem 1.5rem',
+    background: '#00205B',
     color: '#fff',
     border: 'none',
     borderRadius: '6px',
-    fontSize: '0.9rem',
+    fontSize: '0.95rem',
     fontWeight: '600',
     cursor: 'pointer',
-    fontFamily: "'Montserrat', sans-serif",
   },
   placeholder: {
     background: '#fff',
