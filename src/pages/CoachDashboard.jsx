@@ -66,7 +66,7 @@ export default function CoachDashboard() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [content, setContent] = useState({})
-  const [visibility, setVisibility] = useState(null)
+  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true })
   const [colors, setColors] = useState({})
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function CoachDashboard() {
   ]
 
   const isAdmin = profile?.role === 'admin'
-  const tools = visibility === null ? [] : (isAdmin ? allTools : allTools.filter(t => visibility[t.id]))
+  const tools = isAdmin ? allTools : allTools.filter(t => visibility[t.id])
 
   const activities = [
     { dot: '#0a7fa8', title: 'Practice Exam', time: 'Apr 18', note: '92% — Pass' },

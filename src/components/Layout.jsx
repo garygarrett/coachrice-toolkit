@@ -69,7 +69,7 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
 export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
-  const [visibility, setVisibility] = useState(null)
+  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true })
 
   useEffect(() => {
     const loadVisibility = async () => {
@@ -90,8 +90,6 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
           visibilityMap[toolId] = row.value === 'true'
         })
         setVisibility(visibilityMap)
-      } else {
-        setVisibility({ exam: true, transcript: true, ai: true, audio: true })
       }
     }
 
@@ -109,7 +107,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' },
   ]
   const isAdmin = profile?.role === 'admin'
-  const toolItems = visibility === null ? [] : (isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id]))
+  const toolItems = isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
   return (
     <div style={styles.container}>
