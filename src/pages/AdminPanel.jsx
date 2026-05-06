@@ -48,6 +48,48 @@ const EMPTY_QUESTION = {
   is_active: true,
 }
 
+const TOOL_DEFAULTS = {
+  exam: { tag: 'Knowledge', title: 'ACC Practice Exam', desc: '200+ questions' },
+  transcript: { tag: 'Application', title: 'Transcript Reviewer', desc: 'Upload a session' },
+  ai: { tag: 'Application', title: 'AI Client', desc: 'Live coaching practice' },
+  audio: { tag: 'Utility', title: 'Audio to Transcript', desc: 'Convert recordings' },
+}
+
+const TOOL_PAGE_DEFAULTS = {
+  exam: {
+    badge: 'Knowledge Assessment',
+    title: 'ACC Practice Exam',
+    subtitle: 'Test your knowledge with our comprehensive practice exam',
+    info_1: 'Complete 200+ questions covering all ACC core competencies',
+    info_2: 'Get instant feedback and detailed explanations',
+    info_3: 'Track your progress and identify areas for improvement',
+  },
+  transcript: {
+    badge: 'Session Review',
+    title: 'Transcript Reviewer',
+    subtitle: 'Upload and analyze your coaching sessions',
+    info_1: 'Review transcripts of your coaching conversations',
+    info_2: 'Receive AI-powered feedback aligned with ACC competencies',
+    info_3: 'Improve your coaching effectiveness',
+  },
+  ai: {
+    badge: 'Practice Tool',
+    title: 'AI Client',
+    subtitle: 'Practice coaching with an AI-powered client',
+    info_1: 'Engage in realistic coaching conversations',
+    info_2: 'Get feedback on your coaching approach',
+    info_3: 'Develop your coaching skills in a safe environment',
+  },
+  audio: {
+    badge: 'Utility',
+    title: 'Audio to Transcript',
+    subtitle: 'Convert your audio recordings to text',
+    info_1: 'Upload audio files from your coaching sessions',
+    info_2: 'Get accurate transcriptions for analysis',
+    info_3: 'Use with the Transcript Reviewer tool',
+  },
+}
+
 const TOOLS = [
   {
     id: 'exam',
@@ -185,6 +227,8 @@ export default function AdminPanel() {
 
   useEffect(() => { loadUsers() }, [])
   useEffect(() => {
+    setToolError(null)
+    setToolSuccess(null)
     if (activeTab === 'users') {
       loadUsers()
     } else if (activeTab.startsWith('tool-')) {
@@ -336,13 +380,11 @@ export default function AdminPanel() {
     setToolLoading(false)
   }
 
-  async function handleToolVisibilitySave(toolId) {
+  async function handleToolVisibilitySave(toolId, newValue) {
     const key = `tool_${toolId}_visible`
-    const { error } = await supabase.from('config').upsert({ key, value: visibility[toolId] ? 'true' : 'false' }, { onConflict: 'key' })
+    const { error } = await supabase.from('config').upsert({ key, value: newValue ? 'true' : 'false' }, { onConflict: 'key' })
     if (error) {
       setToolError(error.message)
-    } else {
-      setToolSuccess(`${TOOLS.find(t => t.id === toolId)?.label} ${visibility[toolId] ? 'shown' : 'hidden'}.`)
     }
   }
 
@@ -576,19 +618,26 @@ export default function AdminPanel() {
     <div key={tool.id}>
       <div style={s.titleRow}>
         <h1 style={s.heading}>{tool.label}</h1>
-        <button
-          onClick={() => {
-            setVisibility(v => ({ ...v, [tool.id]: !v[tool.id] }))
-            handleToolVisibilitySave(tool.id)
-          }}
-          style={{
-            ...s.visibilityBtn,
-            backgroundColor: visibility[tool.id] ? '#d1fae5' : '#fee2e2',
-            color: visibility[tool.id] ? '#047857' : '#dc2626',
-          }}
-        >
-          {visibility[tool.id] ? '✓ Visible to participants' : '✗ Hidden from participants'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '12px', color: COLORS['text-main'], fontWeight: 500 }}>
+            {visibility[tool.id] ? 'Visible to participants' : 'Hidden from participants'}
+          </span>
+          <input
+            type="checkbox"
+            checked={visibility[tool.id]}
+            onChange={(e) => {
+              const newValue = e.target.checked
+              setVisibility(v => ({ ...v, [tool.id]: newValue }))
+              handleToolVisibilitySave(tool.id, newValue)
+            }}
+            style={{
+              width: '44px',
+              height: '24px',
+              cursor: 'pointer',
+              accentColor: COLORS.teal,
+            }}
+          />
+        </div>
       </div>
 
       {toolError && <p style={s.errorMsg}>{toolError}</p>}
@@ -610,10 +659,10 @@ export default function AdminPanel() {
               <ToolIcon id={tool.id} size={24} color={tileColors[tool.id]?.color || tool.cardColor} />
             </div>
             <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
-              {contentValues[`${tool.contentPrefix}_card_title`] || 'Title'}
+              {contentValues[`${tool.contentPrefix}_card_title`] ?? TOOL_DEFAULTS[tool.id]?.title ?? 'Title'}
             </div>
             <div style={{ fontSize: '11px', marginBottom: '12px', color: tileColors[tool.id]?.color || tool.cardColor, opacity: 0.8 }}>
-              {contentValues[`${tool.contentPrefix}_card_description`] || 'Description'}
+              {contentValues[`${tool.contentPrefix}_card_description`] ?? TOOL_DEFAULTS[tool.id]?.desc ?? 'Description'}
             </div>
             <div style={{ borderTop: `1px solid ${tileColors[tool.id]?.color || tool.cardColor}`, paddingTop: '8px' }}>
               <span
@@ -627,7 +676,7 @@ export default function AdminPanel() {
                   display: 'inline-block',
                 }}
               >
-                {contentValues[`${tool.contentPrefix}_card_tag`] || 'Tag'}
+                {contentValues[`${tool.contentPrefix}_card_tag`] ?? TOOL_DEFAULTS[tool.id]?.tag ?? 'Tag'}
               </span>
             </div>
           </div>
@@ -638,7 +687,7 @@ export default function AdminPanel() {
               Tag
               <input
                 type="text"
-                value={contentValues[`${tool.contentPrefix}_card_tag`] || ''}
+                value={contentValues[`${tool.contentPrefix}_card_tag`] ?? TOOL_DEFAULTS[tool.id]?.tag ?? ''}
                 onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_card_tag`]: e.target.value }))}
                 style={s.input}
                 placeholder="e.g., Knowledge"
@@ -648,7 +697,7 @@ export default function AdminPanel() {
               Title
               <input
                 type="text"
-                value={contentValues[`${tool.contentPrefix}_card_title`] || ''}
+                value={contentValues[`${tool.contentPrefix}_card_title`] ?? TOOL_DEFAULTS[tool.id]?.title ?? tool.label}
                 onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_card_title`]: e.target.value }))}
                 style={s.input}
                 placeholder={tool.label}
@@ -658,7 +707,7 @@ export default function AdminPanel() {
               Description
               <input
                 type="text"
-                value={contentValues[`${tool.contentPrefix}_card_description`] || ''}
+                value={contentValues[`${tool.contentPrefix}_card_description`] ?? TOOL_DEFAULTS[tool.id]?.desc ?? ''}
                 onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_card_description`]: e.target.value }))}
                 style={s.input}
                 placeholder="Brief description"
@@ -752,49 +801,84 @@ export default function AdminPanel() {
       {/* Setup Page Content */}
       <div style={s.formCard}>
         <h2 style={s.formHeading}>Setup Page Content</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <label style={s.label}>
-            Badge
-            <input
-              type="text"
-              value={contentValues[`${tool.contentPrefix}_start_badge`] || ''}
-              onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_badge`]: e.target.value }))}
-              style={s.input}
-            />
-          </label>
-          <label style={s.label}>
-            Title
-            <input
-              type="text"
-              value={contentValues[`${tool.contentPrefix}_start_title`] || ''}
-              onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_title`]: e.target.value }))}
-              style={s.input}
-            />
-          </label>
-          <label style={{ ...s.label, gridColumn: '1 / -1' }}>
-            Subtitle
-            <input
-              type="text"
-              value={contentValues[`${tool.contentPrefix}_start_subtitle`] || ''}
-              onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_subtitle`]: e.target.value }))}
-              style={s.input}
-            />
-          </label>
-          {[1, 2, 3].map(i => (
-            <label key={i} style={s.label}>
-              Info {i}
-              <textarea
-                value={contentValues[`${tool.contentPrefix}_start_info_${i}`] || ''}
-                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info_${i}`]: e.target.value }))}
-                style={{ ...s.textarea, minHeight: '60px' }}
-                rows={2}
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Preview */}
+          <div style={{
+            background: '#fff',
+            border: `1px solid ${COLORS['gray-border']}`,
+            borderRadius: '10px',
+            padding: '20px',
+            fontSize: '14px',
+            lineHeight: '1.6',
+            color: COLORS['text-main'],
+          }}>
+            {(contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge) && (
+              <div style={{ display: 'inline-block', background: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, marginBottom: '12px' }}>
+                {contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge}
+              </div>
+            )}
+            <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: COLORS['text-main'] }}>
+              {contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? 'Title'}
+            </h2>
+            {(contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle) && (
+              <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '16px' }}>
+                {contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle}
+              </p>
+            )}
+            {[1, 2, 3].map(i => (
+              (contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`]) && (
+                <p key={i} style={{ fontSize: '13px', marginBottom: '12px', color: COLORS['text-main'] }}>
+                  {contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`]}
+                </p>
+              )
+            ))}
+          </div>
+
+          {/* Inputs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <label style={s.label}>
+              Badge
+              <input
+                type="text"
+                value={contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge ?? ''}
+                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_badge`]: e.target.value }))}
+                style={s.input}
               />
             </label>
-          ))}
+            <label style={s.label}>
+              Title
+              <input
+                type="text"
+                value={contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? ''}
+                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_title`]: e.target.value }))}
+                style={s.input}
+              />
+            </label>
+            <label style={{ ...s.label, gridColumn: '1 / -1' }}>
+              Subtitle
+              <input
+                type="text"
+                value={contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle ?? ''}
+                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_subtitle`]: e.target.value }))}
+                style={s.input}
+              />
+            </label>
+            {[1, 2, 3].map(i => (
+              <label key={i} style={{ ...s.label, gridColumn: '1 / -1' }}>
+                Info {i}
+                <textarea
+                  value={contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`] ?? ''}
+                  onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info_${i}`]: e.target.value }))}
+                  style={{ ...s.textarea, minHeight: '60px' }}
+                  rows={2}
+                />
+              </label>
+            ))}
+            <button onClick={() => handleToolContentSave(tool.id)} disabled={toolLoading} style={{ ...s.submitBtn, gridColumn: '1 / -1' }}>
+              {toolLoading ? 'Saving…' : 'Save Page Content'}
+            </button>
+          </div>
         </div>
-        <button onClick={() => handleToolContentSave(tool.id)} disabled={toolLoading} style={s.submitBtn}>
-          {toolLoading ? 'Saving…' : 'Save Page Content'}
-        </button>
       </div>
 
       {/* System Prompts (if applicable) */}
