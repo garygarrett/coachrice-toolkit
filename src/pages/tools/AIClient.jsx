@@ -87,6 +87,9 @@ export default function AIClient() {
   const [loading, setLoading] = useState(false)
   const [apiKey, setApiKey] = useState(null)
   const [systemPrompt, setSystemPrompt] = useState(null)
+  const [feedbackApiKey, setFeedbackApiKey] = useState(null)
+  const [feedbackPrompt, setFeedbackPrompt] = useState(null)
+  const [feedback, setFeedback] = useState(null)
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [content, setContent] = useState(CONTENT_DEFAULTS)
   const [contentLoaded, setContentLoaded] = useState(false)
@@ -113,17 +116,19 @@ export default function AIClient() {
         setContentLoaded(true)
       })
 
-    // Fetch API key and prompt from config table
+    // Fetch API keys and prompts from config table
     supabase
       .from('config')
       .select('key, value')
-      .in('key', ['api_key_chatbot', 'ai_client_chatbot_prompt'])
+      .in('key', ['api_key_chatbot', 'ai_client_chatbot_prompt', 'api_key_feedback', 'ai_client_feedback_prompt'])
       .then(({ data }) => {
         if (data) {
           const map = {}
           data.forEach(row => { map[row.key] = row.value })
           if (map.api_key_chatbot) setApiKey(map.api_key_chatbot)
           if (map.ai_client_chatbot_prompt) setSystemPrompt(map.ai_client_chatbot_prompt)
+          if (map.api_key_feedback) setFeedbackApiKey(map.api_key_feedback)
+          if (map.ai_client_feedback_prompt) setFeedbackPrompt(map.ai_client_feedback_prompt)
         }
       })
   }, [])
@@ -170,6 +175,45 @@ export default function AIClient() {
     } catch (e) {
       console.error('[AIClient] API error:', e.message)
       setMessages(prev => [...prev, { role: 'client', content: `[Error: ${e.message}]` }])
+    }
+    setLoading(false)
+  }
+
+  const getFeedback = async () => {
+    if (!feedbackApiKey || !feedbackPrompt) return
+    setLoading(true)
+    try {
+      const conversationText = messages.map(m => `${m.role === 'coach' ? 'Coach' : 'Client'}: ${m.content}`).join('\n')
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': feedbackApiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1000,
+          system: feedbackPrompt,
+          messages: [{
+            role: 'user',
+            content: `Please provide feedback on this coaching session:\n\n${conversationText}\n\nClient persona: ${cfg.clientName}, topic: ${cfg.topic}`,
+          }],
+        }),
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(`API error ${res.status}: ${errData.error?.message || 'Unknown error'}`)
+      }
+      const data = await res.json()
+      const feedbackText = data.content?.[0]?.text || 'No feedback generated'
+      setFeedback(feedbackText)
+      setStage('feedback')
+    } catch (e) {
+      console.error('[AIClient] Feedback error:', e.message)
+      setFeedback(`[Error: ${e.message}]`)
+      setStage('feedback')
     }
     setLoading(false)
   }
@@ -441,9 +485,9 @@ export default function AIClient() {
               <ToolIcon id="transcript" size={11} color={COLORS.navy} />
               Transcript
             </button>
-            <button style={s.feedbackBtn}>
+            <button onClick={getFeedback} disabled={loading || !feedbackApiKey} style={{ ...s.feedbackBtn, opacity: (loading || !feedbackApiKey) ? 0.5 : 1 }}>
               <ToolIcon id="spark" size={11} color="#fff" />
-              End & Get Feedback
+              {loading ? 'Getting Feedback...' : 'End & Get Feedback'}
             </button>
           </div>
         </div>
@@ -508,6 +552,45 @@ export default function AIClient() {
       </div>
     </Layout>
   )
+
+  // Feedback screen
+  if (stage === 'feedback' && feedback) {
+    return (
+      <Layout active="ai" pageTitle="AI Client">
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+          <div style={{ marginBottom: '32px' }}>
+            <p style={{ ...s.badge, background: '#fde8d6', color: COLORS.orange }}>SESSION FEEDBACK</p>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#00205B', margin: '0 0 1.5rem' }}>Coaching Session Feedback</h1>
+          </div>
+
+          <div style={{ background: '#fff', borderRadius: '10px', border: `1px solid ${COLORS['gray-border']}`, padding: '24px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '14px', lineHeight: '1.7', color: COLORS['text-main'], whiteSpace: 'pre-wrap' }}>
+              {feedback}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => {
+                setStage('setup')
+                setMessages([])
+                setFeedback(null)
+              }}
+              style={{ ...s.primaryBtn, background: COLORS.orange }}
+            >
+              Start Another Session
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={s.backBtn}
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 }
 
 const s = {
