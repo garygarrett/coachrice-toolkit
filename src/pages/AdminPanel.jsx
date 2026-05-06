@@ -58,35 +58,23 @@ const TOOL_DEFAULTS = {
 const TOOL_PAGE_DEFAULTS = {
   exam: {
     badge: 'Knowledge Assessment',
-    title: 'ACC Practice Exam',
     subtitle: 'Test your knowledge with our comprehensive practice exam',
-    info_1: 'Complete 200+ questions covering all ACC core competencies',
-    info_2: 'Get instant feedback and detailed explanations',
-    info_3: 'Track your progress and identify areas for improvement',
+    info: 'Complete 200+ questions covering all ACC core competencies. Get instant feedback and detailed explanations. Track your progress and identify areas for improvement.',
   },
   transcript: {
     badge: 'Session Review',
-    title: 'Transcript Reviewer',
     subtitle: 'Upload and analyze your coaching sessions',
-    info_1: 'Review transcripts of your coaching conversations',
-    info_2: 'Receive AI-powered feedback aligned with ACC competencies',
-    info_3: 'Improve your coaching effectiveness',
+    info: 'Review transcripts of your coaching conversations. Receive AI-powered feedback aligned with ACC competencies. Improve your coaching effectiveness.',
   },
   ai: {
     badge: 'Practice Tool',
-    title: 'AI Client',
     subtitle: 'Practice coaching with an AI-powered client',
-    info_1: 'Engage in realistic coaching conversations',
-    info_2: 'Get feedback on your coaching approach',
-    info_3: 'Develop your coaching skills in a safe environment',
+    info: 'Engage in realistic coaching conversations. Get feedback on your coaching approach. Develop your coaching skills in a safe environment.',
   },
   audio: {
     badge: 'Utility',
-    title: 'Audio to Transcript',
     subtitle: 'Convert your audio recordings to text',
-    info_1: 'Upload audio files from your coaching sessions',
-    info_2: 'Get accurate transcriptions for analysis',
-    info_3: 'Use with the Transcript Reviewer tool',
+    info: 'Upload audio files from your coaching sessions. Get accurate transcriptions for analysis. Use with the Transcript Reviewer tool.',
   },
 }
 
@@ -320,11 +308,8 @@ export default function AdminPanel() {
       `${tool.contentPrefix}_card_title`,
       `${tool.contentPrefix}_card_description`,
       `${tool.contentPrefix}_start_badge`,
-      `${tool.contentPrefix}_start_title`,
       `${tool.contentPrefix}_start_subtitle`,
-      `${tool.contentPrefix}_start_info_1`,
-      `${tool.contentPrefix}_start_info_2`,
-      `${tool.contentPrefix}_start_info_3`,
+      `${tool.contentPrefix}_start_info`,
     ]
 
     const upsertRows = keysToSave.map(key => ({ key, value: contentValues[key] ?? '' }))
@@ -332,8 +317,6 @@ export default function AdminPanel() {
 
     if (error) {
       setToolError(error.message)
-    } else {
-      setToolSuccess('Page content saved.')
     }
     setToolLoading(false)
   }
@@ -818,24 +801,22 @@ export default function AdminPanel() {
               </div>
             )}
             <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: COLORS['text-main'] }}>
-              {contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? 'Title'}
+              {tool.label}
             </h2>
             {(contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle) && (
               <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '16px' }}>
                 {contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle}
               </p>
             )}
-            {[1, 2, 3].map(i => (
-              (contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`]) && (
-                <p key={i} style={{ fontSize: '13px', marginBottom: '12px', color: COLORS['text-main'] }}>
-                  {contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`]}
-                </p>
-              )
-            ))}
+            {(contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info) && (
+              <p style={{ fontSize: '13px', lineHeight: '1.8', color: COLORS['text-main'] }}>
+                {contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info}
+              </p>
+            )}
           </div>
 
           {/* Inputs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <label style={s.label}>
               Badge
               <input
@@ -846,15 +827,6 @@ export default function AdminPanel() {
               />
             </label>
             <label style={s.label}>
-              Title
-              <input
-                type="text"
-                value={contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? ''}
-                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_title`]: e.target.value }))}
-                style={s.input}
-              />
-            </label>
-            <label style={{ ...s.label, gridColumn: '1 / -1' }}>
               Subtitle
               <input
                 type="text"
@@ -863,18 +835,17 @@ export default function AdminPanel() {
                 style={s.input}
               />
             </label>
-            {[1, 2, 3].map(i => (
-              <label key={i} style={{ ...s.label, gridColumn: '1 / -1' }}>
-                Info {i}
-                <textarea
-                  value={contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.[`info_${i}`] ?? ''}
-                  onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info_${i}`]: e.target.value }))}
-                  style={{ ...s.textarea, minHeight: '60px' }}
-                  rows={2}
-                />
-              </label>
-            ))}
-            <button onClick={() => handleToolContentSave(tool.id)} disabled={toolLoading} style={{ ...s.submitBtn, gridColumn: '1 / -1' }}>
+            <label style={s.label}>
+              Info Text
+              <textarea
+                value={contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info ?? ''}
+                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info`]: e.target.value }))}
+                style={{ ...s.textarea, minHeight: '100px' }}
+                rows={4}
+                placeholder="Enter the info text that appears on the tool page"
+              />
+            </label>
+            <button onClick={() => handleToolContentSave(tool.id)} disabled={toolLoading} style={s.submitBtn}>
               {toolLoading ? 'Saving…' : 'Save Page Content'}
             </button>
           </div>
