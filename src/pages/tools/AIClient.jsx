@@ -41,6 +41,16 @@ const COLORS = {
   lime: '#c9d647',
 }
 
+const CONTENT_DEFAULTS = {
+  ai_start_badge: 'Application',
+  ai_start_title: 'AI Client',
+  ai_start_subtitle: 'Practice coaching with an AI-powered client. Engage in realistic conversations and get feedback on your coaching approach.',
+  ai_start_info_1: 'Realistic AI-powered client',
+  ai_start_info_2: 'Customizable client personas',
+  ai_start_info_3: 'Safe practice environment',
+  theme_primary_color: '#00205B',
+}
+
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const rand3 = () => Math.ceil(Math.random() * 3)
 
@@ -78,6 +88,7 @@ export default function AIClient() {
   const [apiKey, setApiKey] = useState(null)
   const [systemPrompt, setSystemPrompt] = useState(null)
   const [sessionStartTime, setSessionStartTime] = useState(null)
+  const [content, setContent] = useState(CONTENT_DEFAULTS)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -85,6 +96,20 @@ export default function AIClient() {
   }, [messages, loading])
 
   useEffect(() => {
+    // Fetch page content from site_content table
+    supabase
+      .from('site_content')
+      .select('key, value')
+      .in('key', ['ai_start_badge', 'ai_start_title', 'ai_start_subtitle', 'ai_start_info_1', 'ai_start_info_2', 'ai_start_info_3'])
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {}
+          data.forEach(row => { map[row.key] = row.value })
+          setContent(prev => ({ ...prev, ...map }))
+        }
+      })
+
+    // Fetch API key and prompt from config table
     supabase
       .from('config')
       .select('key, value')
@@ -162,11 +187,16 @@ export default function AIClient() {
       <Layout active="ai" pageTitle="AI Client">
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
           <div style={{ marginBottom: '32px' }}>
-            <p style={{ ...s.badge, color: COLORS.orange }}>AI CLIENT</p>
-            <h1 style={{ ...s.title, color: '#00205B' }}>Who are you coaching today?</h1>
-            <p style={s.subtitle}>
-              These settings shape how your simulated client shows up. There's no right combination — try different mixes across sessions to stretch different muscles.
-            </p>
+            <p style={{ ...s.badge, color: COLORS.orange }}>{content.ai_start_badge}</p>
+            <h1 style={{ ...s.title, color: '#00205B' }}>{content.ai_start_title}</h1>
+            <p style={s.subtitle}>{content.ai_start_subtitle}</p>
+            <ul style={{ color: '#444', fontSize: '0.875rem', paddingLeft: '1.25rem', margin: '0 0 1.75rem', lineHeight: '1.8' }}>
+              {[content.ai_start_info_1, content.ai_start_info_2, content.ai_start_info_3]
+                .filter(Boolean)
+                .map((info, i) => (
+                  <li key={i}>{info}</li>
+                ))}
+            </ul>
           </div>
 
           <div style={s.setupGrid}>

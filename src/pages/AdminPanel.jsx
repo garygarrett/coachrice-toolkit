@@ -312,6 +312,7 @@ export default function AdminPanel() {
       `${tool.contentPrefix}_card_title`,
       `${tool.contentPrefix}_card_description`,
       `${tool.contentPrefix}_start_badge`,
+      `${tool.contentPrefix}_start_title`,
       `${tool.contentPrefix}_start_subtitle`,
       `${tool.contentPrefix}_start_info_1`,
       `${tool.contentPrefix}_start_info_2`,
@@ -788,7 +789,7 @@ export default function AdminPanel() {
               </div>
             )}
             <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: COLORS.navy, letterSpacing: '-0.3px' }}>
-              {tool.label}
+              {contentValues[`${tool.contentPrefix}_start_title`] ?? tool.label}
             </h2>
             {(contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle) && (
               <p style={{ fontSize: '13px', color: COLORS['text-muted'], margin: 0, lineHeight: '1.5' }}>
@@ -815,6 +816,16 @@ export default function AdminPanel() {
                 value={contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge ?? ''}
                 onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_badge`]: e.target.value }))}
                 style={s.input}
+              />
+            </label>
+            <label style={s.label}>
+              Title
+              <input
+                type="text"
+                value={contentValues[`${tool.contentPrefix}_start_title`] ?? tool.label ?? ''}
+                onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_title`]: e.target.value }))}
+                style={s.input}
+                placeholder={tool.label}
               />
             </label>
             <label style={s.label}>
