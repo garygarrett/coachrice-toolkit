@@ -30,14 +30,17 @@ export function VisibilityProvider({ children }) {
 
     loadVisibility()
 
-    // Subscribe to real-time changes
+    // Subscribe to real-time changes on config table
     const subscription = supabase
       .channel('config-changes')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'config', filter: 'key=like.tool_%_visible' }, payload => {
-        setVisibility(prev => {
-          const toolId = payload.new.key.replace('tool_', '').replace('_visible', '')
-          return { ...prev, [toolId]: payload.new.value === 'true' }
-        })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, payload => {
+        // Only process visibility config changes
+        if (payload.new?.key?.includes('tool_') && payload.new?.key?.includes('_visible')) {
+          setVisibility(prev => {
+            const toolId = payload.new.key.replace('tool_', '').replace('_visible', '')
+            return { ...prev, [toolId]: payload.new.value === 'true' }
+          })
+        }
       })
       .subscribe()
 
