@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useVisibility } from '../context/VisibilityContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
@@ -65,8 +66,8 @@ const TOOL_DEFAULTS = {
 export default function CoachDashboard() {
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true, audio: true }
   const [content, setContent] = useState({})
-  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true })
   const [colors, setColors] = useState({})
 
   useEffect(() => {
@@ -86,29 +87,6 @@ export default function CoachDashboard() {
         }
       })
 
-    const loadVisibility = async () => {
-      const { data } = await supabase
-        .from('config')
-        .select('key, value')
-        .in('key', ['tool_exam_visible', 'tool_transcript_visible', 'tool_ai_visible', 'tool_audio_visible'])
-
-      if (data) {
-        const visibilityMap = {
-          exam: true,
-          transcript: true,
-          ai: true,
-          audio: true,
-        }
-        data.forEach(row => {
-          const toolId = row.key.replace('tool_', '').replace('_visible', '')
-          visibilityMap[toolId] = row.value === 'true'
-        })
-        setVisibility(visibilityMap)
-      } else {
-        setVisibility({ exam: true, transcript: true, ai: true, audio: true })
-      }
-    }
-
     const loadColors = async () => {
       const { data } = await supabase
         .from('config')
@@ -123,10 +101,10 @@ export default function CoachDashboard() {
           audio: { bg: '#f0f2f5', color: '#7C7E7F' },
         }
         data.forEach(row => {
-          const match = row.key.match(/tool_(\w+)_(\w+)_(\w+)/)
+          const match = row.key.match(/tool_(\w+)_card_(\w+)/)
           if (match) {
             const toolId = match[1]
-            const colorType = match[3]
+            const colorType = match[2]
             if (!colorMap[toolId]) colorMap[toolId] = {}
             if (colorType === 'bg') colorMap[toolId].bg = row.value
             if (colorType === 'color') colorMap[toolId].color = row.value
@@ -136,7 +114,6 @@ export default function CoachDashboard() {
       }
     }
 
-    loadVisibility()
     loadColors()
   }, [])
 

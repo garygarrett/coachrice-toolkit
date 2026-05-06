@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { VisibilityProvider } from './context/VisibilityContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
@@ -32,8 +33,9 @@ function InviteRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <InviteRedirect />
-      <Routes>
+      <VisibilityProvider>
+        <InviteRedirect />
+        <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/set-password" element={<SetPassword />} />
@@ -94,6 +96,7 @@ export default function App() {
           }
         />
       </Routes>
+      </VisibilityProvider>
     </AuthProvider>
   )
 }
