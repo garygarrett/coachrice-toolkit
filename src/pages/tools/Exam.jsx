@@ -62,6 +62,7 @@ export default function Exam() {
   const [answers, setAnswers] = useState({})
   const [results, setResults] = useState(null)
   const [content, setContent] = useState(CONTENT_DEFAULTS)
+  const [contentLoaded, setContentLoaded] = useState(false)
 
   // Load question bank and start-screen content from Supabase on mount
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function Exam() {
           data.forEach(row => { map[row.key] = row.value })
           setContent(prev => ({ ...prev, ...map }))
         }
+        setContentLoaded(true)
       })
   }, [])
 
@@ -180,7 +182,7 @@ export default function Exam() {
   if (phase === 'start') {
     return (
       <Layout active="exam" pageTitle="ACC Practice Exam">
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px', opacity: contentLoaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out' }}>
           <div style={{ marginBottom: '32px' }}>
             <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.exam_start_badge}</p>
             <h1 style={{ ...s.title, color: '#00205B' }}>{content.exam_start_title}</h1>

@@ -19,6 +19,7 @@ export default function AudioToTranscript() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [content, setContent] = useState(CONTENT_DEFAULTS)
+  const [contentLoaded, setContentLoaded] = useState(false)
   const primary = content.theme_primary_color
 
   useEffect(() => {
@@ -32,12 +33,13 @@ export default function AudioToTranscript() {
           data.forEach(row => { map[row.key] = row.value })
           setContent(prev => ({ ...prev, ...map }))
         }
+        setContentLoaded(true)
       })
   }, [])
 
   return (
     <Layout active="audio" pageTitle="Audio to Transcript">
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px', opacity: contentLoaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out' }}>
         <div style={{ marginBottom: '32px' }}>
           <p style={{ ...styles.badge, background: '#e8ecf5', color: '#00205B' }}>{content.audio_start_badge || 'Utility'}</p>
           <h1 style={{ ...styles.title, color: '#00205B' }}>{content.audio_start_title || 'Audio to Transcript'}</h1>

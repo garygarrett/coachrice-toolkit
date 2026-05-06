@@ -44,6 +44,7 @@ export default function TranscriptScorer() {
   const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
   const [content, setContent] = useState(CONTENT_DEFAULTS);
+  const [contentLoaded, setContentLoaded] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function TranscriptScorer() {
           data.forEach(row => { map[row.key] = row.value });
           setContent(prev => ({ ...prev, ...map }));
         }
+        setContentLoaded(true);
       });
 
     // Fetch API key and prompt from config table
@@ -271,7 +273,7 @@ export default function TranscriptScorer() {
   if (stage === "input") {
     return (
       <Layout active="transcript" pageTitle="Transcript Reviewer">
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px", opacity: contentLoaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out' }}>
           <div style={{ marginBottom: "32px" }}>
             <p style={{ display: 'inline-block', background: '#e8ecf5', color: '#00205B', fontSize: '0.75rem', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.6rem', borderRadius: '4px', marginBottom: '0.75rem' }}>{content.transcript_start_badge}</p>
             <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#00205B', margin: '0 0 0.5rem' }}>{content.transcript_start_title}</h1>
