@@ -21,7 +21,7 @@ When in doubt, mark Not Observed.
 Respond with a single valid JSON object only. No prose. No markdown fences.`;
 
 const CONTENT_DEFAULTS = {
-  transcript_start_badge: 'Tool',
+  transcript_start_badge: 'Application',
   transcript_start_title: 'Transcript Reviewer',
   transcript_start_subtitle: 'Submit your anonymized coaching session transcript for evaluation. Receive detailed feedback on your coaching skills against ICC ACC standards.',
   transcript_start_info_1: 'Upload PDF or paste text',
