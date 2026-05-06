@@ -631,34 +631,15 @@ export default function AdminPanel() {
         <h2 style={s.formHeading}>Dashboard Tile</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Live preview */}
-          <div
-            style={{
-              ...s.tilePreview,
-              backgroundColor: tileColors[tool.id]?.bg || tool.cardBg,
-              color: tileColors[tool.id]?.color || tool.cardColor,
-            }}
-          >
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>
-              <ToolIcon id={tool.id} size={24} color={tileColors[tool.id]?.color || tool.cardColor} />
+          <div style={s.tilePreview}>
+            <div style={{ ...s.tileIconBox, background: tileColors[tool.id]?.bg || tool.cardBg }}>
+              <ToolIcon id={tool.id} size={16} color={tileColors[tool.id]?.color || tool.cardColor} />
             </div>
-            <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
-              {contentValues[`${tool.contentPrefix}_card_title`] ?? TOOL_DEFAULTS[tool.id]?.title ?? 'Title'}
-            </div>
-            <div style={{ fontSize: '11px', marginBottom: '12px', color: tileColors[tool.id]?.color || tool.cardColor, opacity: 0.8 }}>
-              {contentValues[`${tool.contentPrefix}_card_description`] ?? TOOL_DEFAULTS[tool.id]?.desc ?? 'Description'}
-            </div>
-            <div style={{ borderTop: `1px solid ${tileColors[tool.id]?.color || tool.cardColor}`, paddingTop: '8px' }}>
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontWeight: 600,
-                  backgroundColor: tileColors[tool.id]?.tagColor || tool.tagColor,
-                  color: tileColors[tool.id]?.tagTextColor || tool.tagTextColor,
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                }}
-              >
+            <div style={s.tileTitle}>{contentValues[`${tool.contentPrefix}_card_title`] ?? TOOL_DEFAULTS[tool.id]?.title ?? 'Title'}</div>
+            <div style={s.tileDesc}>{contentValues[`${tool.contentPrefix}_card_description`] ?? TOOL_DEFAULTS[tool.id]?.desc ?? 'Description'}</div>
+            <div style={s.tileDivider}></div>
+            <div style={s.tileFooter}>
+              <span style={{ ...s.tilePill, background: tileColors[tool.id]?.tagColor || tool.tagColor, color: tileColors[tool.id]?.tagTextColor || tool.tagTextColor }}>
                 {contentValues[`${tool.contentPrefix}_card_tag`] ?? TOOL_DEFAULTS[tool.id]?.tag ?? 'Tag'}
               </span>
             </div>
@@ -787,29 +768,29 @@ export default function AdminPanel() {
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Preview */}
           <div style={{
-            background: '#fff',
+            background: COLORS['gray-light'],
             border: `1px solid ${COLORS['gray-border']}`,
             borderRadius: '10px',
-            padding: '20px',
-            fontSize: '14px',
-            lineHeight: '1.6',
-            color: COLORS['text-main'],
+            padding: '28px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
           }}>
             {(contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge) && (
-              <div style={{ display: 'inline-block', background: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, marginBottom: '12px' }}>
+              <div style={{ display: 'inline-block', background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', width: 'fit-content' }}>
                 {contentValues[`${tool.contentPrefix}_start_badge`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.badge}
               </div>
             )}
-            <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: COLORS['text-main'] }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: COLORS.navy, letterSpacing: '-0.3px' }}>
               {tool.label}
             </h2>
             {(contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle) && (
-              <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', color: COLORS['text-muted'], margin: 0, lineHeight: '1.5' }}>
                 {contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle}
               </p>
             )}
             {(contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info) && (
-              <p style={{ fontSize: '13px', lineHeight: '1.8', color: COLORS['text-main'] }}>
+              <p style={{ fontSize: '12px', lineHeight: '1.6', color: COLORS['text-main'], margin: 0 }}>
                 {contentValues[`${tool.contentPrefix}_start_info`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info}
               </p>
             )}
@@ -1214,10 +1195,10 @@ const s = {
   tabBar: {
     display: 'flex',
     gap: 0,
-    borderBottom: `1px solid ${COLORS['gray-border']}`,
     background: '#fff',
-    borderRadius: '10px 10px 0 0',
+    borderRadius: '10px',
     marginBottom: 0,
+    padding: '4px',
   },
   tab: {
     padding: '0.85rem 1.25rem',
@@ -1226,12 +1207,13 @@ const s = {
     cursor: 'pointer',
     fontSize: '0.9rem',
     fontWeight: '500',
-    color: '#6b7280',
-    borderBottom: '3px solid transparent',
-    marginBottom: '-1px',
+    color: COLORS['text-muted'],
     fontFamily: 'Montserrat, sans-serif',
+    transition: 'all 0.2s',
+    borderRadius: '8px',
+    boxShadow: 'none',
   },
-  tabActive: { color: '#00205B', borderBottomColor: '#00205B', fontWeight: '600' },
+  tabActive: { color: COLORS.navy, fontWeight: '600', background: 'rgba(0, 32, 91, 0.05)', boxShadow: 'none' },
   content: {
     padding: '28px 32px',
     flex: 1,
@@ -1318,10 +1300,50 @@ const s = {
   compBadge: { display: 'inline-block', background: '#e8ecf5', color: '#00205B', fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '4px', whiteSpace: 'nowrap' },
   qText: { fontSize: '0.85rem', color: '#374151', lineHeight: '1.4' },
   tilePreview: {
-    padding: '16px',
-    borderRadius: '8px',
-    border: '1px solid rgba(0,0,0,0.1)',
+    background: '#fff',
+    border: `1px solid ${COLORS['gray-border']}`,
+    borderRadius: 10,
+    padding: '16px 16px',
     display: 'flex',
     flexDirection: 'column',
+  },
+  tileIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 7,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  tileTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.navy,
+    marginBottom: 3,
+  },
+  tileDesc: {
+    fontSize: 10,
+    color: COLORS['text-muted'],
+    marginBottom: 10,
+  },
+  tileDivider: {
+    height: 1,
+    background: COLORS['gray-border'],
+    margin: '10px 0',
+  },
+  tileFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  tilePill: {
+    display: 'inline-block',
+    padding: '2px 9px',
+    borderRadius: 20,
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: '0.5px',
   },
 }

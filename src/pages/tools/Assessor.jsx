@@ -272,6 +272,7 @@ export default function Assessor() {
   const [transcript, setTranscript] = useState("");
   const [filename, setFilename] = useState("");
   const [evaluation, setEvaluation] = useState(null);
+  const [customDownloadFilename, setCustomDownloadFilename] = useState("");
   const [error, setError] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -443,7 +444,10 @@ export default function Assessor() {
         else throw new Error("Could not parse evaluation response. Try again.");
       }
 
-      setEvaluation(recomputeScores(parsed));
+      const computed = recomputeScores(parsed);
+      setEvaluation(computed);
+      const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
+      setCustomDownloadFilename(`ACC_Evaluation_${safeName}`);
       setStage("report");
     } catch (err) {
       setError(err.message);
@@ -647,8 +651,7 @@ export default function Assessor() {
     const text = out.join("\n");
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const blobUrl = URL.createObjectURL(blob);
-    const safeName = (evaluation.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
-    const filename = `ACC_Evaluation_${safeName}.txt`;
+    const filename = `${customDownloadFilename}.txt`;
 
     const anchor = document.createElement("a");
     anchor.href = blobUrl;
@@ -1276,8 +1279,7 @@ export default function Assessor() {
     drawEthicalConcerns();
     addFooters();
 
-    const safeName = (evaluation.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
-    const filename = `ACC_Evaluation_${safeName}.pdf`;
+    const filename = `${customDownloadFilename}.pdf`;
 
     // CSP-safe download: build a Blob and trigger via an anchor tag.
     // doc.save() internally creates a frame, which is blocked by the artifact's
@@ -1299,6 +1301,7 @@ export default function Assessor() {
     setStage("input");
     setTranscript("");
     setFilename("");
+    setCustomDownloadFilename("");
     setEvaluation(null);
     setError("");
   };
@@ -1570,8 +1573,7 @@ export default function Assessor() {
 
     return (
       <Layout active="assessor" pageTitle="Internal Assessor">
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0" }}>
-        <main style={{ maxWidth: "900px", margin: "0 auto", padding: "0" }}>
+        <main style={{ maxWidth: "900px", margin: "0 auto" }}>
           <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px" }}>
             Confirm the Extracted Transcript
           </h2>
@@ -1669,7 +1671,7 @@ export default function Assessor() {
             </button>
           </div>
         </main>
-      </div>
+      </Layout>
     );
   }
 
@@ -1678,9 +1680,8 @@ export default function Assessor() {
   // ============================================================================
   if (stage === "running") {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: colors.lightBg, fontFamily: fontStack }}>
-        <Header />
-        <main style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
           ⏳
           <h2 style={{ fontSize: "24px", fontWeight: 600, color: colors.navy, margin: "0 0 8px" }}>
             Evaluating against the BARS rubric
@@ -1689,8 +1690,8 @@ export default function Assessor() {
             Reading the transcript end-to-end, identifying evidence, applying calibration anchors. Usually 30–60 seconds.
           </p>
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
@@ -1722,11 +1723,31 @@ export default function Assessor() {
     });
 
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: colors.lightBg, fontFamily: fontStack }}>
-        <Header />
-
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-          <button
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px" }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginBottom: "20px" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: colors.gray, marginBottom: "6px", letterSpacing: "0.5px" }}>
+                FILE NAME (without extension)
+              </label>
+              <input
+                type="text"
+                value={customDownloadFilename}
+                onChange={(e) => setCustomDownloadFilename(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  fontSize: "14px",
+                  fontFamily: fontStack,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  boxSizing: "border-box",
+                }}
+                placeholder="ACC_Evaluation_Coach"
+              />
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
             onClick={downloadText}
             style={{
               backgroundColor: "transparent",
@@ -1767,6 +1788,8 @@ export default function Assessor() {
           >
             📥 {jsPdfLoaded ? "DOWNLOAD AS PDF" : "PREPARING..."}
           </button>
+            </div>
+          </div>
         </div>
 
         {/* Report content displayed on screen — PDF is generated separately via jsPDF */}
@@ -2108,7 +2131,6 @@ export default function Assessor() {
             GENERATED BY THE COACHRICE ICF ACC ASSESSOR · DOERR INSTITUTE FOR NEW LEADERS · CALIBRATED TO ICF BARS MARCH 2024
           </div>
         </main>
-        </div>
       </Layout>
     );
   }
