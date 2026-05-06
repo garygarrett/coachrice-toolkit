@@ -1,677 +1,511 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../context/AuthContext'
-import Layout from '../../components/Layout'
-import OpenAI from 'openai'
-import * as pdfjsLib from 'pdfjs-dist'
+import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import Layout from "../../components/Layout";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).href
+const SYSTEM_PROMPT_DEFAULT = `## ROLE
 
-const CONTENT_DEFAULTS = {
-  transcript_start_badge:    'Application Scoring',
-  transcript_start_title:    'Transcript Scorer',
-  transcript_start_subtitle: 'Paste or upload a coaching session transcript. Your transcript will be evaluated against all ICF ACC behavioral indicators using the BARS framework and return a detailed per-statement score report.',
-  transcript_start_info_1:   'Scored against the ICF ACC BARS rubric (Competencies 1, 3–8)',
-  transcript_start_info_2:   'Per-statement feedback citing evidence from your transcript',
-  transcript_start_info_3:   'Results saved to your progress record',
-  theme_primary_color:       '#00205B',
-  theme_page_bg:             '#f0f2f5',
-  theme_font_family:         'system-ui, -apple-system, sans-serif',
-}
+You are an ICF ACC assessor for the CoachRICE Level 1 program at the Doerr Institute for New Leaders. Your job is to evaluate a single coaching session transcript against the ICF Associate Certified Coach (ACC) Minimum Skill Requirements (March 2024) and produce a participant-facing performance report.
 
-const RATING_COLORS = {
-  'Exceeds the Standard':   { color: '#15803d', bg: '#f0fdf4' },
-  'Meets the Standard':     { color: '#1d4ed8', bg: '#eff6ff' },
-  'Below the Standard':     { color: '#b45309', bg: '#fffbeb' },
-  'Does Not Meet Standard': { color: '#b91c1c', bg: '#fef2f2' },
-  'N/A':                    { color: '#6b7280', bg: '#f9fafb' },
-}
+You do not mentor coach. You do not invent evidence. Every judgment is anchored to a specific moment in the transcript.
+
+## OBSERVED / NOT OBSERVED STANDARD
+
+Each behavioral statement is rated either **Observed** or **Not Observed**:
+- **Observed** = the coach demonstrated the behavior at Sufficient level or above
+- **Not Observed** = the behavior was absent or attempted but not skillfully executed
+
+When in doubt, mark Not Observed.
+
+## OUTPUT FORMAT
+
+Respond with a single valid JSON object only. No prose. No markdown fences.`;
 
 export default function TranscriptScorer() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-
-  const [phase, setPhase] = useState('start') // 'start' | 'analyzing' | 'results'
-  const [transcript, setTranscript] = useState('')
-  const [rubrics, setRubrics] = useState([])
-  const [results, setResults] = useState(null)
-  const [resultDate, setResultDate] = useState(null)
-  const [error, setError] = useState(null)
-  const [statusText, setStatusText] = useState('Scoring your transcript…')
-  const [content, setContent] = useState(CONTENT_DEFAULTS)
-  const [pdfLoading, setPdfLoading] = useState(false)
-  const [pastSessions, setPastSessions] = useState([])
-  const fileInputRef = useRef(null)
+  const [stage, setStage] = useState("input");
+  const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false });
+  const allConsented = Object.values(consentChecked).every(Boolean);
+  const [transcript, setTranscript] = useState("");
+  const [filename, setFilename] = useState("");
+  const [evaluation, setEvaluation] = useState(null);
+  const [error, setError] = useState("");
+  const [apiKey, setApiKey] = useState(null);
+  const [systemPrompt, setSystemPrompt] = useState(null);
+  const [downloadName, setDownloadName] = useState("");
+  const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
+  const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
+    // Fetch API key and prompt from Supabase config
     supabase
-      .from('rubrics')
-      .select('*')
-      .order('sort_order')
-      .then(({ data }) => { if (data) setRubrics(data) })
-
-    supabase
-      .from('site_content')
-      .select('key, value')
-      .in('key', Object.keys(CONTENT_DEFAULTS))
+      .from("config")
+      .select("key, value")
+      .in("key", ["api_key_transcript", "transcript_reviewer_prompt"])
       .then(({ data }) => {
-        if (data?.length) {
-          const map = {}
-          data.forEach(row => { map[row.key] = row.value })
-          setContent(prev => ({ ...prev, ...map }))
+        if (data) {
+          const map = {};
+          data.forEach(row => { map[row.key] = row.value });
+          if (map.api_key_transcript) setApiKey(map.api_key_transcript);
+          if (map.transcript_reviewer_prompt) setSystemPrompt(map.transcript_reviewer_prompt);
         }
-      })
+        // Set default if not found
+        if (!map?.transcript_reviewer_prompt) setSystemPrompt(SYSTEM_PROMPT_DEFAULT);
+      });
+  }, []);
 
-  }, [])
-
+  // Load PDF.js library
   useEffect(() => {
-    if (!user) return
-    supabase
-      .from('sessions')
-      .select('id, created_at')
-      .eq('user_id', user.id)
-      .eq('tool', 'transcript_scorer')
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) console.error('[TranscriptScorer] past sessions error:', error.message)
-        if (data) setPastSessions(data)
-      })
-  }, [user])
+    if (window.pdfjsLib) { setPdfLibLoaded(true); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      setPdfLibLoaded(true);
+    };
+    document.head.appendChild(s);
+  }, []);
 
-  async function loadPastSession(sessionId, createdAt) {
-    setError(null)
-    setPhase('analyzing')
-    setStatusText('Loading past results…')
-    const { data, error: err } = await supabase
-      .from('application_scores')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('competency_number')
-    if (err || !data?.length) {
-      setError('Could not load that session.')
-      setPhase('start')
-      return
-    }
-    setResults(data)
-    setResultDate(createdAt)
-    setPhase('results')
-  }
+  // Load jsPDF library
+  useEffect(() => {
+    if (window.jspdf) { setJsPdfLoaded(true); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = () => setJsPdfLoaded(true);
+    document.head.appendChild(s);
+  }, []);
 
-  async function handlePdfUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setPdfLoading(true)
-    setError(null)
-    try {
-      const arrayBuffer = await file.arrayBuffer()
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-      let text = ''
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        const pageContent = await page.getTextContent()
-        text += pageContent.items.map(item => item.str).join(' ') + '\n'
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setFilename(file.name);
+
+    if (file.type === "application/pdf") {
+      if (!pdfLibLoaded) { setError("PDF library still loading. Try again in a moment."); return; }
+      try {
+        const ab = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: ab }).promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(it => it.str).join(" ") + "\n\n";
+        }
+        setTranscript(text.trim());
+      } catch {
+        setError("Could not extract text from this PDF. Try pasting the transcript directly.");
       }
-      setTranscript(text.trim())
-    } catch (err) {
-      setError('Could not read the PDF. Try copy-pasting the transcript instead.')
+    } else if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+      setTranscript(await file.text());
+    } else {
+      setError("Please upload a PDF or .txt file, or paste the transcript directly.");
     }
-    setPdfLoading(false)
-    // Reset file input so the same file can be re-selected if needed
-    e.target.value = ''
-  }
+  };
 
-  async function handleScore() {
-    if (!transcript.trim() || rubrics.length === 0) return
-    setError(null)
-    setPhase('analyzing')
-    setStatusText('Scoring your transcript…')
+  const runEvaluation = async () => {
+    if (!transcript.trim()) { setError("Please provide a transcript."); return; }
+    if (!apiKey) { setError("API configuration not found. Please contact support."); return; }
+    if (!systemPrompt) { setError("System prompt not found. Please contact support."); return; }
 
+    setError("");
+    setStage("running");
     try {
-      const rubricContext = rubrics.map(r => {
-        if (r.is_qualifier) {
-          return `${r.statement_code} [C${r.competency_number} – ${r.competency_name}] (QUALIFIER – score as Demonstrated or Not Demonstrated only):
-  Statement: ${r.statement_text}`
-        }
-        return `${r.statement_code} [C${r.competency_number} – ${r.competency_name}]:
-  Statement: ${r.statement_text}
-  Exceeds the Standard (4): ${r.exceeds_standard || ''}
-  Meets the Standard (3): ${r.meets_standard || ''}
-  Below the Standard (2): ${r.below_standard || ''}
-  Does Not Meet Standard (1): ${r.does_not_meet || ''}`
-      }).join('\n\n')
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 6000,
+          system: systemPrompt,
+          messages: [{
+            role: "user",
+            content: `Evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`
+          }]
+        })
+      });
 
-      const prompt = `You are an ICF (International Coaching Federation) assessor evaluating a coaching transcript for ACC (Associate Certified Coach) credentialing using the BARS (Behaviorally Anchored Rating Scale) framework.
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
 
-SCORING RUBRICS:
-${rubricContext}
-
-INSTRUCTIONS:
-Review the coaching transcript below and score each behavioral statement based solely on evidence present in the transcript.
-
-For QUALIFIER statements (A1.1, A1.2, A1.3):
-- Set "demonstrated" to true if the behavior is clearly evidenced, false if absent or unclear
-- Set "rating" and "rating_numeric" to null
-
-For all other statements (A3.1 through A8.3):
-- Set "rating" to exactly one of: "Exceeds the Standard", "Meets the Standard", "Below the Standard", "Does Not Meet Standard", or "N/A" (only use N/A if there is truly no evidence to score)
-- Set "rating_numeric" to 4, 3, 2, 1, or null (for N/A)
-- Set "demonstrated" to null
-
-For ALL statements:
-- Provide 2–3 sentences of feedback citing specific evidence from the transcript
-
-Return ONLY valid JSON — no markdown, no explanation, just the JSON object:
-{
-  "scores": [
-    {
-      "statement_code": "A1.1",
-      "is_qualifier": true,
-      "demonstrated": true,
-      "rating": null,
-      "rating_numeric": null,
-      "feedback": "..."
-    }
-  ]
-}
-
-COACHING TRANSCRIPT:
-${transcript}`
-
-      const client = new OpenAI({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-        dangerouslyAllowBrowser: true,
-      })
-
-      const message = await client.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-      })
-
-      let responseText = message.choices[0].message.content.trim()
-
-      // Strip markdown code fences if present
-      const fenceMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/)
-      if (fenceMatch) responseText = fenceMatch[1].trim()
-
-      const parsed = JSON.parse(responseText)
-      const scores = parsed.scores
-
-      // Enrich with rubric metadata
-      const enriched = scores.map(score => {
-        const rubric = rubrics.find(r => r.statement_code === score.statement_code)
-        return {
-          ...score,
-          competency_number: rubric?.competency_number ?? null,
-          competency_name:   rubric?.competency_name   ?? '',
-          statement_text:    rubric?.statement_text     ?? '',
-        }
-      })
-
-      setResults(enriched)
-      setStatusText('Saving results…')
-
-      if (user) {
-        const { data: session, error: sessionErr } = await supabase
-          .from('sessions')
-          .insert({
-            user_id:        user.id,
-            tool:           'transcript_scorer',
-            score_category: 'application',
-            raw_output:     JSON.stringify(scores),
-            status:         'completed',
-          })
-          .select('id')
-          .single()
-
-        if (sessionErr) {
-          console.error('[TranscriptScorer] sessions insert error:', sessionErr.message)
-        } else if (session?.id) {
-          const appRows = enriched.map(sc => ({
-            session_id:        session.id,
-            user_id:           user.id,
-            statement_code:    sc.statement_code,
-            competency_number: sc.competency_number,
-            competency_name:   sc.competency_name,
-            statement_text:    sc.statement_text,
-            is_qualifier:      sc.is_qualifier,
-            rating:            sc.is_qualifier ? null : (sc.rating ?? null),
-            rating_numeric:    sc.is_qualifier ? null : (sc.rating_numeric ?? null),
-            demonstrated:      sc.is_qualifier ? sc.demonstrated : null,
-            feedback:          sc.feedback,
-          }))
-          const { error: scErr } = await supabase.from('application_scores').insert(appRows)
-          if (scErr) console.error('[TranscriptScorer] application_scores insert error:', scErr.message)
-
-          // Refresh past sessions list
-          const { data: updatedSessions } = await supabase
-            .from('sessions')
-            .select('id, created_at')
-            .eq('user_id', user.id)
-            .eq('tool', 'transcript_scorer')
-            .eq('status', 'completed')
-            .order('created_at', { ascending: false })
-            .limit(10)
-          if (updatedSessions) setPastSessions(updatedSessions)
-        }
+      const raw = (data.content?.[0]?.text || "").replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        const m = raw.match(/\{[\s\S]*\}/);
+        if (m) parsed = JSON.parse(m[0]);
+        else throw new Error("Could not parse response. Please try again.");
       }
-
-      setResultDate(new Date().toISOString())
-      setPhase('results')
+      setEvaluation(parsed);
+      setStage("report");
     } catch (err) {
-      console.error('[TranscriptScorer] error:', err)
-      setError(err.message || 'An error occurred while scoring the transcript.')
-      setPhase('start')
+      setError(err.message);
+      setStage("preview");
     }
-  }
+  };
 
-  // Group results by competency number
-  const grouped = results
-    ? Object.values(
-        results.reduce((acc, sc) => {
-          const key = sc.competency_number
-          if (!acc[key]) acc[key] = { competency_number: key, competency_name: sc.competency_name, scores: [] }
-          acc[key].scores.push(sc)
-          return acc
-        }, {})
-      ).sort((a, b) => a.competency_number - b.competency_number)
-    : []
+  const downloadText = () => {
+    if (!evaluation) return;
+    const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const HR = "=".repeat(78);
+    const out = [];
+    out.push(HR);
+    out.push("DOERR INSTITUTE FOR NEW LEADERS  |  COACHRICE LEVEL 1");
+    out.push("ACC COACHING SESSION FEEDBACK");
+    out.push(HR);
+    out.push(`Coach:  ${evaluation.coach_identifier || "Submitted Coach"}`);
+    out.push(`Date:   ${dateStr}`);
+    out.push(`Rubric: ICF ACC BARS (March 2024)`);
+    out.push("");
+    const obs = (evaluation.behavioral_statements || []).filter(s => s.result === "Observed").length;
+    const tot = (evaluation.behavioral_statements || []).length;
+    out.push(`Skills Observed: ${obs} of ${tot}`);
+    out.push("");
 
-  const primary = content.theme_primary_color
-  const pageBg  = content.theme_page_bg
-  const font    = content.theme_font_family
+    const ep = evaluation.ethical_practice || {};
+    out.push(HR); out.push("ETHICAL PRACTICE"); out.push(HR);
+    out.push(`[${ep.icf_code_alignment === "Observed" ? "X" : " "}] ICF Code of Ethics alignment`);
+    if (ep.icf_code_alignment_note) out.push(`    Note: ${ep.icf_code_alignment_note}`);
+    out.push(`[${ep.coach_role_alignment === "Observed" ? "X" : " "}] Coach role alignment`);
+    if (ep.coach_role_alignment_note) out.push(`    Note: ${ep.coach_role_alignment_note}`);
+    out.push("");
 
-  // ─── START SCREEN ───
-  if (phase === 'start') {
+    const compTitles = { 3:"Establishes and Maintains Agreements", 4:"Cultivates Trust and Safety", 5:"Maintains Presence", 6:"Listens Actively", 7:"Evokes Awareness", 8:"Facilitates Client Growth" };
+    const grouped = {};
+    (evaluation.behavioral_statements || []).forEach(s => {
+      const c = parseInt(s.code.split(".")[0], 10);
+      if (!grouped[c]) grouped[c] = [];
+      grouped[c].push(s);
+    });
+    [3,4,5,6,7,8].forEach(n => {
+      out.push(HR); out.push(`${n}. ${compTitles[n].toUpperCase()}`); out.push(HR);
+      (grouped[n] || []).forEach(s => {
+        out.push(`  ${s.code}  [${s.result === "Observed" ? "OBSERVED" : "NOT OBSERVED"}]`);
+        out.push(`       ${s.title}`);
+        if (s.note) out.push(`       ${s.note}`);
+        (s.evidence || []).forEach(e => out.push(`       - ${e.timestamp}  "${e.quote}"`));
+        if (s.contra_evidence) out.push(`       Contra: ${s.contra_evidence}`);
+        out.push("");
+      });
+    });
+
+    out.push(HR); out.push("COACHING STRENGTHS"); out.push(HR);
+    (evaluation.strengths || []).forEach((s, i) => {
+      out.push(`${i+1}. ${s.competency_name} | ${s.code}`);
+      out.push(`   ${s.statement_title}`);
+      out.push(`   ${s.explanation}`);
+      out.push("");
+    });
+
+    out.push(HR); out.push("SUGGESTIONS FOR DEVELOPMENT"); out.push(HR);
+    (evaluation.suggestions || []).forEach((s, i) => {
+      out.push(`${i+1}. ${s.competency_name} | ${s.code}`);
+      out.push(`   ${s.statement_title}`);
+      out.push(`   ${s.missed_opportunity}`);
+      if (s.example_prompts?.length) {
+        out.push("   Example prompts:");
+        s.example_prompts.forEach(p => out.push(`     - "${p}"`));
+      }
+      out.push("");
+    });
+
+    out.push(HR);
+    out.push(`ETHICAL CONCERNS: ${evaluation.ethical_concerns || "None"}`);
+    out.push(HR);
+
+    const blob = new Blob([out.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const sn = (downloadName.trim()||evaluation.coach_identifier||"Coach").replace(/[^a-z0-9]/gi,"_");
+    a.href = url;
+    a.download = `ACC_Feedback_${sn}.txt`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
+  const COLORS = {
+    navy: '#00205B',
+    teal: '#69cce6',
+    orange: '#ff8200',
+    gray: '#7C7E7F',
+    'gray-light': '#f7f8fa',
+    'gray-border': '#e5e7eb',
+    'text-main': '#0f1c3a',
+    'text-muted': '#6b7a99',
+  };
+
+  // INPUT STAGE
+  if (stage === "input") {
     return (
       <Layout active="transcript" pageTitle="Transcript Reviewer">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={s.card}>
-          <p style={{ ...s.badge, background: '#e8ecf5', color: '#00205B' }}>{content.transcript_start_badge}</p>
-          <h1 style={{ ...s.title, color: '#00205B' }}>{content.transcript_start_title}</h1>
-          <p style={s.subtitle}>{content.transcript_start_subtitle}</p>
-          <ul style={s.infoList}>
-            {[content.transcript_start_info_1, content.transcript_start_info_2, content.transcript_start_info_3]
-              .filter(Boolean)
-              .map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-
-          <label style={s.textareaLabel}>
-            Coaching Transcript
-            <textarea
-              value={transcript}
-              onChange={e => setTranscript(e.target.value)}
-              rows={14}
-              style={s.transcriptArea}
-              placeholder="Paste your full coaching session transcript here, or upload a PDF below…"
-            />
-          </label>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            style={{ display: 'none' }}
-            onChange={handlePdfUpload}
-          />
-
-          {error && <p style={s.errorMsg}>{error}</p>}
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={pdfLoading}
-              style={{ ...s.secondaryBtn, borderColor: primary, color: primary, opacity: pdfLoading ? 0.5 : 1 }}
-            >
-              {pdfLoading ? 'Reading PDF…' : 'Upload PDF'}
-            </button>
-            <button
-              onClick={handleScore}
-              disabled={!transcript.trim() || rubrics.length === 0}
-              style={{ ...s.primaryBtn, background: primary, opacity: (!transcript.trim() || rubrics.length === 0) ? 0.45 : 1 }}
-            >
-              {rubrics.length === 0 ? 'Loading…' : 'Score Transcript'}
-            </button>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+          <div style={{ marginBottom: "32px" }}>
+            <h2 style={{ fontSize: "28px", fontWeight: 700, color: COLORS.navy, margin: "0 0 12px" }}>
+              Submit Your Coaching Session Transcript
+            </h2>
+            <p style={{ fontSize: "15px", color: COLORS.gray, lineHeight: 1.6, margin: 0 }}>
+              Upload a PDF or paste the transcript of your coaching session. Your transcript will be evaluated and you'll receive detailed feedback on your coaching skills.
+            </p>
           </div>
 
-          <button onClick={() => navigate('/dashboard')} style={s.backBtn}>
-            Back to Dashboard
-          </button>
+          {/* Consent Checkboxes */}
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px', margin: '0 0 16px' }}>Before you continue</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={consentChecked.anonymized}
+                  onChange={(e) => setConsentChecked(v => ({ ...v, anonymized: e.target.checked }))}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>This is an anonymized coaching session with consent to use for development</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={consentChecked.consent}
+                  onChange={(e) => setConsentChecked(v => ({ ...v, consent: e.target.checked }))}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>I have the client's consent to submit this session</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={consentChecked.data}
+                  onChange={(e) => setConsentChecked(v => ({ ...v, data: e.target.checked }))}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', color: COLORS['text-main'] }}>I understand this AI assessment may contain inaccuracies and should be reviewed with a mentor coach</span>
+              </label>
+            </div>
+          </div>
 
-          {pastSessions.length > 0 && (
-            <div style={s.historySection}>
-              <h2 style={{ ...s.historyHeading, color: primary }}>Past Sessions</h2>
-              {pastSessions.map(session => (
-                <div key={session.id} style={s.historyRow}>
-                  <span style={s.historyDate}>
-                    {new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                  <button
-                    onClick={() => loadPastSession(session.id, session.created_at)}
-                    style={{ ...s.historyBtn, color: primary, borderColor: primary }}
-                  >
-                    View Results
-                  </button>
+          {/* File Upload */}
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.txt"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: COLORS.navy, marginBottom: '8px' }}>
+              {filename ? `📎 ${filename}` : "Upload PDF or Text File"}
+            </div>
+            <div style={{ fontSize: '13px', color: COLORS['text-muted'] }}>
+              {filename ? "Click to choose a different file, or paste below" : "Click to upload, or paste transcript directly below"}
+            </div>
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder="Or paste your coaching session transcript here..."
+            style={{
+              width: '100%',
+              minHeight: '300px',
+              padding: '16px',
+              fontSize: '14px',
+              fontFamily: 'monospace',
+              border: `1px solid ${COLORS['gray-border']}`,
+              borderRadius: '8px',
+              marginBottom: '24px',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          {/* Error */}
+          {error && (
+            <div style={{ background: '#fee', border: '1px solid #fcc', borderRadius: '6px', padding: '12px', marginBottom: '24px', color: '#c00', fontSize: '13px' }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            onClick={runEvaluation}
+            disabled={!allConsented || !transcript.trim()}
+            style={{
+              background: allConsented && transcript.trim() ? COLORS.navy : COLORS.gray,
+              color: '#fff',
+              border: 'none',
+              padding: '12px 32px',
+              fontSize: '14px',
+              fontWeight: 600,
+              borderRadius: '8px',
+              cursor: allConsented && transcript.trim() ? 'pointer' : 'not-allowed',
+              opacity: allConsented && transcript.trim() ? 1 : 0.6,
+            }}
+          >
+            {stage === 'running' ? 'Evaluating...' : 'Get Feedback'}
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // RUNNING STAGE
+  if (stage === "running") {
+    return (
+      <Layout active="transcript" pageTitle="Transcript Reviewer">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px", animation: "spin 2s linear infinite" }}>⏳</div>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: COLORS.navy, margin: "0 0 8px" }}>
+            Analyzing Your Session
+          </h2>
+          <p style={{ fontSize: "15px", color: COLORS.gray, margin: 0 }}>
+            This usually takes 30–60 seconds. We're reading through your transcript and evaluating your coaching against the ICC ACC competencies.
+          </p>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </Layout>
+    );
+  }
+
+  // REPORT STAGE
+  if (stage === "report" && evaluation) {
+    return (
+      <Layout active="transcript" pageTitle="Transcript Reviewer">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px" }}>
+          <div style={{ display: "flex", gap: "12px", marginBottom: "24px", alignItems: "center" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: "12px", fontWeight: 600, color: COLORS.gray, letterSpacing: "0.5px" }}>
+                DOWNLOAD NAME (optional)
+              </label>
+              <input
+                type="text"
+                value={downloadName}
+                onChange={(e) => setDownloadName(e.target.value)}
+                placeholder="Coach name or session identifier"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  fontSize: "14px",
+                  border: `1px solid ${COLORS['gray-border']}`,
+                  borderRadius: "6px",
+                  boxSizing: "border-box",
+                  marginTop: "6px",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                onClick={downloadText}
+                style={{
+                  background: COLORS.navy,
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginTop: '28px',
+                }}
+              >
+                📄 Download Text
+              </button>
+            </div>
+          </div>
+
+          {/* Simple Feedback Display */}
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '32px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, color: COLORS.navy, marginBottom: '8px' }}>
+              Your Coaching Feedback
+            </h2>
+            <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '24px' }}>
+              Coach: {evaluation.coach_identifier || 'Submitted Coach'}
+            </p>
+
+            {/* Skills Observed */}
+            <div style={{ marginBottom: '32px', padding: '16px', background: COLORS['gray-light'], borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '8px' }}>SKILLS OBSERVED</div>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: COLORS.navy }}>
+                {(evaluation.behavioral_statements || []).filter(s => s.result === "Observed").length} / {evaluation.behavioral_statements?.length || 0}
+              </div>
+            </div>
+
+            {/* Behavioral Statements */}
+            <div style={{ marginBottom: '32px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Behavioral Statements</h3>
+              {(evaluation.behavioral_statements || []).map((s, i) => (
+                <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: `1px solid ${COLORS['gray-border']}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: 600, color: COLORS.navy }}>{s.code}</span>
+                    <span style={{ fontWeight: 600, color: s.result === 'Observed' ? '#16a34a' : '#dc2626' }}>
+                      {s.result === 'Observed' ? '✓ Observed' : '✗ Not Observed'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: COLORS['text-main'] }}>{s.title}</div>
                 </div>
               ))}
             </div>
-          )}
-          </div>
-        </div>
-      </Layout>
-    )
-  }
 
-  // ─── ANALYZING SCREEN ───
-  if (phase === 'analyzing') {
-    return (
-      <Layout active="transcript" pageTitle="Transcript Reviewer">
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <style>{`@keyframes ts-spin { to { transform: rotate(360deg) } }`}</style>
-          <div style={{ ...s.card, textAlign: 'center', padding: '3rem 2rem' }}>
-            <div style={s.spinner} />
-            <p style={s.statusText}>{statusText}</p>
-            <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-              This may take up to 30 seconds…
-            </p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
-
-  // ─── RESULTS SCREEN ───
-  return (
-    <Layout active="transcript" pageTitle="Transcript Reviewer">
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <div style={{ ...s.card, maxWidth: '720px' }}>
-        <p style={{ ...s.badge, color: primary }}>Score Report</p>
-        <h1 style={{ ...s.title, color: primary }}>Transcript Results</h1>
-        {resultDate && (
-          <p style={{ color: '#888', fontSize: '0.8rem', margin: '-0.25rem 0 0.5rem' }}>
-            {new Date(resultDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-          </p>
-        )}
-        <p style={{ color: '#555', fontSize: '0.875rem', margin: '0 0 1.75rem' }}>
-          Scored against the ICF ACC BARS framework. Ratings reflect the evidence found in your transcript.
-        </p>
-
-        {grouped.map(group => (
-          <div key={group.competency_number} style={s.competencySection}>
-            <h2 style={s.competencyHeading}>
-              <span style={s.compNum}>C{group.competency_number}</span>
-              {group.competency_name}
-            </h2>
-
-            {group.scores.map(sc => {
-              const colors = sc.is_qualifier
-                ? (sc.demonstrated
-                    ? { color: '#15803d', bg: '#f0fdf4' }
-                    : { color: '#b91c1c', bg: '#fef2f2' })
-                : (RATING_COLORS[sc.rating] ?? RATING_COLORS['N/A'])
-
-              const ratingLabel = sc.is_qualifier
-                ? (sc.demonstrated ? 'Demonstrated' : 'Not Demonstrated')
-                : (sc.rating ?? 'N/A')
-
-              return (
-                <div key={sc.statement_code} style={s.statementCard}>
-                  <div style={s.statementHeader}>
-                    <span style={s.statementCode}>{sc.statement_code}</span>
-                    <span style={{ ...s.ratingBadge, color: colors.color, background: colors.bg }}>
-                      {ratingLabel}
-                    </span>
+            {/* Strengths */}
+            {evaluation.strengths && evaluation.strengths.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Coaching Strengths</h3>
+                {evaluation.strengths.map((s, i) => (
+                  <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a' }}>
+                    <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: '4px' }}>{s.competency_name}</div>
+                    <div style={{ fontSize: '13px', color: COLORS['text-main'] }}>{s.explanation}</div>
                   </div>
-                  <p style={s.statementText}>{sc.statement_text}</p>
-                  {sc.feedback && (
-                    <p style={s.feedbackText}>{sc.feedback}</p>
-                  )}
-                </div>
-              )
-            })}
+                ))}
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {evaluation.suggestions && evaluation.suggestions.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>Suggestions for Development</h3>
+                {evaluation.suggestions.map((s, i) => (
+                  <div key={i} style={{ marginBottom: '16px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626' }}>
+                    <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: '4px' }}>{s.competency_name}</div>
+                    <div style={{ fontSize: '13px', color: COLORS['text-main'], marginBottom: '8px' }}>{s.missed_opportunity}</div>
+                    {s.example_prompts && s.example_prompts.length > 0 && (
+                      <div style={{ fontSize: '12px', color: COLORS['text-muted'] }}>
+                        <strong>Try asking:</strong> "{s.example_prompts[0]}"
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
 
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => { setPhase('start'); setTranscript(''); setResults(null) }}
-            style={{ ...s.primaryBtn, background: primary }}
+            onClick={() => setStage("input")}
+            style={{
+              marginTop: '24px',
+              background: 'none',
+              border: `1px solid ${COLORS.navy}`,
+              color: COLORS.navy,
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
           >
-            Score Another Transcript
+            ← Evaluate Another Transcript
           </button>
-          <button onClick={() => navigate('/dashboard')} style={s.backBtn}>Back to Dashboard</button>
         </div>
-        </div>
-      </div>
-    </Layout>
-  )
-}
+      </Layout>
+    );
+  }
 
-const PRIMARY = '#00205B'
-
-const s = {
-  page: {
-    minHeight: '100vh',
-    background: '#f0f2f5',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    padding: '2rem 1rem',
-  },
-  card: {
-    background: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 2px 16px rgba(0,0,0,0.09)',
-    padding: '2rem',
-    width: '100%',
-    maxWidth: '680px',
-  },
-  badge: {
-    display: 'inline-block',
-    background: '#e8ecf5',
-    color: PRIMARY,
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-    padding: '0.25rem 0.6rem',
-    borderRadius: '4px',
-    marginBottom: '0.75rem',
-  },
-  title: {
-    fontSize: '1.6rem',
-    fontWeight: '700',
-    color: PRIMARY,
-    margin: '0 0 0.5rem',
-  },
-  subtitle: {
-    color: '#555',
-    fontSize: '0.9rem',
-    lineHeight: '1.6',
-    margin: '0 0 1rem',
-  },
-  infoList: {
-    color: '#444',
-    fontSize: '0.875rem',
-    paddingLeft: '1.25rem',
-    margin: '0 0 1.5rem',
-    lineHeight: '1.8',
-  },
-  textareaLabel: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.375rem',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: '1rem',
-  },
-  transcriptArea: {
-    padding: '0.75rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '0.875rem',
-    color: '#111',
-    background: '#fff',
-    outline: 'none',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-    lineHeight: '1.6',
-  },
-  errorMsg: {
-    color: '#b91c1c',
-    fontSize: '0.875rem',
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    padding: '0.6rem 0.8rem',
-    marginBottom: '1rem',
-  },
-  primaryBtn: {
-    padding: '0.7rem 1.5rem',
-    background: PRIMARY,
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.95rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  secondaryBtn: {
-    padding: '0.7rem 1.25rem',
-    background: '#fff',
-    color: PRIMARY,
-    border: '1.5px solid',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  backBtn: {
-    padding: '0.7rem 1.25rem',
-    background: '#f5821f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    border: '3px solid #e5e7eb',
-    borderTopColor: PRIMARY,
-    animation: 'ts-spin 0.9s linear infinite',
-    margin: '0 auto 1.5rem',
-  },
-  statusText: {
-    color: PRIMARY,
-    fontWeight: '600',
-    fontSize: '1rem',
-    margin: 0,
-  },
-  competencySection: {
-    marginBottom: '1.75rem',
-  },
-  competencyHeading: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.6rem',
-    fontSize: '1rem',
-    fontWeight: '700',
-    color: PRIMARY,
-    margin: '0 0 0.75rem',
-    paddingBottom: '0.4rem',
-    borderBottom: '2px solid #e8ecf5',
-  },
-  compNum: {
-    background: '#e8ecf5',
-    color: PRIMARY,
-    fontSize: '0.75rem',
-    fontWeight: '700',
-    padding: '0.15rem 0.45rem',
-    borderRadius: '4px',
-  },
-  statementCard: {
-    background: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '1rem',
-    marginBottom: '0.6rem',
-  },
-  statementHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '0.75rem',
-    marginBottom: '0.4rem',
-  },
-  statementCode: {
-    fontSize: '0.78rem',
-    fontWeight: '700',
-    color: '#6b7280',
-    letterSpacing: '0.04em',
-    flexShrink: 0,
-    marginTop: '2px',
-  },
-  ratingBadge: {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    padding: '0.2rem 0.55rem',
-    borderRadius: '4px',
-    whiteSpace: 'nowrap',
-  },
-  statementText: {
-    fontSize: '0.85rem',
-    color: '#374151',
-    lineHeight: '1.5',
-    margin: '0 0 0.25rem',
-  },
-  historySection: {
-    marginTop: '2rem',
-    paddingTop: '1.5rem',
-    borderTop: '1px solid #e5e7eb',
-  },
-  historyHeading: {
-    fontSize: '0.8rem',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    margin: '0 0 0.75rem',
-  },
-  historyRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '0.6rem 0',
-    borderBottom: '1px solid #f3f4f6',
-  },
-  historyDate: {
-    fontSize: '0.875rem',
-    color: '#374151',
-  },
-  historyBtn: {
-    background: '#fff',
-    border: '1.5px solid',
-    borderRadius: '6px',
-    padding: '0.3rem 0.75rem',
-    fontSize: '0.8rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  feedbackText: {
-    fontSize: '0.82rem',
-    color: '#555',
-    lineHeight: '1.55',
-    margin: '0.5rem 0 0',
-    fontStyle: 'italic',
-    borderTop: '1px solid #e5e7eb',
-    paddingTop: '0.5rem',
-  },
+  return null;
 }
