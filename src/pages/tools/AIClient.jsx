@@ -415,7 +415,7 @@ export default function AIClient() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Type your coaching response to Jordan…"
+              placeholder="Type your message to your client…"
               style={s.composerInput}
               rows="2"
             />
@@ -429,7 +429,7 @@ export default function AIClient() {
           </div>
           <div style={s.composerFooter}>
             <span>Press Enter to send · Shift+Enter for new line</span>
-            <span>Session: {sessionTime} · {exchangeCount} exchanges</span>
+            <span>{exchangeCount} exchanges</span>
           </div>
         </div>
       </div>
