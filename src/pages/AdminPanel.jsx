@@ -513,26 +513,51 @@ export default function AdminPanel() {
     setUserError(null)
     setInviteSubmitting(true)
 
-    const res = await fetch('/api/invite-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fullName: inviteForm.full_name,
-        email: inviteForm.email,
-        role: inviteForm.role,
-        cohortId: inviteForm.cohort_id || null,
-        mentorCoachId: inviteForm.mentor_coach_id || null,
-      }),
-    })
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-    const result = await res.json()
-    if (!res.ok) {
-      setUserError(result.error || 'Invite failed')
-    } else {
-      setSuccessMsg(`Invite sent to ${inviteForm.full_name}`)
-      setShowInviteForm(false)
-      setInviteForm(EMPTY_USER_FORM)
-      await loadUsers()
+      const res = await fetch('/api/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          full_name: inviteForm.full_name,
+          email: inviteForm.email,
+          role: inviteForm.role,
+          cohort_id: inviteForm.cohort_id || null,
+          mentor_coach_id: inviteForm.mentor_coach_id || null,
+        }),
+      })
+
+      clearTimeout(timeoutId)
+
+      let result
+      const contentType = res.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        result = await res.json()
+      } else {
+        const text = await res.text()
+        console.error('Non-JSON response:', res.status, text)
+        setUserError(`Server error (${res.status}): ${text || 'Unknown error'}`)
+        setInviteSubmitting(false)
+        return
+      }
+
+      if (!res.ok) {
+        setUserError(result.error || 'Invite failed')
+      } else {
+        setSuccessMsg(`Invite sent to ${inviteForm.full_name}`)
+        setShowInviteForm(false)
+        setInviteForm(EMPTY_USER_FORM)
+        await loadUsers()
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setUserError('Request timed out. Please check your connection and try again.')
+      } else {
+        setUserError(err.message || 'Failed to send invite')
+      }
     }
     setInviteSubmitting(false)
   }
