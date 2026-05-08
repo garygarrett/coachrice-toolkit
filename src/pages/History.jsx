@@ -191,15 +191,24 @@ export default function History() {
                     <div style={s.itemDetails}>
                       {examDetails[exam.id] && (
                         <>
-                          <div style={s.detailsGrid}>
-                            {examDetails[exam.id].answers?.map((ans, i) => (
-                              <div key={i} style={{ ...s.answerItem, borderLeftColor: ans.is_correct ? '#15803d' : '#b91c1c' }}>
-                                <div style={s.answerNumber}>Q{i + 1}</div>
-                                <div style={s.answerStatus}>
-                                  {ans.is_correct ? '✓' : '✗'} {ans.is_correct ? 'Correct' : 'Incorrect'}
-                                </div>
-                                {!ans.is_correct && (
-                                  <div style={s.answerCorrect}>Correct: {ans.correct_answer}</div>
+                          <div style={s.reviewList}>
+                            {examDetails[exam.id].answers?.map((q, i) => (
+                              <div key={q.id} style={{ ...s.reviewItem, borderLeftColor: q.isCorrect ? '#15803d' : '#b91c1c' }}>
+                                <p style={s.reviewQ}><strong>Q{i + 1}.</strong> {q.question}</p>
+                                {q.isCorrect ? (
+                                  <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0.3rem 0 0' }}>
+                                    ✓ Correct — {q.options[q.correct]}
+                                  </p>
+                                ) : (
+                                  <>
+                                    <p style={{ color: '#b91c1c', fontSize: '0.8rem', margin: '0.3rem 0 0.1rem' }}>
+                                      ✗ You chose ({q.userAnswer}) {q.options[q.userAnswer]}
+                                    </p>
+                                    <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0 0 0.3rem' }}>
+                                      ✓ Correct: ({q.correct}) {q.options[q.correct]}
+                                    </p>
+                                    <p style={s.reviewExpl}>{q.explanation}</p>
+                                  </>
                                 )}
                               </div>
                             ))}
@@ -505,5 +514,31 @@ const s = {
     fontWeight: '600',
     cursor: 'pointer',
     fontFamily: 'Montserrat, sans-serif',
+  },
+  reviewList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  reviewItem: {
+    borderLeft: '3px solid',
+    paddingLeft: '12px',
+    padding: '12px',
+    background: '#fff',
+    borderRadius: '4px',
+    fontSize: '13px',
+  },
+  reviewQ: {
+    margin: '0 0 8px',
+    lineHeight: '1.5',
+    color: COLORS['text-main'],
+  },
+  reviewExpl: {
+    margin: '8px 0 0',
+    fontSize: '12px',
+    color: '#666',
+    fontStyle: 'italic',
+    lineHeight: '1.4',
   },
 }

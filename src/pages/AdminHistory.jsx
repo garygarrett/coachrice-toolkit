@@ -23,6 +23,7 @@ export default function AdminHistory() {
   const [selectedTool, setSelectedTool] = useState('exam')
   const [userHistory, setUserHistory] = useState({ exams: [], transcripts: [], chats: [] })
   const [toolHistory, setToolHistory] = useState([])
+  const [toolCompetencyBreakdown, setToolCompetencyBreakdown] = useState({})
   const [loading, setLoading] = useState(false)
   const [expandedItems, setExpandedItems] = useState({})
   const [userDetails, setUserDetails] = useState({})
@@ -122,6 +123,35 @@ export default function AdminHistory() {
       )
 
       setToolHistory(itemsWithUsers)
+
+      // For exams, calculate competency breakdown across all attempts
+      if (toolType === 'exam') {
+        const competencyMap = {}
+        for (const item of data.data || []) {
+          // Fetch detailed answers for this exam to get competency data
+          const detailRes = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${item.id}`)
+          const detailData = await detailRes.json()
+
+          if (detailData.answers) {
+            for (const q of detailData.answers) {
+              if (!competencyMap[q.competency]) {
+                competencyMap[q.competency] = { correct: 0, total: 0 }
+              }
+              competencyMap[q.competency].total++
+              if (q.isCorrect) competencyMap[q.competency].correct++
+            }
+          }
+        }
+
+        const breakdown = Object.entries(competencyMap).map(([name, stats]) => ({
+          competency: name,
+          correct: stats.correct,
+          total: stats.total,
+          percentage: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+        }))
+
+        setToolCompetencyBreakdown(breakdown)
+      }
     } catch (err) {
       console.error('Error loading tool history:', err)
     }
@@ -226,11 +256,25 @@ export default function AdminHistory() {
                           </div>
                           {expandedItems[`exam-${exam.id}`] && userDetails[exam.id] && (
                             <div style={s.itemDetails}>
-                              <div style={s.detailsGrid}>
-                                {userDetails[exam.id].answers?.map((ans, i) => (
-                                  <div key={i} style={{ ...s.answerItem, borderLeftColor: ans.is_correct ? '#15803d' : '#b91c1c' }}>
-                                    <div style={s.answerNumber}>Q{i + 1}</div>
-                                    <div style={s.answerStatus}>{ans.is_correct ? '✓' : '✗'}</div>
+                              <div style={s.reviewList}>
+                                {userDetails[exam.id].answers?.map((q, i) => (
+                                  <div key={q.id} style={{ ...s.reviewItem, borderLeftColor: q.isCorrect ? '#15803d' : '#b91c1c' }}>
+                                    <p style={s.reviewQ}><strong>Q{i + 1}.</strong> {q.question}</p>
+                                    {q.isCorrect ? (
+                                      <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0.3rem 0 0' }}>
+                                        ✓ Correct — {q.options[q.correct]}
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <p style={{ color: '#b91c1c', fontSize: '0.8rem', margin: '0.3rem 0 0.1rem' }}>
+                                          ✗ You chose ({q.userAnswer}) {q.options[q.userAnswer]}
+                                        </p>
+                                        <p style={{ color: '#15803d', fontSize: '0.8rem', margin: '0 0 0.3rem' }}>
+                                          ✓ Correct: ({q.correct}) {q.options[q.correct]}
+                                        </p>
+                                        <p style={s.reviewExpl}>{q.explanation}</p>
+                                      </>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -346,6 +390,26 @@ export default function AdminHistory() {
                     <div style={s.statValue}>{new Set(toolHistory.map(t => t.user_id)).size}</div>
                   </div>
                 </div>
+
+                {selectedTool === 'exam' && toolCompetencyBreakdown.length > 0 && (
+                  <div style={{ ...s.section, marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Competency Breakdown (All Attempts)
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {toolCompetencyBreakdown.map(comp => (
+                        <div key={comp.competency} style={s.competencyBreakdownRow}>
+                          <span style={s.competencyBreakdownName}>{comp.competency}</span>
+                          <span style={s.competencyBreakdownStat}>{comp.correct}/{comp.total}</span>
+                          <div style={s.competencyBreakdownBar}>
+                            <div style={{ ...s.competencyBreakdownFill, width: `${comp.percentage}%`, background: comp.percentage >= 70 ? '#15803d' : comp.percentage >= 50 ? '#b45309' : '#b91c1c' }} />
+                          </div>
+                          <span style={s.competencyBreakdownPct}>{comp.percentage}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div style={s.listContainer}>
                   {toolHistory.length === 0 ? (
@@ -582,5 +646,69 @@ const s = {
     fontSize: '13px',
     padding: '16px',
     margin: 0,
+  },
+  reviewList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  reviewItem: {
+    borderLeft: '3px solid',
+    paddingLeft: '12px',
+    padding: '12px',
+    background: '#fff',
+    borderRadius: '4px',
+    fontSize: '13px',
+  },
+  reviewQ: {
+    margin: '0 0 8px',
+    lineHeight: '1.5',
+    color: COLORS['text-main'],
+  },
+  reviewExpl: {
+    margin: '8px 0 0',
+    fontSize: '12px',
+    color: '#666',
+    fontStyle: 'italic',
+    lineHeight: '1.4',
+  },
+  competencyBreakdownRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px',
+    background: COLORS['gray-light'],
+    borderRadius: '6px',
+  },
+  competencyBreakdownName: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: COLORS['text-main'],
+    minWidth: '120px',
+  },
+  competencyBreakdownStat: {
+    fontSize: '11px',
+    color: COLORS['text-muted'],
+    minWidth: '40px',
+    textAlign: 'right',
+  },
+  competencyBreakdownBar: {
+    flex: 1,
+    height: '8px',
+    background: COLORS['gray-border'],
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  competencyBreakdownFill: {
+    height: '100%',
+    transition: 'width 0.3s ease',
+  },
+  competencyBreakdownPct: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: COLORS['text-main'],
+    minWidth: '35px',
+    textAlign: 'right',
   },
 }

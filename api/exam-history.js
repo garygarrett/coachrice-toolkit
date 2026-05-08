@@ -49,7 +49,30 @@ export default async function handler(req, res) {
           .eq('exam_attempt_id', attemptId)
           .order('id')
 
-        return res.status(200).json({ attempt, answers })
+        // Fetch full question data for each answer
+        const { data: questionIds } = await supabase
+          .from('questions')
+          .select('id, question, competency, option_a, option_b, option_c, option_d, correct, explanation')
+          .in('id', answers.map(a => a.question_id))
+
+        const questionsMap = {}
+        if (questionIds) {
+          questionIds.forEach(q => { questionsMap[q.id] = q })
+        }
+
+        const scored = answers.map(ans => ({
+          ...questionsMap[ans.question_id],
+          options: {
+            A: questionsMap[ans.question_id]?.option_a,
+            B: questionsMap[ans.question_id]?.option_b,
+            C: questionsMap[ans.question_id]?.option_c,
+            D: questionsMap[ans.question_id]?.option_d,
+          },
+          userAnswer: ans.user_answer,
+          isCorrect: ans.is_correct,
+        }))
+
+        return res.status(200).json({ attempt, answers: scored })
       } catch (err) {
         return res.status(500).json({ error: err.message })
       }
