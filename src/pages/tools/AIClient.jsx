@@ -78,7 +78,7 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
 
 export default function AIClient() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const [stage, setStage] = useState('setup')
   const [coachName, setCoachName] = useState('')
   const [cfg, setCfg] = useState(randomPersona())
@@ -94,6 +94,8 @@ export default function AIClient() {
   const [content, setContent] = useState(CONTENT_DEFAULTS)
   const [contentLoaded, setContentLoaded] = useState(false)
   const [acknowledgments, setAcknowledgments] = useState({ aiClient: false, aiFeedback: false, dataPrivacy: false })
+  const [chatSessionId, setChatSessionId] = useState(null)
+  const [messageCount, setMessageCount] = useState(0)
   const allAcknowledged = Object.values(acknowledgments).every(Boolean)
   const messagesEndRef = useRef(null)
 
@@ -133,12 +135,32 @@ export default function AIClient() {
       })
   }, [])
 
-  const startSession = () => {
+  const startSession = async () => {
     if (!coachName.trim() || !allAcknowledged) return
     setCfg(prev => ({ ...prev, coachName: coachName.trim() }))
     setMessages([])
     setSessionStartTime(new Date())
+    setMessageCount(0)
     setStage('session')
+
+    // Create a chat session for history tracking
+    if (user) {
+      try {
+        const res = await fetch('/api/create-chat-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        })
+        const result = await res.json()
+        if (res.ok) {
+          setChatSessionId(result.sessionId)
+        } else {
+          console.error('[AIClient] Failed to create chat session:', result.error)
+        }
+      } catch (err) {
+        console.error('[AIClient] Error creating chat session:', err)
+      }
+    }
   }
 
   const sendMessage = async () => {
@@ -148,6 +170,24 @@ export default function AIClient() {
     setMessages(newMessages)
     setInput('')
     setLoading(true)
+
+    // Save user message to history
+    if (user && chatSessionId) {
+      try {
+        await fetch('/api/save-chat-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: chatSessionId,
+            role: 'user',
+            content: userMsg.content,
+            messageOrder: messageCount,
+          }),
+        })
+      } catch (err) {
+        console.error('[AIClient] Error saving user message:', err)
+      }
+    }
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -172,6 +212,25 @@ export default function AIClient() {
       const data = await res.json()
       const reply = data.content?.[0]?.text || ''
       setMessages(prev => [...prev, { role: 'client', content: reply }])
+      setMessageCount(prev => prev + 2)
+
+      // Save assistant message to history
+      if (user && chatSessionId) {
+        try {
+          await fetch('/api/save-chat-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: chatSessionId,
+              role: 'assistant',
+              content: reply,
+              messageOrder: messageCount + 1,
+            }),
+          })
+        } catch (err) {
+          console.error('[AIClient] Error saving assistant message:', err)
+        }
+      }
     } catch (e) {
       console.error('[AIClient] API error:', e.message)
       setMessages(prev => [...prev, { role: 'client', content: `[Error: ${e.message}]` }])
@@ -217,6 +276,23 @@ export default function AIClient() {
       }
       setFeedback(parsed)
       setStage('feedback')
+
+      // Save feedback/analysis to history
+      if (user && chatSessionId) {
+        try {
+          await fetch('/api/save-chat-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: chatSessionId,
+              analysisText: JSON.stringify(parsed),
+              competencyScores: typeof parsed === 'object' && parsed.competencies ? parsed.competencies : null,
+            }),
+          })
+        } catch (err) {
+          console.error('[AIClient] Error saving chat analysis:', err)
+        }
+      }
     } catch (e) {
       console.error('[AIClient] Feedback error:', e.message)
       setFeedback(`[Error: ${e.message}]`)

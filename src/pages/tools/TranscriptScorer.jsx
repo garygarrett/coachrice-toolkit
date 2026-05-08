@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../context/AuthContext";
 import Layout from "../../components/Layout";
 
 const SYSTEM_PROMPT_DEFAULT = `## ROLE
@@ -208,6 +209,7 @@ const CONTENT_DEFAULTS = {
 };
 
 export default function TranscriptScorer() {
+  const { user } = useAuth();
   const [stage, setStage] = useState("input");
   const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false });
   const allConsented = Object.values(consentChecked).every(Boolean);
@@ -347,6 +349,31 @@ export default function TranscriptScorer() {
       }
       setEvaluation(parsed);
       setStage("report");
+
+      // Save analysis to history
+      if (user) {
+        try {
+          const analysisRes = await fetch('/api/save-transcript-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.id,
+              analysisText: JSON.stringify(parsed),
+              competencyScores: parsed.behavioral_statements?.reduce((acc, stmt) => {
+                acc[stmt.code] = stmt.result;
+                return acc;
+              }, {}) || null,
+            }),
+          });
+
+          const analysisResult = await analysisRes.json();
+          if (!analysisRes.ok) {
+            console.error('[Transcript] Failed to save to history:', analysisResult.error);
+          }
+        } catch (err) {
+          console.error('[Transcript] Error saving to history:', err);
+        }
+      }
     } catch (err) {
       setError(err.message);
       setStage("preview");
