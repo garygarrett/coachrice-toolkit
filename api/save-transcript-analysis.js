@@ -1,0 +1,41 @@
+import { createClient } from '@supabase/supabase-js'
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return res.status(500).json({ error: 'Server misconfiguration' })
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  const { userId, analysisText, competencyScores } = req.body
+
+  if (!userId || !analysisText) {
+    return res.status(400).json({ error: 'userId and analysisText are required' })
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('transcript_analyses')
+      .insert({
+        user_id: userId,
+        analysis_text: analysisText,
+        competency_scores: competencyScores || null,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return res.status(200).json({ success: true, analysisId: data.id })
+  } catch (err) {
+    console.error('Error saving transcript analysis:', err)
+    return res.status(500).json({ error: err.message })
+  }
+}
