@@ -53,6 +53,7 @@ const TOOL_DEFAULTS = {
   transcript: { tag: 'Application', title: 'Transcript Reviewer', desc: 'Upload a session' },
   ai: { tag: 'Application', title: 'AI Client', desc: 'Live coaching practice' },
   audio: { tag: 'Utility', title: 'Audio to Transcript', desc: 'Convert recordings' },
+  assessor: { tag: 'Assessment', title: 'Internal Assessor (2021)', desc: 'AI-powered session evaluation' },
 }
 
 const TOOL_PAGE_DEFAULTS = {
@@ -75,6 +76,11 @@ const TOOL_PAGE_DEFAULTS = {
     badge: 'Utility',
     subtitle: 'Convert your audio recordings to text',
     info: 'Upload audio files from your coaching sessions. Get accurate transcriptions for analysis. Use with the Transcript Reviewer tool.',
+  },
+  assessor: {
+    badge: 'Performance Assessment',
+    subtitle: 'Get AI-powered evaluation of your coaching sessions',
+    info: 'Upload a session transcript for calibrated assessment against ACC Minimum Skill Requirements. Receive detailed feedback and numerical scoring using the CoachRICE Level 1 ACC Scoring Algorithm.',
   },
 }
 
@@ -139,6 +145,23 @@ const TOOLS = [
     tagColor: '#e2e6ec',
     tagTextColor: '#6b7a99',
   },
+  {
+    id: 'assessor',
+    label: 'Internal Assessor (2021)',
+    contentPrefix: 'assessor',
+    hasPrompts: true,
+    promptKeys: ['ai_assessor_prompt'],
+    promptLabels: ['System Prompt'],
+    hasApiKeys: true,
+    apiKeyKeys: ['api_key_assessor'],
+    apiKeyLabels: ['API Key'],
+    hasQuestions: false,
+    placeholder: false,
+    cardBg: '#f3e8ff',
+    cardColor: '#7c3aed',
+    tagColor: '#ede9fe',
+    tagTextColor: '#5b21b6',
+  },
 ]
 
 function ToolIcon({ id, size = 16, color = 'currentColor' }) {
@@ -174,6 +197,14 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
         <line x1="8" y1="13.5" x2="8" y2="15" />
       </svg>
     ),
+    assessor: (
+      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
+        <circle cx="8" cy="4" r="2" />
+        <path d="M5 8c0-1.7 1.3-3 3-3s3 1.3 3 3" />
+        <path d="M3 11c0-2.2 1.8-4 4-4s4 1.8 4 4" />
+        <line x1="1.5" y1="14.5" x2="14.5" y2="14.5" strokeWidth="1.5" />
+      </svg>
+    ),
   }
   return icons[id] || null
 }
@@ -201,7 +232,7 @@ export default function AdminPanel() {
   const [contentValues, setContentValues] = useState({})
   const [apiKeys, setApiKeys] = useState({ chatbot: '', feedback: '', assessor: '' })
   const [prompts, setPrompts] = useState({ aiClientChatbot: '', aiClientFeedback: '', assessor: '' })
-  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true })
+  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true, assessor: true })
   const [tileColors, setTileColors] = useState({})
   const [toolLoading, setToolLoading] = useState(false)
   const [toolError, setToolError] = useState(null)
