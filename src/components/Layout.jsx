@@ -92,7 +92,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
         <div style={styles.nav}>
           <div style={styles.navLabel}>General</div>
           {navItems.map(n => (
-            <div key={n.id} style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}) }} onClick={() => navigate('/dashboard')}>
+            <div key={n.id} style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate(n.id === 'dashboard' ? '/dashboard' : '/history')}>
               <ToolIcon id={n.id} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
               <span>{n.label}</span>
             </div>

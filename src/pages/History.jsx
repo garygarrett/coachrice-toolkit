@@ -1,0 +1,509 @@
+import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
+import Layout from '../components/Layout'
+
+const COLORS = {
+  navy: '#00205B',
+  teal: '#69cce6',
+  orange: '#ff8200',
+  gray: '#7C7E7F',
+  'gray-light': '#f0f2f5',
+  'gray-border': '#e2e6ec',
+  white: '#ffffff',
+  'text-main': '#0f1c3a',
+  'text-muted': '#6b7a99',
+}
+
+export default function History() {
+  const { user } = useAuth()
+  const [examAttempts, setExamAttempts] = useState([])
+  const [transcriptAnalyses, setTranscriptAnalyses] = useState([])
+  const [chatSessions, setChatSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [expandedExam, setExpandedExam] = useState(null)
+  const [expandedTranscript, setExpandedTranscript] = useState(null)
+  const [expandedChat, setExpandedChat] = useState(null)
+  const [examDetails, setExamDetails] = useState({})
+  const [chatDetails, setChatDetails] = useState({})
+
+  useEffect(() => {
+    loadHistory()
+  }, [user])
+
+  async function loadHistory() {
+    if (!user) return
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
+        fetch(`/api/get-exam-attempts?userId=${user.id}`),
+        fetch(`/api/get-transcript-analyses?userId=${user.id}`),
+        fetch(`/api/get-chat-sessions?userId=${user.id}`),
+      ])
+
+      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
+        throw new Error('Failed to load history')
+      }
+
+      const examsData = await examsRes.json()
+      const transcriptsData = await transcriptsRes.json()
+      const chatsData = await chatsRes.json()
+
+      setExamAttempts(examsData.data || [])
+      setTranscriptAnalyses(transcriptsData.data || [])
+      setChatSessions(chatsData.data || [])
+    } catch (err) {
+      setError(err.message)
+      console.error('Error loading history:', err)
+    }
+    setLoading(false)
+  }
+
+  async function loadExamDetails(attemptId) {
+    try {
+      const res = await fetch(`/api/get-exam-attempt?attemptId=${attemptId}&userId=${user.id}`)
+      const data = await res.json()
+      if (res.ok) {
+        setExamDetails(prev => ({ ...prev, [attemptId]: data }))
+      }
+    } catch (err) {
+      console.error('Error loading exam details:', err)
+    }
+  }
+
+  async function loadChatDetails(sessionId) {
+    try {
+      const res = await fetch(`/api/get-chat-session?sessionId=${sessionId}&userId=${user.id}`)
+      const data = await res.json()
+      if (res.ok) {
+        setChatDetails(prev => ({ ...prev, [sessionId]: data }))
+      }
+    } catch (err) {
+      console.error('Error loading chat details:', err)
+    }
+  }
+
+  async function deleteExam(attemptId) {
+    if (!window.confirm('Delete this exam attempt?')) return
+    try {
+      const res = await fetch('/api/delete-exam-attempt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attemptId, userId: user.id }),
+      })
+      if (res.ok) {
+        setExamAttempts(prev => prev.filter(e => e.id !== attemptId))
+        setExpandedExam(null)
+      } else {
+        alert('Failed to delete exam')
+      }
+    } catch (err) {
+      console.error('Error deleting exam:', err)
+    }
+  }
+
+  async function deleteTranscript(analysisId) {
+    if (!window.confirm('Delete this transcript analysis?')) return
+    try {
+      const res = await fetch('/api/delete-transcript-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysisId, userId: user.id }),
+      })
+      if (res.ok) {
+        setTranscriptAnalyses(prev => prev.filter(t => t.id !== analysisId))
+      } else {
+        alert('Failed to delete analysis')
+      }
+    } catch (err) {
+      console.error('Error deleting analysis:', err)
+    }
+  }
+
+  async function deleteChat(sessionId) {
+    if (!window.confirm('Delete this chat session?')) return
+    try {
+      const res = await fetch('/api/delete-chat-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, userId: user.id }),
+      })
+      if (res.ok) {
+        setChatSessions(prev => prev.filter(c => c.id !== sessionId))
+        setExpandedChat(null)
+      } else {
+        alert('Failed to delete session')
+      }
+    } catch (err) {
+      console.error('Error deleting session:', err)
+    }
+  }
+
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  if (loading) {
+    return (
+      <Layout active="history" pageTitle="History">
+        <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+      </Layout>
+    )
+  }
+
+  return (
+    <Layout active="history" pageTitle="History">
+      <div style={s.page}>
+        {error && <div style={s.error}>{error}</div>}
+
+        {/* Exams Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>📝</span> Exam Attempts ({examAttempts.length})
+          </h2>
+          {examAttempts.length === 0 ? (
+            <p style={s.empty}>No exams yet. Start practicing!</p>
+          ) : (
+            <div style={s.listContainer}>
+              {examAttempts.map(exam => (
+                <div key={exam.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedExam(expandedExam === exam.id ? null : exam.id)
+                    if (expandedExam !== exam.id && !examDetails[exam.id]) {
+                      loadExamDetails(exam.id)
+                    }
+                  }}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>
+                        {exam.correct_answers}/{exam.total_questions} correct ({exam.overall_score}%)
+                      </div>
+                      <div style={s.itemDate}>{formatDate(exam.created_at)}</div>
+                    </div>
+                    <div style={s.scoreCircle}>
+                      <div style={{ ...s.score, color: exam.overall_score >= 70 ? '#15803d' : exam.overall_score >= 50 ? '#b45309' : '#b91c1c' }}>
+                        {exam.overall_score}%
+                      </div>
+                    </div>
+                  </div>
+                  {expandedExam === exam.id && (
+                    <div style={s.itemDetails}>
+                      {examDetails[exam.id] && (
+                        <>
+                          <div style={s.detailsGrid}>
+                            {examDetails[exam.id].answers?.map((ans, i) => (
+                              <div key={i} style={{ ...s.answerItem, borderLeftColor: ans.is_correct ? '#15803d' : '#b91c1c' }}>
+                                <div style={s.answerNumber}>Q{i + 1}</div>
+                                <div style={s.answerStatus}>
+                                  {ans.is_correct ? '✓' : '✗'} {ans.is_correct ? 'Correct' : 'Incorrect'}
+                                </div>
+                                {!ans.is_correct && (
+                                  <div style={s.answerCorrect}>Correct: {ans.correct_answer}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => deleteExam(exam.id)}
+                            style={s.deleteBtn}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Transcripts Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>📄</span> Transcript Analyses ({transcriptAnalyses.length})
+          </h2>
+          {transcriptAnalyses.length === 0 ? (
+            <p style={s.empty}>No transcript analyses yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {transcriptAnalyses.map(transcript => (
+                <div key={transcript.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => setExpandedTranscript(expandedTranscript === transcript.id ? null : transcript.id)}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>Transcript Analysis</div>
+                      <div style={s.itemDate}>{formatDate(transcript.created_at)}</div>
+                    </div>
+                    <span style={s.expandIcon}>{expandedTranscript === transcript.id ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedTranscript === transcript.id && (
+                    <div style={s.itemDetails}>
+                      <div style={s.analysisPreview}>
+                        {typeof transcript.competency_scores === 'object' && (
+                          <div>
+                            <strong>Competency Scores:</strong>
+                            <div style={s.competencyList}>
+                              {Object.entries(transcript.competency_scores).map(([code, result]) => (
+                                <div key={code} style={s.competencyItem}>
+                                  {code}: <span style={{ color: result === 'Observed' ? '#15803d' : '#b91c1c' }}>{result}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteTranscript(transcript.id)}
+                        style={s.deleteBtn}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Sessions Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>💬</span> Chat Sessions ({chatSessions.length})
+          </h2>
+          {chatSessions.length === 0 ? (
+            <p style={s.empty}>No chat sessions yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {chatSessions.map(chat => (
+                <div key={chat.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedChat(expandedChat === chat.id ? null : chat.id)
+                    if (expandedChat !== chat.id && !chatDetails[chat.id]) {
+                      loadChatDetails(chat.id)
+                    }
+                  }}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>Chat Session</div>
+                      <div style={s.itemDate}>{formatDate(chat.created_at)}</div>
+                    </div>
+                    <span style={s.expandIcon}>{expandedChat === chat.id ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedChat === chat.id && (
+                    <div style={s.itemDetails}>
+                      {chatDetails[chat.id] && (
+                        <>
+                          <div style={s.messageList}>
+                            {chatDetails[chat.id].messages?.map((msg, i) => (
+                              <div key={i} style={{ ...s.message, alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                <div style={{ ...s.messageBubble, background: msg.role === 'user' ? COLORS.navy : COLORS['gray-light'] }}>
+                                  <div style={{ color: msg.role === 'user' ? '#fff' : COLORS['text-main'], fontSize: '13px', lineHeight: '1.5' }}>
+                                    {msg.content}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {chatDetails[chat.id].analysis && (
+                            <div style={s.analysis}>
+                              <strong style={{ display: 'block', marginBottom: '8px' }}>Feedback:</strong>
+                              <div style={{ fontSize: '12px', color: COLORS['text-muted'] }}>
+                                {typeof chatDetails[chat.id].analysis.analysis_text === 'string'
+                                  ? chatDetails[chat.id].analysis.analysis_text.substring(0, 200) + '...'
+                                  : JSON.stringify(chatDetails[chat.id].analysis.analysis_text).substring(0, 200) + '...'}
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => deleteChat(chat.id)}
+                            style={s.deleteBtn}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Layout>
+  )
+}
+
+const s = {
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '32px',
+  },
+  error: {
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+    color: '#b91c1c',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+  },
+  section: {
+    background: '#fff',
+    borderRadius: '10px',
+    border: `1px solid ${COLORS['gray-border']}`,
+    overflow: 'hidden',
+  },
+  sectionTitle: {
+    fontSize: '16px',
+    fontWeight: '700',
+    color: COLORS.navy,
+    padding: '16px 20px',
+    margin: 0,
+    borderBottom: `1px solid ${COLORS['gray-border']}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  sectionIcon: {
+    fontSize: '18px',
+  },
+  empty: {
+    color: COLORS['text-muted'],
+    padding: '20px',
+    textAlign: 'center',
+    fontSize: '13px',
+    margin: 0,
+  },
+  listContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  item: {
+    borderBottom: `1px solid ${COLORS['gray-border']}`,
+  },
+  itemHeader: {
+    padding: '16px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: COLORS['text-main'],
+  },
+  itemDate: {
+    fontSize: '12px',
+    color: COLORS['text-muted'],
+    marginTop: '4px',
+  },
+  scoreCircle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  score: {
+    fontSize: '18px',
+    fontWeight: '700',
+  },
+  expandIcon: {
+    fontSize: '12px',
+    color: COLORS['text-muted'],
+  },
+  itemDetails: {
+    padding: '16px 20px',
+    background: COLORS['gray-light'],
+    borderTop: `1px solid ${COLORS['gray-border']}`,
+  },
+  detailsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  answerItem: {
+    borderLeft: '3px solid',
+    paddingLeft: '12px',
+    padding: '12px',
+    background: '#fff',
+    borderRadius: '4px',
+    fontSize: '12px',
+  },
+  answerNumber: {
+    fontWeight: '700',
+    marginBottom: '4px',
+  },
+  answerStatus: {
+    fontSize: '11px',
+    color: COLORS['text-muted'],
+    marginBottom: '4px',
+  },
+  answerCorrect: {
+    fontSize: '10px',
+    color: '#15803d',
+    fontWeight: '600',
+  },
+  analysisPreview: {
+    fontSize: '12px',
+    color: COLORS['text-main'],
+    marginBottom: '16px',
+    background: '#fff',
+    padding: '12px',
+    borderRadius: '4px',
+  },
+  competencyList: {
+    marginTop: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  competencyItem: {
+    fontSize: '11px',
+    color: COLORS['text-muted'],
+  },
+  messageList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginBottom: '16px',
+    maxHeight: '300px',
+    overflowY: 'auto',
+    background: '#fff',
+    padding: '12px',
+    borderRadius: '4px',
+  },
+  message: {
+    display: 'flex',
+  },
+  messageBubble: {
+    maxWidth: '70%',
+    padding: '10px 12px',
+    borderRadius: '6px',
+  },
+  analysis: {
+    background: '#fff',
+    padding: '12px',
+    borderRadius: '4px',
+    marginBottom: '16px',
+    fontSize: '12px',
+  },
+  deleteBtn: {
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+    color: '#b91c1c',
+    padding: '8px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+}
