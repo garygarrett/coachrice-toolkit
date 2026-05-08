@@ -113,6 +113,7 @@ export default function Exam() {
 
     const score = scored.filter(s => s.isCorrect).length
     const total = scored.length
+    const overallPercent = Math.round((score / total) * 100)
 
     const competencyMap = {}
     for (const s of scored) {
@@ -131,7 +132,38 @@ export default function Exam() {
     setResults({ score, total, competencyBreakdown, scored })
     setPhase('results')
 
-    // Save to Supabase in the background
+    // Save to new history table
+    if (user) {
+      try {
+        const answersData = scored.map(q => ({
+          question_id: q.id,
+          user_answer: answers[q.id],
+          correct_answer: q.correct,
+          is_correct: q.isCorrect,
+        }))
+
+        const historyRes = await fetch('/api/save-exam-attempt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            overallScore: overallPercent,
+            totalQuestions: total,
+            correctAnswers: score,
+            answers: answersData,
+          }),
+        })
+
+        const historyResult = await historyRes.json()
+        if (!historyRes.ok) {
+          console.error('[Exam] Failed to save to history:', historyResult.error)
+        }
+      } catch (err) {
+        console.error('[Exam] Error saving to history:', err)
+      }
+    }
+
+    // Also save to original tables for backward compatibility
     if (user) {
       const { data: session, error: sessionError } = await supabase
         .from('sessions')
