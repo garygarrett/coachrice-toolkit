@@ -117,7 +117,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
                 <ToolIcon id="dashboard" size={14} color={active === 'admin' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
                 <span>Dashboard</span>
               </div>
-              <div style={{ ...styles.navItem, ...(active === 'admin-history' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin')}>
+              <div style={{ ...styles.navItem, ...(active === 'admin-history' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin/history')}>
                 <ToolIcon id="history" size={14} color={active === 'admin-history' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
                 <span>History</span>
               </div>

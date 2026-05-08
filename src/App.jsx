@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
 import CoachDashboard from './pages/CoachDashboard'
 import History from './pages/History'
+import AdminHistory from './pages/AdminHistory'
 import AdminPanel from './pages/AdminPanel'
 import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
@@ -61,6 +62,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/history"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminHistory />
             </ProtectedRoute>
           }
         />
