@@ -27,6 +27,7 @@ export default function AdminHistory() {
   const [loading, setLoading] = useState(false)
   const [expandedItems, setExpandedItems] = useState({})
   const [userDetails, setUserDetails] = useState({})
+  const [questionStats, setQuestionStats] = useState([])
 
   const tools = [
     { id: 'exam', label: 'Exam Attempts' },
@@ -124,21 +125,30 @@ export default function AdminHistory() {
 
       setToolHistory(itemsWithUsers)
 
-      // For exams, calculate competency breakdown across all attempts
+      // For exams, calculate competency breakdown and question stats across all attempts
       if (toolType === 'exam') {
         const competencyMap = {}
+        const questionMap = {}
         for (const item of data.data || []) {
-          // Fetch detailed answers for this exam to get competency data
+          // Fetch detailed answers for this exam to get competency and question data
           const detailRes = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${item.id}`)
           const detailData = await detailRes.json()
 
           if (detailData.answers) {
             for (const q of detailData.answers) {
+              // Competency stats
               if (!competencyMap[q.competency]) {
                 competencyMap[q.competency] = { correct: 0, total: 0 }
               }
               competencyMap[q.competency].total++
               if (q.isCorrect) competencyMap[q.competency].correct++
+
+              // Question stats
+              if (!questionMap[q.id]) {
+                questionMap[q.id] = { question: q.question, correct: 0, total: 0, competency: q.competency }
+              }
+              questionMap[q.id].total++
+              if (q.isCorrect) questionMap[q.id].correct++
             }
           }
         }
@@ -150,7 +160,17 @@ export default function AdminHistory() {
           percentage: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
         }))
 
+        const questions = Object.entries(questionMap).map(([id, stats]) => ({
+          id,
+          question: stats.question,
+          competency: stats.competency,
+          timesUsed: stats.total,
+          correctCount: stats.correct,
+          successPercentage: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+        }))
+
         setToolCompetencyBreakdown(breakdown)
+        setQuestionStats(questions.sort((a, b) => b.timesUsed - a.timesUsed))
       }
     } catch (err) {
       console.error('Error loading tool history:', err)
@@ -405,6 +425,37 @@ export default function AdminHistory() {
                             <div style={{ ...s.competencyBreakdownFill, width: `${comp.percentage}%`, background: comp.percentage >= 70 ? '#15803d' : comp.percentage >= 50 ? '#b45309' : '#b91c1c' }} />
                           </div>
                           <span style={s.competencyBreakdownPct}>{comp.percentage}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedTool === 'exam' && questionStats.length > 0 && (
+                  <div style={{ ...s.section, marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Question Analytics
+                    </h3>
+                    <div style={s.questionStatsContainer}>
+                      {questionStats.map(q => (
+                        <div key={q.id} style={s.questionStatRow}>
+                          <div style={{ flex: 1 }}>
+                            <p style={s.questionStatText}>{q.question}</p>
+                            <p style={s.questionStatMeta}>{q.competency}</p>
+                          </div>
+                          <div style={s.questionStatRight}>
+                            <div style={s.questionStatItem}>
+                              <span style={s.questionStatLabel}>Used</span>
+                              <span style={s.questionStatValue}>{q.timesUsed}</span>
+                            </div>
+                            <div style={s.questionStatItem}>
+                              <span style={s.questionStatLabel}>Success</span>
+                              <div style={s.questionStatBar}>
+                                <div style={{ ...s.questionStatFill, width: `${q.successPercentage}%`, background: q.successPercentage >= 70 ? '#15803d' : q.successPercentage >= 50 ? '#b45309' : '#b91c1c' }} />
+                              </div>
+                              <span style={s.questionStatValue}>{q.successPercentage}%</span>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -710,5 +761,65 @@ const s = {
     color: COLORS['text-main'],
     minWidth: '35px',
     textAlign: 'right',
+  },
+  questionStatsContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  questionStatRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '12px',
+    background: COLORS['gray-light'],
+    borderRadius: '6px',
+    gap: '16px',
+  },
+  questionStatText: {
+    margin: '0 0 4px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: COLORS['text-main'],
+    lineHeight: '1.4',
+  },
+  questionStatMeta: {
+    margin: 0,
+    fontSize: '11px',
+    color: COLORS['text-muted'],
+  },
+  questionStatRight: {
+    display: 'flex',
+    gap: '20px',
+    minWidth: '280px',
+  },
+  questionStatItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    flex: 1,
+    minWidth: '120px',
+  },
+  questionStatLabel: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: COLORS['text-muted'],
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  questionStatValue: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: COLORS.navy,
+  },
+  questionStatBar: {
+    height: '6px',
+    background: COLORS['gray-border'],
+    borderRadius: '3px',
+    overflow: 'hidden',
+  },
+  questionStatFill: {
+    height: '100%',
+    transition: 'width 0.3s ease',
   },
 }
