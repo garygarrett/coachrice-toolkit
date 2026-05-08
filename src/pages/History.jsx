@@ -38,9 +38,9 @@ export default function History() {
 
     try {
       const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
-        fetch(`/api/get-exam-attempts?userId=${user.id}`),
-        fetch(`/api/get-transcript-analyses?userId=${user.id}`),
-        fetch(`/api/get-chat-sessions?userId=${user.id}`),
+        fetch(`/api/exam-history?userId=${user.id}`),
+        fetch(`/api/transcript-history?userId=${user.id}`),
+        fetch(`/api/chat-history?userId=${user.id}`),
       ])
 
       if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
@@ -63,7 +63,7 @@ export default function History() {
 
   async function loadExamDetails(attemptId) {
     try {
-      const res = await fetch(`/api/get-exam-attempt?attemptId=${attemptId}&userId=${user.id}`)
+      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
       const data = await res.json()
       if (res.ok) {
         setExamDetails(prev => ({ ...prev, [attemptId]: data }))
@@ -75,7 +75,7 @@ export default function History() {
 
   async function loadChatDetails(sessionId) {
     try {
-      const res = await fetch(`/api/get-chat-session?sessionId=${sessionId}&userId=${user.id}`)
+      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
       const data = await res.json()
       if (res.ok) {
         setChatDetails(prev => ({ ...prev, [sessionId]: data }))
@@ -88,8 +88,8 @@ export default function History() {
   async function deleteExam(attemptId) {
     if (!window.confirm('Delete this exam attempt?')) return
     try {
-      const res = await fetch('/api/delete-exam-attempt', {
-        method: 'POST',
+      const res = await fetch('/api/exam-history', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attemptId, userId: user.id }),
       })
@@ -107,8 +107,8 @@ export default function History() {
   async function deleteTranscript(analysisId) {
     if (!window.confirm('Delete this transcript analysis?')) return
     try {
-      const res = await fetch('/api/delete-transcript-analysis', {
-        method: 'POST',
+      const res = await fetch('/api/transcript-history', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId, userId: user.id }),
       })
@@ -125,8 +125,8 @@ export default function History() {
   async function deleteChat(sessionId) {
     if (!window.confirm('Delete this chat session?')) return
     try {
-      const res = await fetch('/api/delete-chat-session', {
-        method: 'POST',
+      const res = await fetch('/api/chat-history', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, userId: user.id }),
       })

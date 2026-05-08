@@ -65,9 +65,9 @@ export default function AdminHistory() {
     setLoading(true)
     try {
       const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
-        fetch(`/api/get-exam-attempts?userId=${user.id}&viewingUserId=${userId}`),
-        fetch(`/api/get-transcript-analyses?userId=${user.id}&viewingUserId=${userId}`),
-        fetch(`/api/get-chat-sessions?userId=${user.id}&viewingUserId=${userId}`),
+        fetch(`/api/exam-history?userId=${user.id}&viewingUserId=${userId}`),
+        fetch(`/api/transcript-history?userId=${user.id}&viewingUserId=${userId}`),
+        fetch(`/api/chat-history?userId=${user.id}&viewingUserId=${userId}`),
       ])
 
       const examsData = await examsRes.json()
@@ -91,17 +91,17 @@ export default function AdminHistory() {
       let endpoint, data
       switch (toolType) {
         case 'exam':
-          const examsRes = await fetch(`/api/get-exam-attempts?userId=${user.id}`)
+          const examsRes = await fetch(`/api/exam-history?userId=${user.id}`)
           data = await examsRes.json()
           endpoint = 'exams'
           break
         case 'transcript':
-          const transcriptsRes = await fetch(`/api/get-transcript-analyses?userId=${user.id}`)
+          const transcriptsRes = await fetch(`/api/transcript-history?userId=${user.id}`)
           data = await transcriptsRes.json()
           endpoint = 'transcripts'
           break
         case 'chat':
-          const chatsRes = await fetch(`/api/get-chat-sessions?userId=${user.id}`)
+          const chatsRes = await fetch(`/api/chat-history?userId=${user.id}`)
           data = await chatsRes.json()
           endpoint = 'chats'
           break
@@ -130,7 +130,7 @@ export default function AdminHistory() {
 
   async function loadExamDetails(attemptId, userId) {
     try {
-      const res = await fetch(`/api/get-exam-attempt?attemptId=${attemptId}&userId=${user.id}`)
+      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
       const data = await res.json()
       if (res.ok) {
         setUserDetails(prev => ({ ...prev, [attemptId]: data }))
@@ -142,7 +142,7 @@ export default function AdminHistory() {
 
   async function loadChatDetails(sessionId, userId) {
     try {
-      const res = await fetch(`/api/get-chat-session?sessionId=${sessionId}&userId=${user.id}`)
+      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
       const data = await res.json()
       if (res.ok) {
         setUserDetails(prev => ({ ...prev, [sessionId]: data }))
@@ -220,7 +220,7 @@ export default function AdminHistory() {
                               <div style={s.itemTitle}>{exam.correct_answers}/{exam.total_questions} correct ({exam.overall_score}%)</div>
                               <div style={s.itemDate}>{formatDate(exam.created_at)}</div>
                             </div>
-                            <div style={s.scoreCircle} style={{ color: exam.overall_score >= 70 ? '#15803d' : exam.overall_score >= 50 ? '#b45309' : '#b91c1c' }}>
+                            <div style={{ ...s.scoreCircle, color: exam.overall_score >= 70 ? '#15803d' : exam.overall_score >= 50 ? '#b45309' : '#b91c1c' }}>
                               {exam.overall_score}%
                             </div>
                           </div>

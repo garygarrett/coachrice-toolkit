@@ -146,10 +146,10 @@ export default function AIClient() {
     // Create a chat session for history tracking
     if (user) {
       try {
-        const res = await fetch('/api/create-chat-session', {
+        const res = await fetch('/api/chat-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id }),
+          body: JSON.stringify({ userId: user.id, action: 'create-session' }),
         })
         const result = await res.json()
         if (res.ok) {
@@ -174,10 +174,12 @@ export default function AIClient() {
     // Save user message to history
     if (user && chatSessionId) {
       try {
-        await fetch('/api/save-chat-message', {
+        await fetch('/api/chat-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            userId: user.id,
+            action: 'save-message',
             sessionId: chatSessionId,
             role: 'user',
             content: userMsg.content,
@@ -217,10 +219,12 @@ export default function AIClient() {
       // Save assistant message to history
       if (user && chatSessionId) {
         try {
-          await fetch('/api/save-chat-message', {
+          await fetch('/api/chat-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              userId: user.id,
+              action: 'save-message',
               sessionId: chatSessionId,
               role: 'assistant',
               content: reply,
@@ -280,10 +284,12 @@ export default function AIClient() {
       // Save feedback/analysis to history
       if (user && chatSessionId) {
         try {
-          await fetch('/api/save-chat-analysis', {
+          await fetch('/api/chat-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              userId: user.id,
+              action: 'save-analysis',
               sessionId: chatSessionId,
               analysisText: JSON.stringify(parsed),
               competencyScores: typeof parsed === 'object' && parsed.competencies ? parsed.competencies : null,

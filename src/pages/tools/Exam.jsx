@@ -142,7 +142,7 @@ export default function Exam() {
           is_correct: q.isCorrect,
         }))
 
-        const historyRes = await fetch('/api/save-exam-attempt', {
+        const historyRes = await fetch('/api/exam-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

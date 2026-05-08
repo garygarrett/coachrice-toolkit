@@ -353,7 +353,7 @@ export default function TranscriptScorer() {
       // Save analysis to history
       if (user) {
         try {
-          const analysisRes = await fetch('/api/save-transcript-analysis', {
+          const analysisRes = await fetch('/api/transcript-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
