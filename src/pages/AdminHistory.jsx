@@ -210,6 +210,79 @@ export default function AdminHistory() {
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  async function deleteExam(examId) {
+    if (!window.confirm('Are you sure you want to delete this exam attempt?')) return
+    try {
+      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${examId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setUserHistory(prev => ({ ...prev, exams: prev.exams.filter(e => e.id !== examId) }))
+      } else {
+        alert('Failed to delete exam')
+      }
+    } catch (err) {
+      console.error('Error deleting exam:', err)
+      alert('Error deleting exam')
+    }
+  }
+
+  async function deleteTranscript(analysisId) {
+    if (!window.confirm('Are you sure you want to delete this transcript analysis?')) return
+    try {
+      const res = await fetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setUserHistory(prev => ({ ...prev, transcripts: prev.transcripts.filter(t => t.id !== analysisId) }))
+      } else {
+        alert('Failed to delete transcript')
+      }
+    } catch (err) {
+      console.error('Error deleting transcript:', err)
+      alert('Error deleting transcript')
+    }
+  }
+
+  async function deleteChat(sessionId) {
+    if (!window.confirm('Are you sure you want to delete this chat session?')) return
+    try {
+      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setUserHistory(prev => ({ ...prev, chats: prev.chats.filter(c => c.id !== sessionId) }))
+      } else {
+        alert('Failed to delete chat')
+      }
+    } catch (err) {
+      console.error('Error deleting chat:', err)
+      alert('Error deleting chat')
+    }
+  }
+
+  async function deleteToolSubmission(toolType, submissionId) {
+    const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat' }[toolType] || toolType
+    if (!window.confirm(`Are you sure you want to delete this ${toolName} submission?`)) return
+    try {
+      let endpoint = ''
+      switch (toolType) {
+        case 'exam':
+          endpoint = `/api/exam-history?userId=${user.id}&attemptId=${submissionId}`
+          break
+        case 'transcript':
+          endpoint = `/api/transcript-history?userId=${user.id}&analysisId=${submissionId}`
+          break
+        case 'chat':
+          endpoint = `/api/chat-history?userId=${user.id}&sessionId=${submissionId}`
+          break
+      }
+      const res = await fetch(endpoint, { method: 'DELETE' })
+      if (res.ok) {
+        setToolHistory(prev => prev.filter(item => item.id !== submissionId))
+      } else {
+        alert(`Failed to delete ${toolName}`)
+      }
+    } catch (err) {
+      console.error(`Error deleting ${toolType}:`, err)
+      alert(`Error deleting ${toolType}`)
+    }
+  }
+
   return (
     <Layout active="admin-history" pageTitle="User & Tool History">
       <div style={s.page}>
@@ -270,8 +343,13 @@ export default function AdminHistory() {
                               <div style={s.itemTitle}>{exam.correct_answers}/{exam.total_questions} correct ({exam.overall_score}%)</div>
                               <div style={s.itemDate}>{formatDate(exam.created_at)}</div>
                             </div>
-                            <div style={{ ...s.scoreCircle, color: exam.overall_score >= 70 ? '#15803d' : exam.overall_score >= 50 ? '#b45309' : '#b91c1c' }}>
-                              {exam.overall_score}%
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ ...s.scoreCircle, color: exam.overall_score >= 70 ? '#15803d' : exam.overall_score >= 50 ? '#b45309' : '#b91c1c' }}>
+                                {exam.overall_score}%
+                              </div>
+                              <button onClick={(e) => { e.stopPropagation(); deleteExam(exam.id) }} style={s.deleteBtn} title="Delete exam">
+                                🗑️
+                              </button>
                             </div>
                           </div>
                           {expandedItems[`exam-${exam.id}`] && userDetails[exam.id] && (
@@ -320,7 +398,12 @@ export default function AdminHistory() {
                               <div style={s.itemTitle}>Transcript Analysis</div>
                               <div style={s.itemDate}>{formatDate(t.created_at)}</div>
                             </div>
-                            <span style={s.expandIcon}>{expandedItems[`transcript-${t.id}`] ? '▼' : '▶'}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={s.expandIcon}>{expandedItems[`transcript-${t.id}`] ? '▼' : '▶'}</span>
+                              <button onClick={(e) => { e.stopPropagation(); deleteTranscript(t.id) }} style={s.deleteBtn} title="Delete transcript">
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                           {expandedItems[`transcript-${t.id}`] && (
                             <div style={s.itemDetails}>
@@ -360,7 +443,12 @@ export default function AdminHistory() {
                               <div style={s.itemTitle}>Chat Session</div>
                               <div style={s.itemDate}>{formatDate(chat.created_at)}</div>
                             </div>
-                            <span style={s.expandIcon}>{expandedItems[`chat-${chat.id}`] ? '▼' : '▶'}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={s.expandIcon}>{expandedItems[`chat-${chat.id}`] ? '▼' : '▶'}</span>
+                              <button onClick={(e) => { e.stopPropagation(); deleteChat(chat.id) }} style={s.deleteBtn} title="Delete chat">
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                           {expandedItems[`chat-${chat.id}`] && userDetails[chat.id] && (
                             <div style={s.itemDetails}>
@@ -477,11 +565,16 @@ export default function AdminHistory() {
                               {item.user?.email} • {formatDate(item.created_at)}
                             </div>
                           </div>
-                          {selectedTool === 'exam' && (
-                            <div style={{ color: item.overall_score >= 70 ? '#15803d' : item.overall_score >= 50 ? '#b45309' : '#b91c1c', fontWeight: '700' }}>
-                              {item.overall_score}%
-                            </div>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {selectedTool === 'exam' && (
+                              <div style={{ color: item.overall_score >= 70 ? '#15803d' : item.overall_score >= 50 ? '#b45309' : '#b91c1c', fontWeight: '700' }}>
+                                {item.overall_score}%
+                              </div>
+                            )}
+                            <button onClick={(e) => { e.stopPropagation(); deleteToolSubmission(selectedTool, item.id) }} style={s.deleteBtn} title="Delete submission">
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                         {expandedItems[`tool-${item.id}`] && (
                           <div style={s.itemDetails}>
@@ -646,6 +739,16 @@ const s = {
   expandIcon: {
     fontSize: '12px',
     color: COLORS['text-muted'],
+  },
+  deleteBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '4px 8px',
+    opacity: 0.6,
+    transition: 'opacity 0.2s',
+    borderRadius: '4px',
   },
   itemDetails: {
     padding: '14px 16px',
