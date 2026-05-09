@@ -65,10 +65,11 @@ const TOOL_DEFAULTS = {
 
 export default function CoachDashboard() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true, audio: true }
   const [content, setContent] = useState({})
   const [colors, setColors] = useState({})
+  const [activities, setActivities] = useState([])
 
   useEffect(() => {
     const keys = ['exam_card_tag', 'exam_card_title', 'exam_card_description',
@@ -117,6 +118,92 @@ export default function CoachDashboard() {
     loadColors()
   }, [])
 
+  // Load recent activities
+  useEffect(() => {
+    async function loadActivities() {
+      if (!user?.id) return
+
+      try {
+        // Fetch recent exams, transcripts, and chats
+        const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
+          supabase
+            .from('exam_attempts')
+            .select('id, overall_score, correct_answers, total_questions, created_at')
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('transcript_analyses')
+            .select('id, created_at')
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('chat_sessions')
+            .select('id, created_at')
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+            .limit(10),
+        ])
+
+        // Combine and format activities
+        const allActivities = []
+
+        if (examsRes.data) {
+          examsRes.data.forEach(exam => {
+            allActivities.push({
+              type: 'exam',
+              dot: '#0a7fa8',
+              title: 'Practice Exam',
+              time: new Date(exam.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              note: `${exam.overall_score}% — ${exam.overall_score >= 70 ? 'Pass' : 'Needs Work'}`,
+              created_at: new Date(exam.created_at),
+            })
+          })
+        }
+
+        if (transcriptsRes.data) {
+          transcriptsRes.data.forEach(t => {
+            allActivities.push({
+              type: 'transcript',
+              dot: '#c06000',
+              title: 'Transcript Analysis',
+              time: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              note: 'Competency review',
+              created_at: new Date(t.created_at),
+            })
+          })
+        }
+
+        if (chatsRes.data) {
+          chatsRes.data.forEach(chat => {
+            allActivities.push({
+              type: 'chat',
+              dot: '#0a7fa8',
+              title: 'AI Client Session',
+              time: new Date(chat.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              note: 'Practice conversation',
+              created_at: new Date(chat.created_at),
+            })
+          })
+        }
+
+        // Sort by date, most recent first
+        allActivities.sort((a, b) => b.created_at - a.created_at)
+
+        // Keep only the 6 most recent
+        setActivities(allActivities.slice(0, 6))
+      } catch (err) {
+        console.error('Error loading activities:', err)
+      }
+    }
+
+    loadActivities()
+  }, [user?.id])
+
   const allTools = [
     {
       id: 'exam',
@@ -163,14 +250,10 @@ export default function CoachDashboard() {
   const isAdmin = profile?.role === 'admin'
   const tools = isAdmin ? allTools : allTools.filter(t => visibility[t.id])
 
-  const activities = [
-    { dot: '#0a7fa8', title: 'Practice Exam', time: 'Apr 18', note: '92% — Pass' },
-    { dot: '#0a7fa8', title: 'AI Client Session', time: 'Apr 19', note: '24 min, 18 exchanges' },
-    { dot: '#c06000', title: 'Transcript: Session 12', time: 'Apr 17', note: '91% ACC alignment' },
-    { dot: '#c06000', title: 'Practice Exam', time: 'Apr 14', note: '74% — Needs Work' },
-    { dot: '#c06000', title: 'Transcript: Session 11', time: 'Apr 11', note: '76% ACC alignment' },
-    { dot: '#0a7fa8', title: 'Practice Exam', time: 'Apr 9', note: '87% — Pass' },
-    { dot: null, title: 'View more activity →', time: '', note: 'History page', link: true },
+  // Add "View more" button to activities
+  const displayActivities = [
+    ...activities,
+    { dot: null, title: 'View more activity →', time: '', note: '', link: true },
   ]
 
   return (
@@ -208,9 +291,10 @@ export default function CoachDashboard() {
 
       <div style={styles.sectionLabel}>Activity Feed</div>
       <div style={styles.card}>
-        {activities.map((a, i, arr) => (
+        {displayActivities.map((a, i, arr) => (
           <div
             key={i}
+            onClick={() => a.link && navigate('/history')}
             style={{
               display: 'flex',
               gap: 10,
