@@ -12,12 +12,43 @@ export default async function handler(req, res) {
 
   // GET - Fetch transcript analyses
   if (req.method === 'GET') {
-    const { userId, viewingUserId } = req.query
+    const { userId, analysisId, viewingUserId } = req.query
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' })
     }
 
+    // Get specific analysis with full content
+    if (analysisId) {
+      try {
+        const { data: analysis } = await supabase
+          .from('transcript_analyses')
+          .select('*')
+          .eq('id', analysisId)
+          .is('deleted_at', null)
+          .single()
+
+        if (!analysis) {
+          return res.status(404).json({ error: 'Analysis not found' })
+        }
+
+        const { data: user } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single()
+
+        if (user?.role !== 'admin' && analysis.user_id !== userId) {
+          return res.status(403).json({ error: 'Unauthorized' })
+        }
+
+        return res.status(200).json(analysis)
+      } catch (err) {
+        return res.status(500).json({ error: err.message })
+      }
+    }
+
+    // Get all analyses for user
     try {
       let query = supabase
         .from('transcript_analyses')

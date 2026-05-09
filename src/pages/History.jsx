@@ -27,6 +27,7 @@ export default function History() {
   const [expandedChat, setExpandedChat] = useState(null)
   const [examDetails, setExamDetails] = useState({})
   const [chatDetails, setChatDetails] = useState({})
+  const [transcriptDetails, setTranscriptDetails] = useState({})
 
   useEffect(() => {
     loadHistory()
@@ -83,6 +84,18 @@ export default function History() {
       }
     } catch (err) {
       console.error('Error loading chat details:', err)
+    }
+  }
+
+  async function loadTranscriptDetails(analysisId) {
+    try {
+      const res = await fetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`)
+      const data = await res.json()
+      if (res.ok) {
+        setTranscriptDetails(prev => ({ ...prev, [analysisId]: data }))
+      }
+    } catch (err) {
+      console.error('Error loading transcript details:', err)
     }
   }
 
@@ -144,6 +157,121 @@ export default function History() {
 
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  function TranscriptAnalysisReport({ analysis }) {
+    let evaluation = {}
+    if (typeof analysis.analysis_text === 'string') {
+      try {
+        evaluation = JSON.parse(analysis.analysis_text)
+      } catch (e) {
+        evaluation = { error: 'Could not parse analysis' }
+      }
+    } else {
+      evaluation = analysis.analysis_text || {}
+    }
+
+    const compTitles = {
+      3: 'Establishes and Maintains Agreements',
+      4: 'Cultivates Trust and Safety',
+      5: 'Maintains Presence',
+      6: 'Listens Actively',
+      7: 'Evokes Awareness',
+      8: 'Facilitates Client Growth'
+    }
+
+    return (
+      <div style={{ background: '#fff', borderRadius: '8px', padding: '24px', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>
+          Your Coaching Feedback
+        </h3>
+
+        {/* Skills Observed */}
+        {evaluation.behavioral_statements && (
+          <div style={{ marginBottom: '24px', padding: '16px', background: COLORS['gray-light'], borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '8px' }}>SKILLS OBSERVED</div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: COLORS.navy }}>
+              {evaluation.behavioral_statements.filter(s => s.result === 'Observed').length} / {evaluation.behavioral_statements.length}
+            </div>
+          </div>
+        )}
+
+        {/* Competencies */}
+        {evaluation.behavioral_statements && (() => {
+          const grouped = {}
+          evaluation.behavioral_statements.forEach(s => {
+            const c = parseInt(s.code?.split('.')[0], 10)
+            if (!grouped[c]) grouped[c] = []
+            grouped[c].push(s)
+          })
+
+          return [3, 4, 5, 6, 7, 8].map(comp => (
+            <div key={comp} style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {comp}. {compTitles[comp]}
+              </h4>
+              {(grouped[comp] || []).map(skill => (
+                <div key={skill.code} style={{ background: '#f9fafc', borderRadius: '6px', border: `1px solid ${COLORS['gray-border']}`, padding: '12px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS.navy }}>{skill.code}</div>
+                      <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#1a1a1a', marginTop: '2px' }}>{skill.title}</div>
+                    </div>
+                    <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: '10px', fontWeight: '700', borderRadius: '4px', background: skill.result === 'Observed' ? '#dcfce7' : '#fee2e2', color: skill.result === 'Observed' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                      {skill.result === 'Observed' ? '✓ Observed' : '✗ Not Observed'}
+                    </span>
+                  </div>
+                  {skill.note && <div style={{ fontSize: '11px', color: '#666', marginTop: '6px', fontStyle: 'italic' }}>{skill.note}</div>}
+                  {skill.evidence && skill.evidence.length > 0 && (
+                    <div style={{ fontSize: '10px', color: '#555', marginTop: '6px', paddingTop: '6px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                      <strong>Evidence:</strong> {skill.evidence.map((e, i) => `${e.timestamp}: "${e.quote}"`).join(' · ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))
+        })()}
+
+        {/* Strengths */}
+        {evaluation.strengths && evaluation.strengths.length > 0 && (
+          <div style={{ marginTop: '24px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Coaching Strengths</h4>
+            {evaluation.strengths.map((s, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a', borderRadius: '0 4px 4px 0' }}>
+                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>{s.statement_title}</div>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>{s.explanation}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Suggestions */}
+        {evaluation.suggestions && evaluation.suggestions.length > 0 && (
+          <div style={{ marginTop: '24px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggestions for Development</h4>
+            {evaluation.suggestions.map((s, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '0 4px 4px 0' }}>
+                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>{s.statement_title}</div>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151', marginBottom: '6px' }}>{s.missed_opportunity}</div>
+                {s.example_prompts && s.example_prompts.length > 0 && (
+                  <div style={{ fontSize: '11px', color: COLORS['text-main'] }}>
+                    <strong>Example prompts:</strong>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
+                      {s.example_prompts.map((prompt, i) => (
+                        <li key={i} style={{ marginBottom: '2px', fontStyle: 'italic' }}>"{prompt}"</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (loading) {
@@ -243,29 +371,21 @@ export default function History() {
             <div style={s.listContainer}>
               {transcriptAnalyses.map(transcript => (
                 <div key={transcript.id} style={s.item}>
-                  <div style={s.itemHeader} onClick={() => setExpandedTranscript(expandedTranscript === transcript.id ? null : transcript.id)}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedTranscript(expandedTranscript === transcript.id ? null : transcript.id)
+                    if (expandedTranscript !== transcript.id && !transcriptDetails[transcript.id]) {
+                      loadTranscriptDetails(transcript.id)
+                    }
+                  }}>
                     <div style={s.itemInfo}>
                       <div style={s.itemTitle}>Transcript Analysis</div>
                       <div style={s.itemDate}>{formatDate(transcript.created_at)}</div>
                     </div>
                     <span style={s.expandIcon}>{expandedTranscript === transcript.id ? '▼' : '▶'}</span>
                   </div>
-                  {expandedTranscript === transcript.id && (
+                  {expandedTranscript === transcript.id && transcriptDetails[transcript.id] && (
                     <div style={s.itemDetails}>
-                      <div style={s.analysisPreview}>
-                        {typeof transcript.competency_scores === 'object' && (
-                          <div>
-                            <strong>Competency Scores:</strong>
-                            <div style={s.competencyList}>
-                              {Object.entries(transcript.competency_scores).map(([code, result]) => (
-                                <div key={code} style={s.competencyItem}>
-                                  {code}: <span style={{ color: result === 'Observed' ? '#15803d' : '#b91c1c' }}>{result}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <TranscriptAnalysisReport analysis={transcriptDetails[transcript.id]} />
                       <button
                         onClick={() => deleteTranscript(transcript.id)}
                         style={s.deleteBtn}
