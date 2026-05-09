@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
+import LoadingBar from "../../components/LoadingBar";
 
 // ============================================================================
 // SYSTEM PROMPT — UNCHANGED FROM CALIBRATED VERSION
@@ -1682,14 +1683,13 @@ export default function Assessor() {
     return (
       <Layout active="assessor" pageTitle="Internal Assessor">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
-          ⏳
-          <h2 style={{ fontSize: "24px", fontWeight: 600, color: colors.navy, margin: "0 0 8px" }}>
+          <LoadingBar />
+          <h2 style={{ fontSize: "24px", fontWeight: 600, color: colors.navy, margin: "24px 0 8px" }}>
             Evaluating against the BARS rubric
           </h2>
           <p style={{ fontSize: "15px", color: colors.gray, margin: 0 }}>
             Reading the transcript end-to-end, identifying evidence, applying calibration anchors. Usually 30–60 seconds.
           </p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
       </Layout>
     );

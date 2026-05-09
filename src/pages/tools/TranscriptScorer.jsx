@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import Layout from "../../components/Layout";
+import LoadingBar from "../../components/LoadingBar";
 
 const SYSTEM_PROMPT_DEFAULT = `## ROLE
 
@@ -791,14 +792,15 @@ export default function TranscriptScorer() {
     return (
       <Layout active="transcript" pageTitle="Transcript Reviewer">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px", animation: "spin 2s linear infinite" }}>⏳</div>
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingBar />
+          </div>
           <h2 style={{ fontSize: "24px", fontWeight: 700, color: COLORS.navy, margin: "0 0 8px" }}>
             Analyzing Your Session
           </h2>
           <p style={{ fontSize: "15px", color: COLORS.gray, margin: 0 }}>
             This usually takes 30–60 seconds. We're reading through your transcript and evaluating your coaching against the ICC ACC competencies.
           </p>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
       </Layout>
     );

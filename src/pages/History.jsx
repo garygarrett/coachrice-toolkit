@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
+import LoadingBar from '../components/LoadingBar'
 
 const COLORS = {
   navy: '#00205B',
@@ -148,7 +149,9 @@ export default function History() {
   if (loading) {
     return (
       <Layout active="history" pageTitle="History">
-        <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 200px)' }}>
+          <LoadingBar />
+        </div>
       </Layout>
     )
   }

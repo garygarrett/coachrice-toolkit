@@ -587,7 +587,7 @@ export default function AIClient() {
             <button onClick={getFeedback} disabled={loading || !feedbackApiKey} style={{ ...s.feedbackBtn, opacity: (loading || !feedbackApiKey) ? 0.5 : 1 }}>
               {loading ? (
                 <>
-                  <span className="hourglass-spin" style={{ display: 'inline-block', marginRight: '4px' }}>⏳</span>
+                  <span style={{ display: 'inline-block', marginRight: '4px', animation: 'spin 1.5s linear infinite' }}>⊙</span>
                   Getting Feedback...
                 </>
               ) : (
@@ -596,6 +596,12 @@ export default function AIClient() {
                   End & Get Feedback
                 </>
               )}
+              <style>{`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
             </button>
           </div>
         </div>

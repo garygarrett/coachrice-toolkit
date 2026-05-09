@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Layout from '../../components/Layout'
+import LoadingBar from '../../components/LoadingBar'
 
 const EXAM_LENGTH = 10
 
@@ -245,16 +246,12 @@ export default function Exam() {
       <Layout active="exam" pageTitle="ACC Practice Exam">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 200px)' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px', animation: 'spinHourglass 2s linear infinite' }}>⏳</div>
+            <div style={{ marginBottom: '24px' }}>
+              <LoadingBar />
+            </div>
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#00205B', margin: '0 0 8px' }}>Saving your results</h2>
             <p style={{ fontSize: '14px', color: '#666' }}>Please wait while we process your exam submission...</p>
           </div>
-          <style>{`
-            @keyframes spinHourglass {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
         </div>
       </Layout>
     )

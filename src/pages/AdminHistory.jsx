@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import LoadingBar from '../components/LoadingBar'
 
 const COLORS = {
   navy: '#00205B',
@@ -485,7 +486,9 @@ export default function AdminHistory() {
             </div>
 
             {loading ? (
-              <p style={s.empty}>Loading...</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
+                <LoadingBar />
+              </div>
             ) : (
               <>
                 <div style={s.stats}>
