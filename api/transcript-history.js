@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
   // DELETE - Soft delete transcript analysis
   if (req.method === 'DELETE') {
-    const { analysisId, userId } = req.body
+    const { analysisId, userId } = req.query
 
     if (!analysisId || !userId) {
       return res.status(400).json({ error: 'analysisId and userId are required' })
@@ -92,7 +92,14 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Analysis not found' })
       }
 
-      if (analysis.user_id !== userId) {
+      // Allow deletion if user owns it or requester is admin
+      const { data: user } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      if (user?.role !== 'admin' && analysis.user_id !== userId) {
         return res.status(403).json({ error: 'Unauthorized' })
       }
 
