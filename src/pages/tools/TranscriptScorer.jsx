@@ -722,7 +722,27 @@ export default function TranscriptScorer() {
           </div>
 
           {/* File Upload */}
-          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer', transition: 'border-color 0.2s' }} onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = '#69cce6';
+              e.currentTarget.style.backgroundColor = '#f9fafb';
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.style.borderColor = COLORS['gray-border'];
+              e.currentTarget.style.backgroundColor = '#fff';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = COLORS['gray-border'];
+              e.currentTarget.style.backgroundColor = '#fff';
+              const file = e.dataTransfer.files?.[0];
+              if (file) {
+                const event = { target: { files: [file] } };
+                handleFileUpload(event);
+              }
+            }}
+          >
             <input
               ref={fileInputRef}
               type="file"
@@ -730,9 +750,8 @@ export default function TranscriptScorer() {
               onChange={handleFileUpload}
               style={{ display: 'none' }}
             />
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: COLORS.navy, marginBottom: '8px' }}>
-              {filename ? `📎 ${filename}` : "Upload PDF or Text File"}
+              {filename ? filename : "Upload PDF or Text File"}
             </div>
             <div style={{ fontSize: '13px', color: COLORS['text-muted'] }}>
               {filename ? "Click to choose a different file, or paste below" : "Click to upload, or paste transcript directly below"}

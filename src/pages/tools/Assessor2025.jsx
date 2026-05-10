@@ -1578,6 +1578,25 @@ export default function Assessor2025() {
             onClick={() => fileInputRef.current?.click()}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = colors.softBlue)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = colors.border)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.softBlue;
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+              const file = e.dataTransfer.files?.[0];
+              if (file) {
+                const event = { target: { files: [file] } };
+                handleFileUpload(event);
+              }
+            }}
           >
             <input
               ref={fileInputRef}
@@ -1586,8 +1605,7 @@ export default function Assessor2025() {
               onChange={handleFileUpload}
               style={{ display: "none" }}
             />
-            📤
-            <div style={{ fontSize: "16px", fontWeight: 600, color: colors.navy, marginBottom: "4px" }}>
+            <div style={{ fontSize: "16px", fontWeight: 600, color: colors.navy, marginBottom: "4px", fontFamily: fontStack }}>
               {filename ? filename : "Click to upload PDF or .txt file"}
             </div>
             <div style={{ fontSize: "13px", color: colors.gray }}>

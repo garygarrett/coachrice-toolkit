@@ -568,6 +568,36 @@ export default function Assessor() {
     console.log("Bulk evaluation complete");
   };
 
+  const processBulkFiles = async (files) => {
+    const fileArray = Array.from(files || []);
+    for (const file of fileArray) {
+      try {
+        let text = '';
+        if (file.type === 'application/pdf') {
+          if (!pdfLibLoaded) {
+            setError('PDF library still loading');
+            continue;
+          }
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            fullText += content.items.map(item => item.str).join(' ') + '\n\n';
+          }
+          text = fullText.trim();
+        } else {
+          text = await file.text();
+        }
+        setBulkQueue(prev => [...prev, { filename: file.name, text }]);
+        setError('');
+      } catch (err) {
+        setError(`Failed to load ${file.name}: ${err.message}`);
+      }
+    }
+  };
+
   const downloadPDF = () => {
     if (!jsPdfLoaded || !evaluation) {
       alert("PDF library still loading. Try again in a moment.");
@@ -1776,6 +1806,25 @@ export default function Assessor() {
             onClick={() => fileInputRef.current?.click()}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = colors.softBlue)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = colors.border)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.softBlue;
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+              const file = e.dataTransfer.files?.[0];
+              if (file) {
+                const event = { target: { files: [file] } };
+                handleFileUpload(event);
+              }
+            }}
           >
             <input
               ref={fileInputRef}
@@ -1875,6 +1924,7 @@ export default function Assessor() {
               marginBottom: "24px",
               cursor: "pointer",
               backgroundColor: colors.white,
+              transition: "border-color 0.2s",
             }}
             onClick={() => {
               const input = document.createElement('input');
@@ -1882,35 +1932,24 @@ export default function Assessor() {
               input.multiple = true;
               input.accept = '.pdf,.txt';
               input.onchange = async (e) => {
-                const files = Array.from(e.target.files || []);
-                for (const file of files) {
-                  try {
-                    let text = '';
-                    if (file.type === 'application/pdf') {
-                      if (!pdfLibLoaded) {
-                        setError('PDF library still loading');
-                        continue;
-                      }
-                      const arrayBuffer = await file.arrayBuffer();
-                      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                      let fullText = '';
-                      for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const content = await page.getTextContent();
-                        fullText += content.items.map(item => item.str).join(' ') + '\n\n';
-                      }
-                      text = fullText.trim();
-                    } else {
-                      text = await file.text();
-                    }
-                    setBulkQueue(prev => [...prev, { filename: file.name, text }]);
-                    setError('');
-                  } catch (err) {
-                    setError(`Failed to load ${file.name}: ${err.message}`);
-                  }
-                }
+                await processBulkFiles(e.target.files);
               };
               input.click();
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.softBlue;
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.white;
+              processBulkFiles(e.dataTransfer.files);
             }}>
               <div style={{ fontSize: "14px", fontWeight: 600, color: colors.navy, marginBottom: "8px", fontFamily: fontStack }}>
                 Click to add files or drag & drop
