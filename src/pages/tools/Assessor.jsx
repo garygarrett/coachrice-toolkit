@@ -367,6 +367,45 @@ export default function Assessor() {
     }
   };
 
+  const saveAssessment = async () => {
+    if (!evaluation) return;
+    try {
+      const { user } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Not logged in. Please log in to save assessments.");
+        return;
+      }
+
+      const res = await fetch("/api/internal-assessments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.user.id,
+          assessorType: "2021",
+          transcriptFilename: filename || null,
+          assessmentData: evaluation,
+          competencyScores: {
+            competency_3: evaluation.score_calculation?.competency_3_average,
+            competency_4: evaluation.score_calculation?.competency_4_average,
+            competency_5: evaluation.score_calculation?.competency_5_average,
+            competency_6: evaluation.score_calculation?.competency_6_average,
+            competency_7: evaluation.score_calculation?.competency_7_average,
+            competency_8: evaluation.score_calculation?.competency_8_average,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        alert("✓ Assessment saved successfully!");
+      } else {
+        alert("Failed to save assessment. Try downloading instead.");
+      }
+    } catch (err) {
+      console.error("Error saving assessment:", err);
+      alert("Error saving assessment: " + err.message);
+    }
+  };
+
   const runEvaluation = async () => {
     if (!transcript.trim()) {
       setError("Please provide a transcript before running the evaluation.");
@@ -1747,6 +1786,26 @@ export default function Assessor() {
               />
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
+              <button
+            onClick={saveAssessment}
+            style={{
+              backgroundColor: colors.orange,
+              color: colors.white,
+              border: "none",
+              padding: "12px 24px",
+              fontSize: "13px",
+              fontWeight: 600,
+              fontFamily: fontStack,
+              letterSpacing: "0.5px",
+              cursor: "pointer",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            💾 SAVE TO HISTORY
+          </button>
               <button
             onClick={downloadText}
             style={{

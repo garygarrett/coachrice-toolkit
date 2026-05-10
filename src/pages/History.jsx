@@ -20,14 +20,18 @@ export default function History() {
   const [examAttempts, setExamAttempts] = useState([])
   const [transcriptAnalyses, setTranscriptAnalyses] = useState([])
   const [chatSessions, setChatSessions] = useState([])
+  const [internalAssessments2021, setInternalAssessments2021] = useState([])
+  const [internalAssessments2025, setInternalAssessments2025] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedExam, setExpandedExam] = useState(null)
   const [expandedTranscript, setExpandedTranscript] = useState(null)
   const [expandedChat, setExpandedChat] = useState(null)
+  const [expandedAssessment, setExpandedAssessment] = useState(null)
   const [examDetails, setExamDetails] = useState({})
   const [chatDetails, setChatDetails] = useState({})
   const [transcriptDetails, setTranscriptDetails] = useState({})
+  const [assessmentDetails, setAssessmentDetails] = useState({})
 
   useEffect(() => {
     loadHistory()
@@ -39,23 +43,29 @@ export default function History() {
     setError(null)
 
     try {
-      const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
+      const [examsRes, transcriptsRes, chatsRes, assessments2021Res, assessments2025Res] = await Promise.all([
         fetch(`/api/exam-history?userId=${user.id}`),
         fetch(`/api/transcript-history?userId=${user.id}`),
         fetch(`/api/chat-history?userId=${user.id}`),
+        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`),
+        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`),
       ])
 
-      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
+      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok || !assessments2021Res.ok || !assessments2025Res.ok) {
         throw new Error('Failed to load history')
       }
 
       const examsData = await examsRes.json()
       const transcriptsData = await transcriptsRes.json()
       const chatsData = await chatsRes.json()
+      const assessments2021Data = await assessments2021Res.json()
+      const assessments2025Data = await assessments2025Res.json()
 
       setExamAttempts(examsData.data || [])
       setTranscriptAnalyses(transcriptsData.data || [])
       setChatSessions(chatsData.data || [])
+      setInternalAssessments2021(assessments2021Data.data || [])
+      setInternalAssessments2025(assessments2025Data.data || [])
     } catch (err) {
       setError(err.message)
       console.error('Error loading history:', err)
@@ -96,6 +106,18 @@ export default function History() {
       }
     } catch (err) {
       console.error('Error loading transcript details:', err)
+    }
+  }
+
+  async function loadAssessmentDetails(assessmentId) {
+    try {
+      const res = await fetch(`/api/internal-assessments?userId=${user.id}&assessmentId=${assessmentId}`)
+      const data = await res.json()
+      if (res.ok) {
+        setAssessmentDetails(prev => ({ ...prev, [assessmentId]: data }))
+      }
+    } catch (err) {
+      console.error('Error loading assessment details:', err)
     }
   }
 
@@ -155,8 +177,119 @@ export default function History() {
     }
   }
 
+  async function deleteAssessment(assessmentId) {
+    if (!window.confirm('Delete this assessment?')) return
+    try {
+      const res = await fetch('/api/internal-assessments', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessmentId, userId: user.id }),
+      })
+      if (res.ok) {
+        setInternalAssessments2021(prev => prev.filter(a => a.id !== assessmentId))
+        setInternalAssessments2025(prev => prev.filter(a => a.id !== assessmentId))
+        setExpandedAssessment(null)
+      } else {
+        alert('Failed to delete assessment')
+      }
+    } catch (err) {
+      console.error('Error deleting assessment:', err)
+    }
+  }
+
+  function downloadAssessmentJSON(assessment) {
+    const dataStr = JSON.stringify(assessment.assessment_data, null, 2)
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Assessment_${assessment.id}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  function AssessmentReport({ assessment, version }) {
+    const data = assessment.assessment_data || {}
+    const sc = data.score_calculation || {}
+
+    return (
+      <div style={{ background: '#fff', borderRadius: '8px', padding: '24px', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px' }}>
+          {version === '2025' ? 'ACC Performance Evaluation (Nov 2025)' : 'ACC Performance Evaluation (March 2024)'}
+        </h3>
+
+        {/* Score Box */}
+        <div style={{ background: sc.result === 'Pass' ? '#f0fdf4' : '#fef2f2', border: `2px solid ${sc.result === 'Pass' ? '#86efac' : '#fca5a5'}`, borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '4px' }}>FINAL SCORE</div>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: COLORS.navy }}>
+                {(sc.final_score ?? 0).toFixed(2)}
+              </div>
+              <div style={{ fontSize: '11px', color: COLORS['text-muted'], marginTop: '4px' }}>Pass threshold: 3.40</div>
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: 700, padding: '8px 16px', borderRadius: '4px', backgroundColor: sc.result === 'Pass' ? '#16a34a' : '#dc2626', color: '#fff' }}>
+              {sc.result === 'Pass' ? '✓ PASS' : '✗ BELOW PASSING'}
+            </div>
+          </div>
+        </div>
+
+        {/* Competency Averages */}
+        <div style={{ marginBottom: '24px', padding: '16px', background: COLORS['gray-light'], borderRadius: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '12px' }}>COMPETENCY SCORES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {[3, 4, 5, 6, 7, 8].map(comp => (
+              <div key={comp} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: COLORS['text-main'] }}>Competency {comp}:</span>
+                <span style={{ fontWeight: 700, color: COLORS.navy }}>{(sc[`competency_${comp}_average`] ?? 0).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Strengths */}
+        {data.strengths && data.strengths.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Coaching Strengths</h4>
+            {data.strengths.map((s, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a', borderRadius: '0 4px 4px 0' }}>
+                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>{s.statement_title}</div>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>{s.explanation}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Suggestions */}
+        {data.suggestions && data.suggestions.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggestions for Development</h4>
+            {data.suggestions.map((s, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '0 4px 4px 0' }}>
+                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.competency_name} · {s.code}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>{s.statement_title}</div>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151', marginBottom: '6px' }}>{s.missed_opportunity}</div>
+                {s.example_prompts && s.example_prompts.length > 0 && (
+                  <div style={{ fontSize: '11px', color: COLORS['text-main'] }}>
+                    <strong>Example prompts:</strong>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
+                      {s.example_prompts.map((prompt, i) => (
+                        <li key={i} style={{ marginBottom: '2px', fontStyle: 'italic' }}>"{prompt}"</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   function TranscriptAnalysisReport({ analysis }) {
@@ -456,6 +589,114 @@ export default function History() {
                           </button>
                         </>
                       )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Internal Assessor 2025 Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>🤖</span> Internal Assessor (2025) ({internalAssessments2025.length})
+          </h2>
+          {internalAssessments2025.length === 0 ? (
+            <p style={s.empty}>No internal assessments yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {internalAssessments2025.map(assessment => (
+                <div key={assessment.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedAssessment(expandedAssessment === assessment.id ? null : assessment.id)
+                    if (expandedAssessment !== assessment.id && !assessmentDetails[assessment.id]) {
+                      loadAssessmentDetails(assessment.id)
+                    }
+                  }}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>
+                        {assessment.assessment_data?.score_calculation?.final_score
+                          ? `Score: ${assessment.assessment_data.score_calculation.final_score.toFixed(2)}`
+                          : 'Assessment'
+                        }
+                        {assessment.transcript_filename && <div style={{ fontSize: '12px', color: COLORS['text-muted'], marginTop: '4px' }}>{assessment.transcript_filename}</div>}
+                      </div>
+                      <div style={s.itemDate}>{formatDate(assessment.created_at)}</div>
+                    </div>
+                    <span style={s.expandIcon}>{expandedAssessment === assessment.id ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedAssessment === assessment.id && assessmentDetails[assessment.id] && (
+                    <div style={s.itemDetails}>
+                      <AssessmentReport assessment={assessmentDetails[assessment.id]} version="2025" />
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                          onClick={() => downloadAssessmentJSON(assessmentDetails[assessment.id])}
+                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'], marginRight: 'auto' }}
+                        >
+                          📥 Download JSON
+                        </button>
+                        <button
+                          onClick={() => deleteAssessment(assessment.id)}
+                          style={s.deleteBtn}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Internal Assessor 2021 Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>🤖</span> Internal Assessor (2021) ({internalAssessments2021.length})
+          </h2>
+          {internalAssessments2021.length === 0 ? (
+            <p style={s.empty}>No internal assessments yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {internalAssessments2021.map(assessment => (
+                <div key={assessment.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedAssessment(expandedAssessment === assessment.id ? null : assessment.id)
+                    if (expandedAssessment !== assessment.id && !assessmentDetails[assessment.id]) {
+                      loadAssessmentDetails(assessment.id)
+                    }
+                  }}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>
+                        {assessment.assessment_data?.score_calculation?.final_score
+                          ? `Score: ${assessment.assessment_data.score_calculation.final_score.toFixed(2)}`
+                          : 'Assessment'
+                        }
+                        {assessment.transcript_filename && <div style={{ fontSize: '12px', color: COLORS['text-muted'], marginTop: '4px' }}>{assessment.transcript_filename}</div>}
+                      </div>
+                      <div style={s.itemDate}>{formatDate(assessment.created_at)}</div>
+                    </div>
+                    <span style={s.expandIcon}>{expandedAssessment === assessment.id ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedAssessment === assessment.id && assessmentDetails[assessment.id] && (
+                    <div style={s.itemDetails}>
+                      <AssessmentReport assessment={assessmentDetails[assessment.id]} version="2021" />
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                          onClick={() => downloadAssessmentJSON(assessmentDetails[assessment.id])}
+                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'], marginRight: 'auto' }}
+                        >
+                          📥 Download JSON
+                        </button>
+                        <button
+                          onClick={() => deleteAssessment(assessment.id)}
+                          style={s.deleteBtn}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

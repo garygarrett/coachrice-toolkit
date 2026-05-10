@@ -34,6 +34,8 @@ export default function AdminHistory() {
     { id: 'exam', label: 'Exam Attempts' },
     { id: 'transcript', label: 'Transcript Analyses' },
     { id: 'chat', label: 'Chat Sessions' },
+    { id: 'internal-2025', label: 'Internal Assessor (2025)' },
+    { id: 'internal-2021', label: 'Internal Assessor (2021)' },
   ]
 
   useEffect(() => {
@@ -67,20 +69,26 @@ export default function AdminHistory() {
   async function loadUserHistory(userId) {
     setLoading(true)
     try {
-      const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
+      const [examsRes, transcriptsRes, chatsRes, assessments2021Res, assessments2025Res] = await Promise.all([
         fetch(`/api/exam-history?userId=${user.id}&viewingUserId=${userId}`),
         fetch(`/api/transcript-history?userId=${user.id}&viewingUserId=${userId}`),
         fetch(`/api/chat-history?userId=${user.id}&viewingUserId=${userId}`),
+        fetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2021`),
+        fetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2025`),
       ])
 
       const examsData = await examsRes.json()
       const transcriptsData = await transcriptsRes.json()
       const chatsData = await chatsRes.json()
+      const assessments2021Data = await assessments2021Res.json()
+      const assessments2025Data = await assessments2025Res.json()
 
       setUserHistory({
         exams: examsData.data || [],
         transcripts: transcriptsData.data || [],
         chats: chatsData.data || [],
+        assessments2021: assessments2021Data.data || [],
+        assessments2025: assessments2025Data.data || [],
       })
     } catch (err) {
       console.error('Error loading user history:', err)
@@ -107,6 +115,16 @@ export default function AdminHistory() {
           const chatsRes = await fetch(`/api/chat-history?userId=${user.id}`)
           data = await chatsRes.json()
           endpoint = 'chats'
+          break
+        case 'internal-2025':
+          const assessments2025Res = await fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`)
+          data = await assessments2025Res.json()
+          endpoint = 'internal'
+          break
+        case 'internal-2021':
+          const assessments2021Res = await fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`)
+          data = await assessments2021Res.json()
+          endpoint = 'internal'
           break
         default:
           return
