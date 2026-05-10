@@ -436,8 +436,8 @@ export default function Assessor2025() {
   const saveAssessment = async () => {
     if (!evaluation) return;
     try {
-      const { user } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
         alert("Not logged in. Please log in to save assessments.");
         return;
       }
@@ -446,7 +446,7 @@ export default function Assessor2025() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user.user.id,
+          userId: user.id,
           assessorType: "2025",
           transcriptFilename: filename || null,
           assessmentData: evaluation,
