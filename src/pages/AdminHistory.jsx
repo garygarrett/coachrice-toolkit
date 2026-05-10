@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
+import { AssessmentReportDisplay, generateAssessmentPDF } from '../components/AssessmentReport'
 
 const COLORS = {
   navy: '#00205B',
@@ -309,143 +310,13 @@ export default function AdminHistory() {
     }
   }
 
-  function downloadAssessmentJSON(assessment) {
-    const dataStr = JSON.stringify(assessment.assessment_data, null, 2)
-    const blob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `Assessment_${assessment.id}.json`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
   function downloadAssessmentPDF(assessment) {
-    const data = assessment.assessment_data
-    const sc = data.score_calculation || {}
-    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-
-    const competencyTitles = {
-      3: 'Establishes and Maintains Agreements',
-      4: 'Cultivates Trust and Safety',
-      5: 'Maintains Presence',
-      6: 'Listens Actively',
-      7: 'Evokes Awareness',
-      8: 'Facilitates Client Growth',
+    try {
+      generateAssessmentPDF(assessment)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+      alert('PDF download failed. Please try again.')
     }
-
-    const grouped = {}
-    ;(data.behavioral_statements || []).forEach((s) => {
-      const c = parseInt(s.code.split('.')[0], 10)
-      if (!grouped[c]) grouped[c] = []
-      grouped[c].push(s)
-    })
-
-    const HR = '='.repeat(78)
-    const SUB = '-'.repeat(78)
-    const out = []
-
-    out.push(HR)
-    out.push('DOERR INSTITUTE FOR NEW LEADERS  |  COACHRICE LEVEL 1')
-    out.push('ACC PERFORMANCE EVALUATION')
-    out.push(HR)
-    out.push('')
-    out.push(`Coach:   ${data.coach_identifier || 'Submitted Coach'}`)
-    out.push(`Date:    ${dateStr}`)
-    out.push(`Rubric:  ${assessment.assessor_type === '2025' ? 'ICF ACC BARS (Nov 2025)' : 'ICF ACC BARS (March 2024)'}`)
-    out.push(`Transcript: ${assessment.transcript_filename || 'N/A'}`)
-    out.push('')
-    out.push(HR)
-    out.push('FINAL SCORE')
-    out.push(HR)
-    out.push('')
-    out.push(`  Final Score:      ${sc.final_score !== undefined ? sc.final_score.toFixed(2) : '—'}`)
-    out.push(`  Pass threshold:   3.40`)
-    out.push(`  Result:           ${sc.result || '—'}`)
-    out.push('')
-    out.push(HR)
-    out.push('1. DEMONSTRATES ETHICAL PRACTICE')
-    out.push('Understands and consistently applies coaching ethics and standards of coaching.')
-    out.push(HR)
-    out.push('')
-    const ep = data.ethical_practice || {}
-    out.push(`  [${ep.icf_code_alignment === 'Observed' ? 'X' : ' '}] Coach demonstrates alignment with the ICF Code of Ethics.`)
-    if (ep.icf_code_alignment_note) out.push(`      Note: ${ep.icf_code_alignment_note}`)
-    out.push(`  [${ep.coach_role_alignment === 'Observed' ? 'X' : ' '}] Coach demonstrates consistent alignment with the role of "coach."`)
-    if (ep.coach_role_alignment_note) out.push(`      Note: ${ep.coach_role_alignment_note}`)
-    out.push('')
-
-    out.push(HR)
-    out.push('2. EMBODIES A COACHING MINDSET')
-    out.push('Develops and maintains a mindset that is open, curious, flexible and client-centered.')
-    out.push(HR)
-    out.push('')
-    out.push('  There are no Behavioral Statements for Competency 2 in the ACC BARS system.')
-    out.push('')
-
-    ;[3, 4, 5, 6, 7, 8].forEach((compNum) => {
-      const compAvg = sc[`competency_${compNum}_average`]
-      out.push(HR)
-      const avgStr = compAvg !== undefined ? `  [Avg: ${compAvg.toFixed(2)}]` : ''
-      out.push(`${compNum}. ${competencyTitles[compNum].toUpperCase()}${avgStr}`)
-      out.push(HR)
-      out.push('')
-
-      ;(grouped[compNum] || []).forEach((s) => {
-        out.push(`  ${s.code}  ${s.title}`)
-        out.push(`        Rating: ${s.rating}`)
-        if (s.evidence && s.evidence.length) {
-          out.push(`        Evidence:`)
-          s.evidence.forEach((e) => {
-            out.push(`          - ${e.timestamp}  "${e.quote}"`)
-          })
-        }
-        if (s.contra_evidence) {
-          out.push(`        Contra-Evidence: ${s.contra_evidence}`)
-        }
-        out.push('')
-      })
-    })
-
-    out.push(HR)
-    out.push('COACHING COMPETENCY STRENGTHS')
-    out.push(HR)
-    out.push('')
-    ;(data.strengths || []).forEach((s, idx) => {
-      out.push(`  STRENGTH ${idx + 1} — ${s.competency_name} | ${s.code}`)
-      out.push(`  ${s.statement_title}`)
-      out.push('')
-      out.push(`  ${s.explanation}`)
-      out.push('')
-    })
-
-    out.push(HR)
-    out.push('SUGGESTIONS FOR COMPETENCY DEVELOPMENT')
-    out.push(HR)
-    out.push('')
-    ;(data.suggestions || []).forEach((s, idx) => {
-      out.push(`  SUGGESTION ${idx + 1} — ${s.competency_name} | ${s.code}`)
-      out.push(`  ${s.statement_title}`)
-      out.push('')
-      out.push(`  ${s.missed_opportunity}`)
-      if (s.example_prompts && s.example_prompts.length) {
-        out.push('')
-        out.push(`  Example prompts the coach could have used:`)
-        s.example_prompts.forEach((p) => {
-          out.push(`    - "${p}"`)
-        })
-      }
-      out.push('')
-    })
-
-    const textContent = out.join('\n')
-    const blob = new Blob([textContent], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `Assessment_${assessment.id}.txt`
-    link.click()
-    URL.revokeObjectURL(url)
   }
 
   async function deleteToolSubmission(toolType, submissionId) {
@@ -831,186 +702,16 @@ export default function AdminHistory() {
                   </div>
 
                   {expandedItems[`assessment-${assessment.id}`] && assessment.assessment_data && (
-                    <div style={{ ...s.itemDetails, maxHeight: '800px', overflowY: 'auto' }}>
-                      {/* Full Assessment Report Inline */}
-                      <div style={{ background: '#fff', borderRadius: '8px', padding: '24px', marginBottom: '16px' }}>
-                        <div style={{ borderBottom: `2px solid ${COLORS.navy}`, paddingBottom: '16px', marginBottom: '24px' }}>
-                          <div style={{ fontSize: '14px', color: COLORS.gray, display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                            <span><strong>Coach:</strong> {assessment.assessment_data.coach_identifier}</span>
-                            <span><strong>Assessor:</strong> {assessment.assessor_type === '2025' ? 'Nov 2025 BARS' : 'March 2024 BARS'}</span>
-                            {assessment.transcript_filename && <span><strong>Transcript:</strong> {assessment.transcript_filename}</span>}
-                          </div>
-                        </div>
-
-                        {/* Score Card */}
-                        <div
-                          style={{
-                            background: assessment.assessment_data.score_calculation?.result === 'Pass' ? '#f0fdf4' : '#fef2f2',
-                            border: `2px solid ${assessment.assessment_data.score_calculation?.result === 'Pass' ? '#86efac' : '#fca5a5'}`,
-                            borderRadius: '8px',
-                            padding: '24px',
-                            marginBottom: '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '11px', letterSpacing: '2px', color: COLORS.gray, fontWeight: 500, marginBottom: '4px' }}>
-                              FINAL SCORE
-                            </div>
-                            <div style={{ fontSize: '44px', fontWeight: 700, color: COLORS.navy, lineHeight: 1, letterSpacing: '-1px' }}>
-                              {(assessment.assessment_data.score_calculation?.final_score ?? 0).toFixed(2)}
-                            </div>
-                            <div style={{ fontSize: '13px', color: COLORS.gray, marginTop: '4px' }}>
-                              Pass threshold: 3.40
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '20px',
-                              fontWeight: 700,
-                              padding: '12px 24px',
-                              borderRadius: '6px',
-                              backgroundColor: assessment.assessment_data.score_calculation?.result === 'Pass' ? '#16a34a' : '#dc2626',
-                              color: '#fff',
-                              letterSpacing: '1.5px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                            }}
-                          >
-                            {assessment.assessment_data.score_calculation?.result === 'Pass' && '✓'}
-                            {assessment.assessment_data.score_calculation?.result === 'Pass' ? 'PASS' : 'BELOW'}
-                          </div>
-                        </div>
-
-                        {/* Competency Scores */}
-                        <div style={{ marginBottom: '24px', padding: '16px', background: COLORS['gray-light'], borderRadius: '8px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '12px' }}>COMPETENCY SCORES</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                            {[3, 4, 5, 6, 7, 8].map(comp => {
-                              const avg = assessment.assessment_data.score_calculation?.[`competency_${comp}_average`];
-                              return avg !== undefined ? (
-                                <div key={comp} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: COLORS['text-main'] }}>Competency {comp}:</span>
-                                  <span style={{ fontWeight: 700, color: COLORS.navy }}>{avg.toFixed(2)}</span>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Strengths */}
-                        {assessment.assessment_data.strengths?.length > 0 && (
-                          <div style={{ marginBottom: '24px' }}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Coaching Strengths
-                            </h4>
-                            {assessment.assessment_data.strengths.map((s, i) => (
-                              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a', borderRadius: '0 4px 4px 0' }}>
-                                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                  {s.competency_name} · {s.code}
-                                </div>
-                                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>
-                                  {s.statement_title}
-                                </div>
-                                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>
-                                  {s.explanation}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Suggestions */}
-                        {assessment.assessment_data.suggestions?.length > 0 && (
-                          <div style={{ marginBottom: '24px' }}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Suggestions for Development
-                            </h4>
-                            {assessment.assessment_data.suggestions.map((s, i) => (
-                              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '0 4px 4px 0' }}>
-                                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                  {s.competency_name} · {s.code}
-                                </div>
-                                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>
-                                  {s.statement_title}
-                                </div>
-                                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151', marginBottom: '6px' }}>
-                                  {s.missed_opportunity}
-                                </div>
-                                {s.example_prompts?.length > 0 && (
-                                  <div style={{ fontSize: '11px', color: COLORS['text-main'] }}>
-                                    <strong>Example prompts:</strong>
-                                    <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
-                                      {s.example_prompts.map((prompt, i) => (
-                                        <li key={i} style={{ marginBottom: '2px', fontStyle: 'italic' }}>"{prompt}"</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Behavioral Statements with Evidence */}
-                        {assessment.assessment_data.behavioral_statements?.length > 0 && (
-                          <div style={{ marginBottom: '24px' }}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Behavioral Statements Detail
-                            </h4>
-                            {assessment.assessment_data.behavioral_statements.map((stmt, i) => (
-                              <div key={stmt.code} style={{ marginBottom: '16px', padding: '12px', background: '#f9fafc', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '6px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                  <div>
-                                    <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS.navy }}>{stmt.code}</div>
-                                    <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#1a1a1a', marginTop: '2px' }}>{stmt.title}</div>
-                                  </div>
-                                  <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: '10px', fontWeight: '700', borderRadius: '4px', background: stmt.rating === 'Meets the Standard' || stmt.rating === 'Exceeds the Standard' ? '#dcfce7' : '#fee2e2', color: stmt.rating === 'Meets the Standard' || stmt.rating === 'Exceeds the Standard' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
-                                    {stmt.rating}
-                                  </span>
-                                </div>
-
-                                {/* Evidence */}
-                                {stmt.evidence?.length > 0 && (
-                                  <div style={{ fontSize: '10px', color: '#555', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
-                                    <strong style={{ color: COLORS.navy }}>Evidence:</strong>
-                                    {stmt.evidence.map((e, idx) => (
-                                      <div key={idx} style={{ marginTop: '4px', marginLeft: '12px', fontSize: '10px', color: '#555' }}>
-                                        <div style={{ fontWeight: '600', color: COLORS['text-main' ] }}>{e.timestamp}</div>
-                                        <div style={{ fontStyle: 'italic', color: '#666' }}>"{e.quote}"</div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Contra Evidence */}
-                                {stmt.contra_evidence && (
-                                  <div style={{ fontSize: '10px', color: '#b91c1c', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
-                                    <strong style={{ color: '#b91c1c' }}>Contra-Evidence:</strong> {stmt.contra_evidence}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    <div style={{ ...s.itemDetails, maxHeight: '1000px', overflowY: 'auto' }}>
+                      <AssessmentReportDisplay assessment={assessment} />
 
                       {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
                         <button
                           onClick={() => downloadAssessmentPDF(assessment)}
-                          style={{ ...s.deleteBtn, background: COLORS.navy, border: 'none', color: '#fff', marginRight: 'auto' }}
+                          style={{ ...s.deleteBtn, background: COLORS.navy, border: 'none', color: '#fff', marginRight: 'auto', padding: '10px 20px', borderRadius: '6px' }}
                         >
-                          📄 Download Report
-                        </button>
-                        <button
-                          onClick={() => downloadAssessmentJSON(assessment)}
-                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'] }}
-                        >
-                          📥 Download JSON
+                          📄 Download PDF
                         </button>
                         <button
                           onClick={() => deleteAssessment(assessment.id)}
