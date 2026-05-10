@@ -1243,10 +1243,17 @@ export default function AdminPanel() {
             </div>
             {editUserError && <p style={s.errorMsg}>{editUserError}</p>}
             <div style={s.formActions}>
-              <button type="button" onClick={() => setEditingUser(null)} style={s.cancelBtn}>Cancel</button>
-              <button type="submit" disabled={editUserSubmitting} style={s.submitBtn}>
-                {editUserSubmitting ? 'Saving…' : 'Save Changes'}
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => handleResendInvite(editingUser)} style={{ ...s.actionBtn, background: '#fff', border: `1px solid #d1d5db` }}>Resend Invite</button>
+                <button type="button" onClick={() => handleResetPassword(editingUser)} style={{ ...s.actionBtn, background: '#fff', border: `1px solid #d1d5db` }}>Reset Password</button>
+                <button type="button" onClick={() => handleDeleteUser(editingUser)} style={s.deleteBtn}>Remove</button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setEditingUser(null)} style={s.cancelBtn}>Cancel</button>
+                <button type="submit" disabled={editUserSubmitting} style={s.submitBtn}>
+                  {editUserSubmitting ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -1255,9 +1262,10 @@ export default function AdminPanel() {
       <table style={s.table}>
         <thead>
           <tr>
-            {['Name', 'Email', 'Role', 'Cohort', 'Mentor Coach', 'Added', 'Last Accessed', 'Actions'].map(h => (
+            {['Name', 'Email', 'Role', 'Cohort', 'Mentor Coach', 'Added', 'Last Accessed'].map(h => (
               <th key={h} style={s.th}>{h}</th>
             ))}
+            <th style={s.th}></th>
           </tr>
         </thead>
         <tbody>
@@ -1278,12 +1286,7 @@ export default function AdminPanel() {
               <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
               <td style={s.td}>{u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '—'}</td>
               <td style={s.td}>
-                <div style={s.actions}>
-                  <button onClick={() => openEditUser(u)} style={s.actionBtn}>Edit</button>
-                  <button onClick={() => handleResendInvite(u)} style={s.actionBtn}>Resend Invite</button>
-                  <button onClick={() => handleResetPassword(u)} style={s.actionBtn}>Reset Password</button>
-                  <button onClick={() => handleDeleteUser(u)} style={s.deleteBtn}>Remove</button>
-                </div>
+                <button onClick={() => openEditUser(u)} style={s.actionBtn}>Manage</button>
               </td>
             </tr>
           ))}
@@ -1407,7 +1410,7 @@ const s = {
   label: { display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.875rem', fontWeight: '500', color: '#374151' },
   input: { padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem', color: '#111', background: '#fff', outline: 'none', fontFamily: 'Montserrat, sans-serif' },
   textarea: { padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem', color: '#111', background: '#fff', outline: 'none', resize: 'vertical', fontFamily: 'Montserrat, sans-serif', lineHeight: '1.5' },
-  formActions: { display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' },
+  formActions: { display: 'flex', gap: '1.5rem', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb' },
   cancelBtn: { background: '#fff', border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.6rem 1.2rem', fontSize: '0.9rem', cursor: 'pointer', color: '#555', fontFamily: 'Montserrat, sans-serif' },
   submitBtn: { background: '#00205B', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.6rem 1.4rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' },
   filterRow: { display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' },
