@@ -39,6 +39,15 @@ export default function AdminHistory() {
   ]
 
   useEffect(() => {
+    // Load jsPDF library for PDF generation
+    if (!window.jspdf) {
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+      document.head.appendChild(script)
+    }
+  }, [])
+
+  useEffect(() => {
     loadUsers()
     loadInternalAssessments()
   }, [])

@@ -370,7 +370,7 @@ export function AssessmentReportDisplay({ assessment }) {
 // PDF generation function extracted from Assessor2025.jsx
 export function generateAssessmentPDF(assessment) {
   if (!window.jspdf) {
-    alert('PDF library not loaded. Please try again.')
+    alert('PDF library still loading. Please wait a moment and try again.')
     return
   }
 
