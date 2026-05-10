@@ -133,12 +133,17 @@ export default function AdminHistory() {
       // Fetch full data for each item to show user info
       const itemsWithUsers = await Promise.all(
         (data.data || []).map(async (item) => {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('id, full_name, email')
-            .eq('id', item.user_id)
-            .single()
-          return { ...item, user: userData }
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id, full_name, email')
+              .eq('id', item.user_id)
+              .single()
+            return { ...item, user: userData }
+          } catch (err) {
+            console.error('Error fetching user:', err)
+            return { ...item, user: null }
+          }
         })
       )
 
@@ -275,7 +280,7 @@ export default function AdminHistory() {
   }
 
   async function deleteToolSubmission(toolType, submissionId) {
-    const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat' }[toolType] || toolType
+    const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat', 'internal-2025': 'assessment', 'internal-2021': 'assessment' }[toolType] || toolType
     if (!window.confirm(`Are you sure you want to delete this ${toolName} submission?`)) return
     try {
       let endpoint = ''
@@ -288,6 +293,10 @@ export default function AdminHistory() {
           break
         case 'chat':
           endpoint = `/api/chat-history?userId=${user.id}&sessionId=${submissionId}`
+          break
+        case 'internal-2025':
+        case 'internal-2021':
+          endpoint = `/api/internal-assessments?userId=${user.id}&assessmentId=${submissionId}`
           break
       }
       const res = await fetch(endpoint, { method: 'DELETE' })
@@ -592,6 +601,11 @@ export default function AdminHistory() {
                                 {item.overall_score}%
                               </div>
                             )}
+                            {(selectedTool === 'internal-2025' || selectedTool === 'internal-2021') && item.assessment_data?.score_calculation && (
+                              <div style={{ color: item.assessment_data.score_calculation.result === 'Pass' ? '#15803d' : '#b91c1c', fontWeight: '700' }}>
+                                {(item.assessment_data.score_calculation.final_score ?? 0).toFixed(2)}
+                              </div>
+                            )}
                             <button onClick={(e) => { e.stopPropagation(); deleteToolSubmission(selectedTool, item.id) }} style={s.deleteBtn} title="Delete submission">
                               🗑️
                             </button>
@@ -614,6 +628,30 @@ export default function AdminHistory() {
                                   ))}
                                 </div>
                               )
+                            )}
+                            {(selectedTool === 'internal-2025' || selectedTool === 'internal-2021') && (
+                              <>
+                                {item.transcript_filename && (
+                                  <div style={s.stat}>
+                                    <span><strong>Transcript:</strong> {item.transcript_filename}</span>
+                                  </div>
+                                )}
+                                {item.assessment_data?.score_calculation && (
+                                  <div style={s.competencyList}>
+                                    <div style={s.stat}>
+                                      <span><strong>Final Score:</strong> {(item.assessment_data.score_calculation.final_score ?? 0).toFixed(2)} ({item.assessment_data.score_calculation.result})</span>
+                                    </div>
+                                    {[3, 4, 5, 6, 7, 8].map(comp => {
+                                      const avg = item.assessment_data.score_calculation[`competency_${comp}_average`];
+                                      return avg !== undefined ? (
+                                        <span key={comp} style={s.badge}>
+                                          Competency {comp}: {avg.toFixed(2)}
+                                        </span>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         )}
