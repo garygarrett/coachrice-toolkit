@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     try {
       let query = supabase
         .from('internal_assessments')
-        .select('id, created_at, assessor_type, transcript_filename, competency_scores')
+        .select('*')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
