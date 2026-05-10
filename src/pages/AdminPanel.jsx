@@ -258,6 +258,8 @@ export default function AdminPanel() {
   const [editUserError, setEditUserError] = useState(null)
   const [userError, setUserError] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
+  const [sortColumn, setSortColumn] = useState('created_at')
+  const [sortDirection, setSortDirection] = useState('desc')
 
   // ── Tool content/settings state ──
   const [contentValues, setContentValues] = useState({})
@@ -563,6 +565,47 @@ export default function AdminPanel() {
     const val = e.target.name === 'is_active' ? e.target.value === 'true' : e.target.value
     setEditUserForm(f => ({ ...f, [e.target.name]: val }))
   }
+
+  function handleSort(column) {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const sortedUsers = [...users].sort((a, b) => {
+    let aVal = a[sortColumn]
+    let bVal = b[sortColumn]
+
+    // Handle nested fields
+    if (sortColumn === 'cohort_name') {
+      aVal = a.cohorts?.name
+      bVal = b.cohorts?.name
+    } else if (sortColumn === 'mentor_coach_name') {
+      aVal = a.mentor_coaches?.full_name
+      bVal = b.mentor_coaches?.full_name
+    }
+
+    // Handle null values
+    if (aVal === null || aVal === undefined) aVal = ''
+    if (bVal === null || bVal === undefined) bVal = ''
+
+    // Case-insensitive string comparison
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      aVal = aVal.toLowerCase()
+      bVal = bVal.toLowerCase()
+      return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+    }
+
+    // Number comparison
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+    }
+
+    return 0
+  })
 
   function openEditUser(user) {
     setEditUserForm(user)
@@ -1262,14 +1305,31 @@ export default function AdminPanel() {
       <table style={s.table}>
         <thead>
           <tr>
-            {['Name', 'Email', 'Role', 'Cohort', 'Mentor Coach', 'Added', 'Last Accessed'].map(h => (
-              <th key={h} style={s.th}>{h}</th>
+            {[
+              { label: 'Name', col: 'full_name' },
+              { label: 'Email', col: 'email' },
+              { label: 'Role', col: 'role' },
+              { label: 'Cohort', col: 'cohort_name' },
+              { label: 'Mentor Coach', col: 'mentor_coach_name' },
+              { label: 'Added', col: 'created_at' },
+              { label: 'Last Accessed', col: 'updated_at' },
+            ].map(h => (
+              <th key={h.col} style={{ ...s.th, cursor: 'pointer' }} onClick={() => handleSort(h.col)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {h.label}
+                  {sortColumn === h.col && (
+                    <span style={{ fontSize: '11px', fontWeight: '700' }}>
+                      {sortDirection === 'asc' ? '▲' : '▼'}
+                    </span>
+                  )}
+                </div>
+              </th>
             ))}
             <th style={s.th}></th>
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
+          {sortedUsers.map(u => (
             <tr key={u.id} style={s.trBody}>
               <td style={s.td}>{u.full_name}</td>
               <td style={s.td}>{u.email}</td>
@@ -1290,8 +1350,8 @@ export default function AdminPanel() {
               </td>
             </tr>
           ))}
-          {users.length === 0 && (
-            <tr><td colSpan={7} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
+          {sortedUsers.length === 0 && (
+            <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
           )}
         </tbody>
       </table>
