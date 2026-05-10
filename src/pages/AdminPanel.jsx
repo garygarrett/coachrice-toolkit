@@ -1312,6 +1312,7 @@ export default function AdminPanel() {
               { label: 'Cohort', col: 'cohort_name' },
               { label: 'Mentor Coach', col: 'mentor_coach_name' },
               { label: 'Added', col: 'created_at' },
+              { label: 'Account Status', col: 'account_created_at' },
               { label: 'Last Accessed', col: 'last_accessed_at' },
             ].map(h => (
               <th key={h.col} style={{ ...s.th, cursor: 'pointer' }} onClick={() => handleSort(h.col)}>
@@ -1344,6 +1345,13 @@ export default function AdminPanel() {
               <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
               <td style={s.td}>{u.mentor_coaches?.full_name ?? '—'}</td>
               <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
+              <td style={s.td}>
+                {u.account_created_at ? (
+                  <span style={{ color: '#15803d', fontWeight: '600' }}>✓ Active</span>
+                ) : (
+                  <span style={{ color: '#b45309', fontWeight: '600' }}>⧗ Pending</span>
+                )}
+              </td>
               <td style={s.td}>{u.last_accessed_at ? new Date(u.last_accessed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
               <td style={s.td}>
                 <button onClick={() => openEditUser(u)} style={s.actionBtn}>Manage</button>
@@ -1351,7 +1359,7 @@ export default function AdminPanel() {
             </tr>
           ))}
           {sortedUsers.length === 0 && (
-            <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
+            <tr><td colSpan={9} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
           )}
         </tbody>
       </table>

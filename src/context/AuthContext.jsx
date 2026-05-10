@@ -35,6 +35,18 @@ export function AuthProvider({ children }) {
       .single()
       .then(({ data }) => {
         setProfile(data ?? null)
+        // Set account_created_at on first login if not already set
+        if (data && !data.account_created_at) {
+          supabase
+            .from('users')
+            .update({ account_created_at: new Date().toISOString() })
+            .eq('id', user.id)
+            .then(() => {
+              // Update local profile
+              setProfile(prev => prev ? { ...prev, account_created_at: new Date().toISOString() } : null)
+            })
+            .catch(err => console.error('Failed to set account_created_at:', err))
+        }
         // Update last accessed time
         if (data) {
           fetch('/api/update-last-accessed', {
