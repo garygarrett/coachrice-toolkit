@@ -1545,17 +1545,54 @@ export default function Assessor() {
       <Layout active="assessor" pageTitle="Internal Assessor">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
           <div style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px" }}>
-              Submit a Coaching Session Transcript
-            </h2>
-            <p style={{ fontSize: "15px", color: colors.gray, lineHeight: 1.6, margin: 0, maxWidth: "640px" }}>
-              Upload a PDF or paste the transcript below. The transcript is evaluated against the ICF ACC Minimum Skill Requirements
-              using the calibrated CoachRICE rubric and the March 2024 BARS guide.
-            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div>
+                <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px" }}>
+                  Submit a Coaching Session Transcript
+                </h2>
+                <p style={{ fontSize: "15px", color: colors.gray, lineHeight: 1.6, margin: 0, maxWidth: "640px" }}>
+                  Upload a PDF or paste the transcript below. The transcript is evaluated against the ICF ACC Minimum Skill Requirements
+                  using the calibrated CoachRICE rubric and the March 2024 BARS guide.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                <button
+                  onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); }}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    backgroundColor: !bulkMode ? colors.navy : colors.border,
+                    color: !bulkMode ? colors.white : colors.gray,
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Single
+                </button>
+                <button
+                  onClick={() => { setBulkMode(true); setTranscript(""); setFilename(""); }}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    backgroundColor: bulkMode ? colors.navy : colors.border,
+                    color: bulkMode ? colors.white : colors.gray,
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Bulk
+                </button>
+              </div>
+            </div>
           </div>
 
-
-          {/* Upload area */}
+          {!bulkMode && (
+          <>
+          {/* Single file upload area */}
           <div
             style={{
               backgroundColor: colors.white,
@@ -1658,6 +1695,283 @@ export default function Assessor() {
               REVIEW TRANSCRIPT →
             </button>
           </div>
+          </>
+          )}
+
+          {bulkMode && (
+          <div>
+            <div style={{
+              border: `2px dashed ${colors.border}`,
+              borderRadius: "8px",
+              padding: "32px",
+              textAlign: "center",
+              marginBottom: "24px",
+              cursor: "pointer",
+              backgroundColor: colors.white,
+            }}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.multiple = true;
+              input.accept = '.pdf,.txt';
+              input.onchange = async (e) => {
+                const files = Array.from(e.target.files || []);
+                for (const file of files) {
+                  try {
+                    let text = '';
+                    if (file.type === 'application/pdf') {
+                      if (!pdfLibLoaded) {
+                        setError('PDF library still loading');
+                        continue;
+                      }
+                      const arrayBuffer = await file.arrayBuffer();
+                      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                      let fullText = '';
+                      for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        fullText += content.items.map(item => item.str).join(' ') + '\n\n';
+                      }
+                      text = fullText.trim();
+                    } else {
+                      text = await file.text();
+                    }
+                    setBulkQueue(prev => [...prev, { filename: file.name, text }]);
+                    setError('');
+                  } catch (err) {
+                    setError(`Failed to load ${file.name}: ${err.message}`);
+                  }
+                }
+              };
+              input.click();
+            }}>
+              <div style={{ fontSize: "14px", fontWeight: 600, color: colors.navy, marginBottom: "8px" }}>
+                📁 Click to add files or drag & drop
+              </div>
+              <div style={{ fontSize: "13px", color: colors.gray }}>
+                Upload multiple PDF or .txt files. They'll be processed sequentially.
+              </div>
+            </div>
+
+            {bulkQueue.length > 0 && (
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: colors.navy, marginBottom: "12px" }}>
+                Queued Files ({bulkQueue.length}):
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {bulkQueue.map((item, idx) => (
+                  <div key={idx} style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    backgroundColor: colors.white,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: "6px",
+                    fontSize: "13px"
+                  }}>
+                    <span>{item.filename}</span>
+                    <button onClick={() => setBulkQueue(prev => prev.filter((_, i) => i !== idx))} style={{
+                      background: "none",
+                      border: "none",
+                      color: colors.orange,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            )}
+
+            {error && (
+            <div style={{
+              marginBottom: "16px",
+              padding: "12px 16px",
+              backgroundColor: "#FEF2F2",
+              border: "1px solid #FCA5A5",
+              borderRadius: "6px",
+              color: "#991B1B",
+              fontSize: "14px",
+            }}>
+              ⚠️ {error}
+            </div>
+            )}
+
+            <div style={{ marginTop: "32px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                onClick={() => runBulkEvaluation()}
+                disabled={!bulkQueue.length || bulkRunning}
+                style={{
+                  backgroundColor: bulkQueue.length && !bulkRunning ? colors.navy : colors.border,
+                  color: colors.white,
+                  border: "none",
+                  padding: "14px 32px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  fontFamily: fontStack,
+                  cursor: bulkQueue.length && !bulkRunning ? "pointer" : "not-allowed",
+                  borderRadius: "6px",
+                }}
+              >
+                RUN ALL ({bulkQueue.length})
+              </button>
+            </div>
+          </div>
+          )}
+        </div>
+      </Layout>
+    );
+  }
+
+  // ============================================================================
+  // RENDER: BULK RUNNING STAGE
+  // ============================================================================
+  if (bulkRunning && bulkMode && stage === "input") {
+    return (
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px" }}>
+            Processing {bulkQueue.length} Assessments
+          </h2>
+
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: colors.gray, marginBottom: "8px" }}>
+              Progress: {bulkIndex + 1} of {bulkQueue.length}
+            </div>
+            <div style={{ width: "100%", height: "8px", backgroundColor: colors.border, borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{
+                height: "100%",
+                width: `${((bulkIndex + 1) / bulkQueue.length) * 100}%`,
+                backgroundColor: colors.orange,
+                transition: "width 0.3s"
+              }} />
+            </div>
+            <div style={{ fontSize: "13px", color: colors.gray, marginTop: "12px" }}>
+              Currently processing: <strong>{bulkQueue[bulkIndex]?.filename}</strong>
+            </div>
+          </div>
+
+          <div style={{ fontSize: "13px", color: colors.gray }}>
+            <div style={{ fontWeight: 600, marginBottom: "12px" }}>Completed:</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {bulkResults.map((result, idx) => (
+                <div key={idx} style={{
+                  padding: "12px 16px",
+                  backgroundColor: result.status === "done" ? "#F0FDF4" : "#FEF2F2",
+                  border: `1px solid ${result.status === "done" ? "#86EFAC" : "#FCA5A5"}`,
+                  borderRadius: "6px",
+                  fontSize: "13px"
+                }}>
+                  <span style={{ fontWeight: 600 }}>{result.filename}</span>
+                  {result.status === "done" && (
+                    <span style={{ color: "#16A34A", marginLeft: "12px" }}>
+                      ✓ {result.evaluation?.score_calculation?.result || "Completed"}
+                    </span>
+                  )}
+                  {result.status === "error" && (
+                    <span style={{ color: "#DC2626", marginLeft: "12px" }}>
+                      ✕ {result.error}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // ============================================================================
+  // RENDER: BULK RESULTS STAGE
+  // ============================================================================
+  if (bulkMode && stage === "input" && !bulkRunning && bulkResults.length > 0) {
+    return (
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px" }}>
+            Bulk Assessment Results
+          </h2>
+
+          <div style={{ display: "grid", gap: "12px", marginBottom: "32px" }}>
+            {bulkResults.map((result, idx) => (
+              <div key={idx} style={{
+                padding: "16px",
+                backgroundColor: colors.white,
+                border: `1px solid ${colors.border}`,
+                borderRadius: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: colors.navy }}>
+                    {result.filename}
+                  </div>
+                  {result.status === "done" && (
+                    <div style={{ fontSize: "13px", color: colors.gray, marginTop: "4px" }}>
+                      {result.evaluation?.score_calculation?.result} • Score: {result.evaluation?.score_calculation?.final_score?.toFixed(2)}
+                    </div>
+                  )}
+                  {result.status === "error" && (
+                    <div style={{ fontSize: "13px", color: "#DC2626" }}>
+                      Error: {result.error}
+                    </div>
+                  )}
+                </div>
+                {result.status === "done" && (
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); }}
+                      style={{
+                        padding: "8px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        backgroundColor: colors.navy,
+                        color: colors.white,
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); downloadPDF(); }}
+                      style={{
+                        padding: "8px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        backgroundColor: colors.navy,
+                        color: colors.white,
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); setStage("input"); }}
+            style={{
+              padding: "14px 32px",
+              fontSize: "14px",
+              fontWeight: 600,
+              backgroundColor: colors.navy,
+              color: colors.white,
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Start New Run
+          </button>
         </div>
       </Layout>
     );
