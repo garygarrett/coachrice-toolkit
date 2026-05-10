@@ -320,6 +320,134 @@ export default function AdminHistory() {
     URL.revokeObjectURL(url)
   }
 
+  function downloadAssessmentPDF(assessment) {
+    const data = assessment.assessment_data
+    const sc = data.score_calculation || {}
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
+    const competencyTitles = {
+      3: 'Establishes and Maintains Agreements',
+      4: 'Cultivates Trust and Safety',
+      5: 'Maintains Presence',
+      6: 'Listens Actively',
+      7: 'Evokes Awareness',
+      8: 'Facilitates Client Growth',
+    }
+
+    const grouped = {}
+    ;(data.behavioral_statements || []).forEach((s) => {
+      const c = parseInt(s.code.split('.')[0], 10)
+      if (!grouped[c]) grouped[c] = []
+      grouped[c].push(s)
+    })
+
+    const HR = '='.repeat(78)
+    const SUB = '-'.repeat(78)
+    const out = []
+
+    out.push(HR)
+    out.push('DOERR INSTITUTE FOR NEW LEADERS  |  COACHRICE LEVEL 1')
+    out.push('ACC PERFORMANCE EVALUATION')
+    out.push(HR)
+    out.push('')
+    out.push(`Coach:   ${data.coach_identifier || 'Submitted Coach'}`)
+    out.push(`Date:    ${dateStr}`)
+    out.push(`Rubric:  ${assessment.assessor_type === '2025' ? 'ICF ACC BARS (Nov 2025)' : 'ICF ACC BARS (March 2024)'}`)
+    out.push(`Transcript: ${assessment.transcript_filename || 'N/A'}`)
+    out.push('')
+    out.push(HR)
+    out.push('FINAL SCORE')
+    out.push(HR)
+    out.push('')
+    out.push(`  Final Score:      ${sc.final_score !== undefined ? sc.final_score.toFixed(2) : '—'}`)
+    out.push(`  Pass threshold:   3.40`)
+    out.push(`  Result:           ${sc.result || '—'}`)
+    out.push('')
+    out.push(HR)
+    out.push('1. DEMONSTRATES ETHICAL PRACTICE')
+    out.push('Understands and consistently applies coaching ethics and standards of coaching.')
+    out.push(HR)
+    out.push('')
+    const ep = data.ethical_practice || {}
+    out.push(`  [${ep.icf_code_alignment === 'Observed' ? 'X' : ' '}] Coach demonstrates alignment with the ICF Code of Ethics.`)
+    if (ep.icf_code_alignment_note) out.push(`      Note: ${ep.icf_code_alignment_note}`)
+    out.push(`  [${ep.coach_role_alignment === 'Observed' ? 'X' : ' '}] Coach demonstrates consistent alignment with the role of "coach."`)
+    if (ep.coach_role_alignment_note) out.push(`      Note: ${ep.coach_role_alignment_note}`)
+    out.push('')
+
+    out.push(HR)
+    out.push('2. EMBODIES A COACHING MINDSET')
+    out.push('Develops and maintains a mindset that is open, curious, flexible and client-centered.')
+    out.push(HR)
+    out.push('')
+    out.push('  There are no Behavioral Statements for Competency 2 in the ACC BARS system.')
+    out.push('')
+
+    ;[3, 4, 5, 6, 7, 8].forEach((compNum) => {
+      const compAvg = sc[`competency_${compNum}_average`]
+      out.push(HR)
+      const avgStr = compAvg !== undefined ? `  [Avg: ${compAvg.toFixed(2)}]` : ''
+      out.push(`${compNum}. ${competencyTitles[compNum].toUpperCase()}${avgStr}`)
+      out.push(HR)
+      out.push('')
+
+      ;(grouped[compNum] || []).forEach((s) => {
+        out.push(`  ${s.code}  ${s.title}`)
+        out.push(`        Rating: ${s.rating}`)
+        if (s.evidence && s.evidence.length) {
+          out.push(`        Evidence:`)
+          s.evidence.forEach((e) => {
+            out.push(`          - ${e.timestamp}  "${e.quote}"`)
+          })
+        }
+        if (s.contra_evidence) {
+          out.push(`        Contra-Evidence: ${s.contra_evidence}`)
+        }
+        out.push('')
+      })
+    })
+
+    out.push(HR)
+    out.push('COACHING COMPETENCY STRENGTHS')
+    out.push(HR)
+    out.push('')
+    ;(data.strengths || []).forEach((s, idx) => {
+      out.push(`  STRENGTH ${idx + 1} — ${s.competency_name} | ${s.code}`)
+      out.push(`  ${s.statement_title}`)
+      out.push('')
+      out.push(`  ${s.explanation}`)
+      out.push('')
+    })
+
+    out.push(HR)
+    out.push('SUGGESTIONS FOR COMPETENCY DEVELOPMENT')
+    out.push(HR)
+    out.push('')
+    ;(data.suggestions || []).forEach((s, idx) => {
+      out.push(`  SUGGESTION ${idx + 1} — ${s.competency_name} | ${s.code}`)
+      out.push(`  ${s.statement_title}`)
+      out.push('')
+      out.push(`  ${s.missed_opportunity}`)
+      if (s.example_prompts && s.example_prompts.length) {
+        out.push('')
+        out.push(`  Example prompts the coach could have used:`)
+        s.example_prompts.forEach((p) => {
+          out.push(`    - "${p}"`)
+        })
+      }
+      out.push('')
+    })
+
+    const textContent = out.join('\n')
+    const blob = new Blob([textContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Assessment_${assessment.id}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function deleteToolSubmission(toolType, submissionId) {
     const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat' }[toolType] || toolType
     if (!window.confirm(`Are you sure you want to delete this ${toolName} submission?`)) return
@@ -826,13 +954,61 @@ export default function AdminHistory() {
                             ))}
                           </div>
                         )}
+
+                        {/* Behavioral Statements with Evidence */}
+                        {assessment.assessment_data.behavioral_statements?.length > 0 && (
+                          <div style={{ marginBottom: '24px' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Behavioral Statements Detail
+                            </h4>
+                            {assessment.assessment_data.behavioral_statements.map((stmt, i) => (
+                              <div key={stmt.code} style={{ marginBottom: '16px', padding: '12px', background: '#f9fafc', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '6px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                  <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS.navy }}>{stmt.code}</div>
+                                    <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#1a1a1a', marginTop: '2px' }}>{stmt.title}</div>
+                                  </div>
+                                  <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: '10px', fontWeight: '700', borderRadius: '4px', background: stmt.rating === 'Meets the Standard' || stmt.rating === 'Exceeds the Standard' ? '#dcfce7' : '#fee2e2', color: stmt.rating === 'Meets the Standard' || stmt.rating === 'Exceeds the Standard' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                                    {stmt.rating}
+                                  </span>
+                                </div>
+
+                                {/* Evidence */}
+                                {stmt.evidence?.length > 0 && (
+                                  <div style={{ fontSize: '10px', color: '#555', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                                    <strong style={{ color: COLORS.navy }}>Evidence:</strong>
+                                    {stmt.evidence.map((e, idx) => (
+                                      <div key={idx} style={{ marginTop: '4px', marginLeft: '12px', fontSize: '10px', color: '#555' }}>
+                                        <div style={{ fontWeight: '600', color: COLORS['text-main' ] }}>{e.timestamp}</div>
+                                        <div style={{ fontStyle: 'italic', color: '#666' }}>"{e.quote}"</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Contra Evidence */}
+                                {stmt.contra_evidence && (
+                                  <div style={{ fontSize: '10px', color: '#b91c1c', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                                    <strong style={{ color: '#b91c1c' }}>Contra-Evidence:</strong> {stmt.contra_evidence}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => downloadAssessmentPDF(assessment)}
+                          style={{ ...s.deleteBtn, background: COLORS.navy, border: 'none', color: '#fff', marginRight: 'auto' }}
+                        >
+                          📄 Download Report
+                        </button>
                         <button
                           onClick={() => downloadAssessmentJSON(assessment)}
-                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'], marginRight: 'auto' }}
+                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'] }}
                         >
                           📥 Download JSON
                         </button>
