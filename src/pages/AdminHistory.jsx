@@ -19,7 +19,7 @@ const COLORS = {
 
 export default function AdminHistory() {
   const { user } = useAuth()
-  const [view, setView] = useState('user') // 'user' or 'tool'
+  const [view, setView] = useState('user') // 'user', 'tool', or 'assessments'
   const [users, setUsers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedTool, setSelectedTool] = useState('exam')
@@ -365,13 +365,19 @@ export default function AdminHistory() {
             onClick={() => setView('user')}
             style={{ ...s.viewBtn, ...(view === 'user' ? s.viewBtnActive : {}) }}
           >
-            👤 User History
+            User History
           </button>
           <button
             onClick={() => setView('tool')}
             style={{ ...s.viewBtn, ...(view === 'tool' ? s.viewBtnActive : {}) }}
           >
-            📊 Tool Analytics
+            Tool Analytics
+          </button>
+          <button
+            onClick={() => setView('assessments')}
+            style={{ ...s.viewBtn, ...(view === 'assessments' ? s.viewBtnActive : {}) }}
+          >
+            Internal Assessments
           </button>
         </div>
 
@@ -681,8 +687,9 @@ export default function AdminHistory() {
         )}
 
         {/* Internal Assessments View */}
-        <div style={s.section}>
-          <h2 style={s.sectionTitle}>🤖 Internal Assessor Evaluations</h2>
+        {view === 'assessments' && (
+          <div style={s.section}>
+            <h2 style={s.sectionTitle}>Internal Assessor Evaluations</h2>
 
           {internalAssessments.length === 0 ? (
             <p style={s.empty}>No internal assessments yet.</p>
@@ -735,7 +742,8 @@ export default function AdminHistory() {
               ))}
             </div>
           )}
-        </div>
+            </div>
+          )}
       </div>
     </Layout>
   )
