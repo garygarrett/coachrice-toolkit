@@ -283,6 +283,14 @@ export default function Assessor() {
   const reportRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Bulk mode state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkQueue, setBulkQueue] = useState([]);
+  const [bulkResults, setBulkResults] = useState([]);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkIndex, setBulkIndex] = useState(0);
+  const [bulkViewIndex, setBulkViewIndex] = useState(null);
+
   // Load pdf.js for PDF parsing
   useEffect(() => {
     if (window.pdfjsLib) {
@@ -406,6 +414,81 @@ export default function Assessor() {
     }
   }, [evaluation]);
 
+  const assessTranscriptText = async (transcriptText, apiKeyParam) => {
+    if (!transcriptText.trim()) {
+      throw new Error("Transcript cannot be empty");
+    }
+    if (!apiKeyParam.trim()) {
+      throw new Error("API key not available");
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKeyParam.trim(),
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-7",
+        max_tokens: 8000,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcriptText}`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API error: ${response.status} — ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+
+    // Capture usage for cost tracking
+    if (data.usage) {
+      const inputTokens = data.usage.input_tokens || 0;
+      const outputTokens = data.usage.output_tokens || 0;
+      const cacheReadTokens = data.usage.cache_read_input_tokens || 0;
+      const cacheCreateTokens = data.usage.cache_creation_input_tokens || 0;
+      const cost =
+        (inputTokens * 5 / 1_000_000) +
+        (outputTokens * 25 / 1_000_000) +
+        (cacheReadTokens * 0.5 / 1_000_000) +
+        (cacheCreateTokens * 6.25 / 1_000_000);
+      setUsageLog((prev) => [
+        ...prev,
+        {
+          date: new Date().toLocaleString(),
+          inputTokens,
+          outputTokens,
+          cost: cost.toFixed(4),
+        },
+      ]);
+    }
+
+    const rawText = data.content?.[0]?.text || "";
+
+    // Extract JSON (defensive — strip any accidental code fences)
+    const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error("Could not parse evaluation response. Try again.");
+    }
+
+    const computed = recomputeScores(parsed);
+    return computed;
+  };
+
   const runEvaluation = async () => {
     if (!transcript.trim()) {
       setError("Please provide a transcript before running the evaluation.");
@@ -419,72 +502,7 @@ export default function Assessor() {
     setStage("running");
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey.trim(),
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-opus-4-7",
-          max_tokens: 8000,
-          system: SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`,
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`API error: ${response.status} — ${errText.slice(0, 200)}`);
-      }
-
-      const data = await response.json();
-
-      // Capture usage for cost tracking. Opus 4.7 pricing: $5/MTok input, $25/MTok output.
-      // Cached input reads are billed at $0.50/MTok and cache writes at $6.25/MTok if those fields appear.
-      if (data.usage) {
-        const inputTokens = data.usage.input_tokens || 0;
-        const outputTokens = data.usage.output_tokens || 0;
-        const cacheReadTokens = data.usage.cache_read_input_tokens || 0;
-        const cacheCreateTokens = data.usage.cache_creation_input_tokens || 0;
-        const cost =
-          (inputTokens * 5 / 1_000_000) +
-          (outputTokens * 25 / 1_000_000) +
-          (cacheReadTokens * 0.5 / 1_000_000) +
-          (cacheCreateTokens * 6.25 / 1_000_000);
-        setUsageLog((prev) => [
-          ...prev,
-          {
-            date: new Date().toLocaleString(),
-            inputTokens,
-            outputTokens,
-            cost: cost.toFixed(4),
-          },
-        ]);
-      }
-
-      const rawText = data.content?.[0]?.text || "";
-
-      // Extract JSON (defensive — strip any accidental code fences)
-      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
-      let parsed;
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch (parseErr) {
-        // Try to find a JSON object within the text
-        const match = cleaned.match(/\{[\s\S]*\}/);
-        if (match) parsed = JSON.parse(match[0]);
-        else throw new Error("Could not parse evaluation response. Try again.");
-      }
-
-      const computed = recomputeScores(parsed);
+      const computed = await assessTranscriptText(transcript, apiKey);
       setEvaluation(computed);
       const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
       setCustomDownloadFilename(`ACC_Evaluation_${safeName}`);
@@ -493,6 +511,50 @@ export default function Assessor() {
       setError(err.message);
       setStage("preview");
     }
+  };
+
+  const runBulkEvaluation = async () => {
+    if (!bulkQueue.length) {
+      setError("No files in queue");
+      return;
+    }
+    if (!apiKey.trim()) {
+      setError("API key not loaded");
+      return;
+    }
+
+    setError("");
+    setBulkRunning(true);
+    setBulkResults([]);
+    const results = [];
+
+    for (let i = 0; i < bulkQueue.length; i++) {
+      setBulkIndex(i);
+      const { filename: fname, text } = bulkQueue[i];
+
+      try {
+        const computed = await assessTranscriptText(text, apiKey);
+        const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
+        results.push({
+          filename: fname,
+          evaluation: computed,
+          status: "done",
+          downloadFilename: `ACC_Evaluation_${safeName}`,
+        });
+        await saveAssessment(computed, fname);
+      } catch (err) {
+        results.push({
+          filename: fname,
+          evaluation: null,
+          status: "error",
+          error: err.message,
+        });
+      }
+
+      setBulkResults([...results]);
+    }
+
+    setBulkRunning(false);
   };
 
   const downloadPDF = () => {
@@ -1319,7 +1381,7 @@ export default function Assessor() {
     drawEthicalConcerns();
     addFooters();
 
-    const filename = `${customDownloadFilename}.pdf`;
+    const filename = `${customDownloadFilename}.pdf`; // customDownloadFilename is passed as parameter
 
     // CSP-safe download: build a Blob and trigger via an anchor tag.
     // doc.save() internally creates a frame, which is blocked by the artifact's
