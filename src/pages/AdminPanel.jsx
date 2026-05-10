@@ -630,31 +630,24 @@ export default function AdminPanel() {
     setEditUserSubmitting(true)
 
     try {
-      // Update role through API (uses service role key for privileged operations)
-      if (editUserForm.role !== editingUser.role) {
-        const roleRes = await fetch('/api/update-user-role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: editUserForm.id, role: editUserForm.role }),
-        })
-        const roleResult = await roleRes.json()
-        if (!roleRes.ok) {
-          setEditUserError(roleResult.error || 'Failed to update role')
-          setEditUserSubmitting(false)
-          return
-        }
-      }
+      // Update user through API (uses service role key for privileged operations)
+      const res = await fetch('/api/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: editUserForm.id,
+          full_name: editUserForm.full_name,
+          email: editUserForm.email,
+          role: editUserForm.role,
+          cohort_id: editUserForm.cohort_id || null,
+          mentor_coach_id: editUserForm.mentor_coach_id || null,
+          is_active: editUserForm.is_active,
+        }),
+      })
+      const result = await res.json()
 
-      // Update other fields directly
-      const { error } = await supabase.from('users').update({
-        full_name: editUserForm.full_name,
-        cohort_id: editUserForm.cohort_id || null,
-        mentor_coach_id: editUserForm.mentor_coach_id || null,
-        is_active: editUserForm.is_active,
-      }).eq('id', editUserForm.id)
-
-      if (error) {
-        setEditUserError(error.message)
+      if (!res.ok) {
+        setEditUserError(result.error || 'Failed to update user')
       } else {
         setSuccessMsg(`${editUserForm.full_name} updated.`)
         setEditingUser(null)
@@ -1219,6 +1212,9 @@ export default function AdminPanel() {
             <div style={s.formGrid}>
               <label style={s.label}>Full Name
                 <input name="full_name" value={editUserForm.full_name} onChange={handleEditUserChange} required style={s.input} />
+              </label>
+              <label style={s.label}>Email
+                <input name="email" type="email" value={editUserForm.email} onChange={handleEditUserChange} required style={s.input} />
               </label>
               <label style={s.label}>Role
                 <select name="role" value={editUserForm.role} onChange={handleEditUserChange} style={s.input}>

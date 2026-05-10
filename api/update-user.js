@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
-  const { userId, full_name, role, cohort_id, mentor_coach_id, is_active } = req.body
+  const { userId, full_name, role, email, cohort_id, mentor_coach_id, is_active } = req.body
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' })
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
   const profileUpdates = {}
   if (full_name !== undefined) profileUpdates.full_name = full_name
   if (role !== undefined) profileUpdates.role = role
+  if (email !== undefined) profileUpdates.email = email
   if (cohort_id !== undefined) profileUpdates.cohort_id = cohort_id || null
   if (mentor_coach_id !== undefined) profileUpdates.mentor_coach_id = mentor_coach_id || null
   if (is_active !== undefined) profileUpdates.is_active = is_active
@@ -34,6 +35,16 @@ export default async function handler(req, res) {
 
   if (profileError) {
     return res.status(400).json({ error: profileError.message })
+  }
+
+  // Update auth email if provided
+  if (email !== undefined) {
+    const { error: emailError } = await supabase.auth.admin.updateUserById(userId, {
+      email: email,
+    })
+    if (emailError) {
+      return res.status(400).json({ error: `Email update failed: ${emailError.message}` })
+    }
   }
 
   // Sync role change to auth user metadata
