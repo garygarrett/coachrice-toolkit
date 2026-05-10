@@ -33,7 +33,17 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', user.id)
       .single()
-      .then(({ data }) => setProfile(data ?? null))
+      .then(({ data }) => {
+        setProfile(data ?? null)
+        // Update last accessed time
+        if (data) {
+          fetch('/api/update-last-accessed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id }),
+          }).catch(err => console.error('Failed to update last accessed:', err))
+        }
+      })
   }, [user])
 
   async function signOut() {
