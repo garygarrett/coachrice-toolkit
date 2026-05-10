@@ -670,7 +670,7 @@ export default function AdminPanel() {
     const res = await fetch('/api/invite-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: user.email, resend: true }),
+      body: JSON.stringify({ email: user.email, full_name: user.full_name, role: user.role }),
     })
     const result = await res.json()
     if (!res.ok) alert(`Error: ${result.error}`)
@@ -684,7 +684,7 @@ export default function AdminPanel() {
     const res = await fetch('/api/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id }),
+      body: JSON.stringify({ email: user.email }),
     })
     const result = await res.json()
     if (!res.ok) alert(`Error: ${result.error}`)
@@ -1259,7 +1259,7 @@ export default function AdminPanel() {
       <table style={s.table}>
         <thead>
           <tr>
-            {['Name', 'Email', 'Role', 'Cohort', 'Mentor Coach', 'Added', 'Actions'].map(h => (
+            {['Name', 'Email', 'Role', 'Cohort', 'Mentor Coach', 'Added', 'Last Accessed', 'Actions'].map(h => (
               <th key={h} style={s.th}>{h}</th>
             ))}
           </tr>
@@ -1280,6 +1280,7 @@ export default function AdminPanel() {
               <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
               <td style={s.td}>{u.mentor_coaches?.full_name ?? '—'}</td>
               <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
+              <td style={s.td}>{u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '—'}</td>
               <td style={s.td}>
                 <div style={s.actions}>
                   <button onClick={() => openEditUser(u)} style={s.actionBtn}>Edit</button>
