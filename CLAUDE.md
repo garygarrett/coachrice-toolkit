@@ -153,12 +153,12 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - Exams (with scoring breakdown)
 - Transcript Analyses (with competency details)
 - Chat Sessions (messages + feedback)
-- Internal Assessor (2025) — with full assessment details, download JSON
-- Internal Assessor (2021) — with full assessment details, download JSON
+- Transcripts uploaded to audio transcriber
 
 **Admin History** (`/pages/AdminHistory.jsx`):
 - View by User: select a coach, see all their results across all tools
 - View by Tool: select a tool, see all uses across all coaches; competency breakdown for exams
+- Internal Assessments tab: admin-only view of 2021 and 2025 assessor evaluations with full assessment details and PDF downloads
 
 ## Recent Work (May 2026)
 
@@ -166,14 +166,18 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - ✓ Both assessor tools (2021 & 2025) functional and downloadable
 - ✓ History pages show past exam, transcript, and chat results
 - ✓ Admin can view user-specific history and tool-wide analytics
-- ✓ Added "Save to History" button to both assessor tools
+- ✓ Added auto-save for internal assessments (no manual save button needed)
 - ✓ Internal assessments stored in DB with full JSON + competency scores
-- ✓ Separate History sections for assessor 2021 vs 2025
-- ✓ Download internal assessments as JSON
-- ✓ User can delete past results
+- ✓ Admin panel displays full assessment reports identical to assessor tools
+- ✓ Download internal assessments as PDF (matching assessor output)
+- ✓ Moved internal assessments to separate admin tab (not in user history)
+- ✓ Admin user table with sorting, role management, email customization
+- ✓ Last Accessed timestamps tracking user login activity
+- ✓ "Added" column shows when users were invited to the system
+- ✓ Simplified account status tracking to use created_at column
 
 **Next Phase:**
-- Exam results viewing for participants & admins (in progress)
+- Exam results viewing for participants & admins
 - Real-time notifications / activity feed
 - Admin dashboard analytics
 
