@@ -629,20 +629,39 @@ export default function AdminPanel() {
     setEditUserError(null)
     setEditUserSubmitting(true)
 
-    const { error } = await supabase.from('users').update({
-      full_name: editUserForm.full_name,
-      role: editUserForm.role,
-      cohort_id: editUserForm.cohort_id || null,
-      mentor_coach_id: editUserForm.mentor_coach_id || null,
-      is_active: editUserForm.is_active,
-    }).eq('id', editUserForm.id)
+    try {
+      // Update role through API (uses service role key for privileged operations)
+      if (editUserForm.role !== editingUser.role) {
+        const roleRes = await fetch('/api/update-user-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: editUserForm.id, role: editUserForm.role }),
+        })
+        const roleResult = await roleRes.json()
+        if (!roleRes.ok) {
+          setEditUserError(roleResult.error || 'Failed to update role')
+          setEditUserSubmitting(false)
+          return
+        }
+      }
 
-    if (error) {
-      setEditUserError(error.message)
-    } else {
-      setSuccessMsg(`${editUserForm.full_name} updated.`)
-      setEditingUser(null)
-      await loadUsers()
+      // Update other fields directly
+      const { error } = await supabase.from('users').update({
+        full_name: editUserForm.full_name,
+        cohort_id: editUserForm.cohort_id || null,
+        mentor_coach_id: editUserForm.mentor_coach_id || null,
+        is_active: editUserForm.is_active,
+      }).eq('id', editUserForm.id)
+
+      if (error) {
+        setEditUserError(error.message)
+      } else {
+        setSuccessMsg(`${editUserForm.full_name} updated.`)
+        setEditingUser(null)
+        await loadUsers()
+      }
+    } catch (err) {
+      setEditUserError(err.message)
     }
     setEditUserSubmitting(false)
   }
