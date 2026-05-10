@@ -175,8 +175,19 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - ✓ Last Accessed timestamps tracking user login activity
 - ✓ "Added" column shows when users were invited to the system
 - ✓ Simplified account status tracking to use created_at column
+- ✓ **NEW:** Bulk analyzer for Internal Assessor (2021) — upload multiple files, run all sequentially, view/download PDFs per result
+
+**Bulk Analyzer Features:**
+- Toggle between Single and Bulk mode in assessor input stage
+- Multi-file queue with add/remove capability
+- Sequential processing with progress bar and real-time status updates
+- Results gallery displaying all assessments with scores and actions
+- Individual View Report and Download PDF buttons per result
+- Auto-save of all results to internal_assessments table
+- Error handling with per-file error messages
 
 **Next Phase:**
+- Apply bulk analyzer to Assessor2025.jsx (2025 BARS guide)
 - Exam results viewing for participants & admins
 - Real-time notifications / activity feed
 - Admin dashboard analytics
