@@ -15,6 +15,7 @@ import AIClient from './pages/tools/AIClient'
 import AudioToTranscript from './pages/tools/AudioToTranscript'
 import Assessor from './pages/tools/Assessor'
 import Assessor2025 from './pages/tools/Assessor2025'
+import AssessorTest from './pages/tools/AssessorTest'
 
 /**
  * Detects when a user arrives via an invite email link.
@@ -121,6 +122,10 @@ export default function App() {
               <Assessor2025 />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/tools/assessor-test"
+          element={<AssessorTest />}
         />
       </Routes>
       </VisibilityProvider>

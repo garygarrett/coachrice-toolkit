@@ -290,6 +290,7 @@ export default function Assessor() {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkIndex, setBulkIndex] = useState(0);
   const [bulkViewIndex, setBulkViewIndex] = useState(null);
+  const [currentTranscriptFilename, setCurrentTranscriptFilename] = useState("");
 
   // Load pdf.js for PDF parsing
   useEffect(() => {
@@ -347,6 +348,7 @@ export default function Assessor() {
     if (!file) return;
     setError("");
     setFilename(file.name);
+    setCurrentTranscriptFilename(file.name);
 
     if (file.type === "application/pdf") {
       if (!pdfLibLoaded) {
@@ -504,7 +506,9 @@ export default function Assessor() {
     try {
       const computed = await assessTranscriptText(transcript, apiKey);
       setEvaluation(computed);
-      const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
+      const safeName = filename
+        ? filename.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, "_")
+        : (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
       setCustomDownloadFilename(`ACC_Evaluation_${safeName}`);
       setStage("report");
     } catch (err) {
@@ -514,6 +518,8 @@ export default function Assessor() {
   };
 
   const runBulkEvaluation = async () => {
+    console.log("runBulkEvaluation called, bulkQueue.length:", bulkQueue.length, "apiKey:", apiKey ? "loaded" : "missing");
+
     if (!bulkQueue.length) {
       setError("No files in queue");
       return;
@@ -525,24 +531,28 @@ export default function Assessor() {
 
     setError("");
     setBulkRunning(true);
+    console.log("bulkRunning set to true");
     setBulkResults([]);
     const results = [];
 
     for (let i = 0; i < bulkQueue.length; i++) {
       setBulkIndex(i);
       const { filename: fname, text } = bulkQueue[i];
+      console.log(`Processing file ${i + 1}/${bulkQueue.length}: ${fname}`);
 
       try {
         const computed = await assessTranscriptText(text, apiKey);
-        const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
+        const fileBaseName = fname.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, "_");
         results.push({
           filename: fname,
           evaluation: computed,
           status: "done",
-          downloadFilename: `ACC_Evaluation_${safeName}`,
+          downloadFilename: `ACC_Evaluation_${fileBaseName}`,
         });
         await saveAssessment(computed, fname);
+        console.log(`Completed: ${fname}`);
       } catch (err) {
+        console.error(`Error processing ${fname}:`, err);
         results.push({
           filename: fname,
           evaluation: null,
@@ -555,6 +565,7 @@ export default function Assessor() {
     }
 
     setBulkRunning(false);
+    console.log("Bulk evaluation complete");
   };
 
   const downloadPDF = () => {
@@ -608,7 +619,7 @@ export default function Assessor() {
     out.push("ACC PERFORMANCE EVALUATION");
     out.push(HR);
     out.push("");
-    out.push(`Coach:   ${evaluation.coach_identifier || "Submitted Coach"}`);
+    out.push(`Transcript:   ${currentTranscriptFilename || evaluation.coach_identifier || "Submitted Coach"}`);
     out.push(`Date:    ${dateStr}`);
     out.push(`Rubric:  ICF ACC BARS (March 2024)`);
     out.push("");
@@ -848,7 +859,7 @@ export default function Assessor() {
       doc.setFontSize(10);
       doc.setTextColor(...GRAY);
       const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-      doc.text(`Coach: ${evaluation.coach_identifier || "Submitted Coach"}`, MARGIN_X, y);
+      doc.text(`Transcript: ${currentTranscriptFilename || evaluation.coach_identifier || "Submitted Coach"}`, MARGIN_X, y);
       doc.text(`Date: ${dateStr}`, MARGIN_X + 220, y);
       doc.text(`Rubric: ICF ACC BARS (March 2024)`, MARGIN_X + 380, y);
       y += 18;
@@ -1406,6 +1417,10 @@ export default function Assessor() {
     setCustomDownloadFilename("");
     setEvaluation(null);
     setError("");
+    if (!bulkMode) {
+      setBulkQueue([]);
+      setBulkResults([]);
+    }
   };
 
   // ============================================================================
@@ -1538,6 +1553,160 @@ export default function Assessor() {
   );
 
   // ============================================================================
+  // RENDER: BULK RUNNING STAGE (checked before input to take precedence)
+  // ============================================================================
+  if (bulkRunning && bulkMode && stage === "input") {
+    return (
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px", fontFamily: fontStack }}>
+            Processing {bulkQueue.length} Assessments
+          </h2>
+
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: colors.gray, marginBottom: "8px" }}>
+              Progress: {bulkIndex + 1} of {bulkQueue.length}
+            </div>
+            <div style={{ width: "100%", height: "8px", backgroundColor: colors.border, borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{
+                height: "100%",
+                width: `${((bulkIndex + 1) / bulkQueue.length) * 100}%`,
+                backgroundColor: colors.orange,
+                transition: "width 0.3s"
+              }} />
+            </div>
+            <div style={{ fontSize: "13px", color: colors.gray, marginTop: "12px" }}>
+              Currently processing: <strong>{bulkQueue[bulkIndex]?.filename}</strong>
+            </div>
+          </div>
+
+          <div style={{ fontSize: "13px", color: colors.gray }}>
+            <div style={{ fontWeight: 600, marginBottom: "12px" }}>Completed:</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {bulkResults.map((result, idx) => (
+                <div key={idx} style={{
+                  padding: "12px 16px",
+                  backgroundColor: result.status === "done" ? "#F0FDF4" : "#FEF2F2",
+                  border: `1px solid ${result.status === "done" ? "#86EFAC" : "#FCA5A5"}`,
+                  borderRadius: "6px",
+                  fontSize: "13px"
+                }}>
+                  <span style={{ fontWeight: 600 }}>{result.filename}</span>
+                  {result.status === "done" && (
+                    <span style={{ color: "#16A34A", marginLeft: "12px" }}>
+                      {result.evaluation?.score_calculation?.result || "Completed"}
+                    </span>
+                  )}
+                  {result.status === "error" && (
+                    <span style={{ color: "#DC2626", marginLeft: "12px" }}>
+                      {result.error}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // ============================================================================
+  // RENDER: BULK RESULTS STAGE
+  // ============================================================================
+  if (bulkMode && stage === "input" && !bulkRunning && bulkResults.length > 0) {
+    return (
+      <Layout active="assessor" pageTitle="Internal Assessor">
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px", fontFamily: fontStack }}>
+            Bulk Assessment Results
+          </h2>
+
+          <div style={{ display: "grid", gap: "12px", marginBottom: "32px" }}>
+            {bulkResults.map((result, idx) => (
+              <div key={idx} style={{
+                padding: "16px",
+                backgroundColor: colors.white,
+                border: `1px solid ${colors.border}`,
+                borderRadius: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: colors.navy }}>
+                    {result.filename}
+                  </div>
+                  {result.status === "done" && (
+                    <div style={{ fontSize: "13px", color: colors.gray, marginTop: "4px", fontFamily: fontStack }}>
+                      {result.evaluation?.score_calculation?.result} • Score: {result.evaluation?.score_calculation?.final_score?.toFixed(2)}
+                    </div>
+                  )}
+                  {result.status === "error" && (
+                    <div style={{ fontSize: "13px", color: "#DC2626" }}>
+                      Error: {result.error}
+                    </div>
+                  )}
+                </div>
+                {result.status === "done" && (
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); setCurrentTranscriptFilename(result.filename); setStage("report"); }}
+                      style={{
+                        padding: "8px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        backgroundColor: colors.navy,
+                        color: colors.white,
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); setCurrentTranscriptFilename(result.filename); downloadPDF(); }}
+                      style={{
+                        padding: "8px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        backgroundColor: colors.navy,
+                        color: colors.white,
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); setStage("input"); }}
+            style={{
+              padding: "14px 32px",
+              fontSize: "14px",
+              fontWeight: 600,
+              backgroundColor: colors.navy,
+              color: colors.white,
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Start New Run
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // ============================================================================
   // RENDER: INPUT STAGE
   // ============================================================================
   if (stage === "input") {
@@ -1547,7 +1716,7 @@ export default function Assessor() {
           <div style={{ marginBottom: "32px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
               <div>
-                <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px" }}>
+                <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px", fontFamily: fontStack }}>
                   Submit a Coaching Session Transcript
                 </h2>
                 <p style={{ fontSize: "15px", color: colors.gray, lineHeight: 1.6, margin: 0, maxWidth: "640px" }}>
@@ -1615,7 +1784,6 @@ export default function Assessor() {
               onChange={handleFileUpload}
               style={{ display: "none" }}
             />
-            📤
             <div style={{ fontSize: "16px", fontWeight: 600, color: colors.navy, marginBottom: "4px" }}>
               {filename ? filename : "Click to upload PDF or .txt file"}
             </div>
@@ -1669,7 +1837,6 @@ export default function Assessor() {
                 gap: "8px",
               }}
             >
-              ⚠️
               <span>{error}</span>
             </div>
           )}
@@ -1745,8 +1912,8 @@ export default function Assessor() {
               };
               input.click();
             }}>
-              <div style={{ fontSize: "14px", fontWeight: 600, color: colors.navy, marginBottom: "8px" }}>
-                📁 Click to add files or drag & drop
+              <div style={{ fontSize: "14px", fontWeight: 600, color: colors.navy, marginBottom: "8px", fontFamily: fontStack }}>
+                Click to add files or drag & drop
               </div>
               <div style={{ fontSize: "13px", color: colors.gray }}>
                 Upload multiple PDF or .txt files. They'll be processed sequentially.
@@ -1824,160 +1991,6 @@ export default function Assessor() {
   }
 
   // ============================================================================
-  // RENDER: BULK RUNNING STAGE
-  // ============================================================================
-  if (bulkRunning && bulkMode && stage === "input") {
-    return (
-      <Layout active="assessor" pageTitle="Internal Assessor">
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
-          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px" }}>
-            Processing {bulkQueue.length} Assessments
-          </h2>
-
-          <div style={{ marginBottom: "32px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: colors.gray, marginBottom: "8px" }}>
-              Progress: {bulkIndex + 1} of {bulkQueue.length}
-            </div>
-            <div style={{ width: "100%", height: "8px", backgroundColor: colors.border, borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{
-                height: "100%",
-                width: `${((bulkIndex + 1) / bulkQueue.length) * 100}%`,
-                backgroundColor: colors.orange,
-                transition: "width 0.3s"
-              }} />
-            </div>
-            <div style={{ fontSize: "13px", color: colors.gray, marginTop: "12px" }}>
-              Currently processing: <strong>{bulkQueue[bulkIndex]?.filename}</strong>
-            </div>
-          </div>
-
-          <div style={{ fontSize: "13px", color: colors.gray }}>
-            <div style={{ fontWeight: 600, marginBottom: "12px" }}>Completed:</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {bulkResults.map((result, idx) => (
-                <div key={idx} style={{
-                  padding: "12px 16px",
-                  backgroundColor: result.status === "done" ? "#F0FDF4" : "#FEF2F2",
-                  border: `1px solid ${result.status === "done" ? "#86EFAC" : "#FCA5A5"}`,
-                  borderRadius: "6px",
-                  fontSize: "13px"
-                }}>
-                  <span style={{ fontWeight: 600 }}>{result.filename}</span>
-                  {result.status === "done" && (
-                    <span style={{ color: "#16A34A", marginLeft: "12px" }}>
-                      ✓ {result.evaluation?.score_calculation?.result || "Completed"}
-                    </span>
-                  )}
-                  {result.status === "error" && (
-                    <span style={{ color: "#DC2626", marginLeft: "12px" }}>
-                      ✕ {result.error}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // ============================================================================
-  // RENDER: BULK RESULTS STAGE
-  // ============================================================================
-  if (bulkMode && stage === "input" && !bulkRunning && bulkResults.length > 0) {
-    return (
-      <Layout active="assessor" pageTitle="Internal Assessor">
-        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "48px 32px" }}>
-          <h2 style={{ fontSize: "24px", fontWeight: 700, color: colors.navy, marginBottom: "24px" }}>
-            Bulk Assessment Results
-          </h2>
-
-          <div style={{ display: "grid", gap: "12px", marginBottom: "32px" }}>
-            {bulkResults.map((result, idx) => (
-              <div key={idx} style={{
-                padding: "16px",
-                backgroundColor: colors.white,
-                border: `1px solid ${colors.border}`,
-                borderRadius: "8px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: colors.navy }}>
-                    {result.filename}
-                  </div>
-                  {result.status === "done" && (
-                    <div style={{ fontSize: "13px", color: colors.gray, marginTop: "4px" }}>
-                      {result.evaluation?.score_calculation?.result} • Score: {result.evaluation?.score_calculation?.final_score?.toFixed(2)}
-                    </div>
-                  )}
-                  {result.status === "error" && (
-                    <div style={{ fontSize: "13px", color: "#DC2626" }}>
-                      Error: {result.error}
-                    </div>
-                  )}
-                </div>
-                {result.status === "done" && (
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); }}
-                      style={{
-                        padding: "8px 16px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        backgroundColor: colors.navy,
-                        color: colors.white,
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => { setEvaluation(result.evaluation); setCustomDownloadFilename(result.downloadFilename); downloadPDF(); }}
-                      style={{
-                        padding: "8px 16px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        backgroundColor: colors.navy,
-                        color: colors.white,
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      PDF
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); setStage("input"); }}
-            style={{
-              padding: "14px 32px",
-              fontSize: "14px",
-              fontWeight: 600,
-              backgroundColor: colors.navy,
-              color: colors.white,
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Start New Run
-          </button>
-        </div>
-      </Layout>
-    );
-  }
-
-  // ============================================================================
   // RENDER: PREVIEW STAGE
   // ============================================================================
   if (stage === "preview") {
@@ -1990,10 +2003,10 @@ export default function Assessor() {
     return (
       <Layout active="assessor" pageTitle="Internal Assessor">
         <main style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px" }}>
+          <h2 style={{ fontSize: "28px", fontWeight: 700, color: colors.navy, margin: "0 0 12px", letterSpacing: "-0.5px", fontFamily: fontStack }}>
             Confirm the Extracted Transcript
           </h2>
-          <p style={{ fontSize: "15px", color: colors.gray, lineHeight: 1.6, margin: "0 0 24px", maxWidth: "640px" }}>
+          <p style={{ fontSize: "15px", color: colors.gray, lineHeight: 1.6, margin: "0 0 24px", maxWidth: "640px", fontFamily: fontStack }}>
             Spot-check the transcript before running. PDF extraction occasionally misplaces text or strips timestamps.
             Edit directly if needed.
           </p>
@@ -2045,7 +2058,6 @@ export default function Assessor() {
                 gap: "8px",
               }}
             >
-              ⚠️
               <span>{error}</span>
             </div>
           )}
@@ -2099,7 +2111,7 @@ export default function Assessor() {
       <Layout active="assessor" pageTitle="Internal Assessor">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "120px 32px", textAlign: "center" }}>
           <LoadingBar />
-          <h2 style={{ fontSize: "24px", fontWeight: 600, color: colors.navy, margin: "24px 0 8px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 600, color: colors.navy, margin: "24px 0 8px", fontFamily: fontStack }}>
             Evaluating against the BARS rubric
           </h2>
           <p style={{ fontSize: "15px", color: colors.gray, margin: 0 }}>
@@ -2140,9 +2152,28 @@ export default function Assessor() {
     return (
       <Layout active="assessor" pageTitle="Internal Assessor">
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "32px" }}>
+          {bulkMode && bulkResults.length > 0 && (
+            <button
+              onClick={() => setStage("input")}
+              style={{
+                marginBottom: "20px",
+                backgroundColor: colors.skyBlue,
+                color: colors.white,
+                border: "none",
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: 600,
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontFamily: fontStack,
+              }}
+            >
+              Back to Results
+            </button>
+          )}
           <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginBottom: "20px" }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: colors.gray, marginBottom: "6px", letterSpacing: "0.5px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: colors.gray, marginBottom: "6px", letterSpacing: "0.5px", fontFamily: fontStack }}>
                 FILE NAME (without extension)
               </label>
               <input
@@ -2225,12 +2256,12 @@ export default function Assessor() {
             <div style={{ fontSize: "10px", letterSpacing: "2.5px", color: colors.gray, fontWeight: 500, marginBottom: "8px" }}>
               DOERR INSTITUTE FOR NEW LEADERS · COACHRICE LEVEL 1
             </div>
-            <h1 style={{ fontSize: "26px", fontWeight: 700, color: colors.navy, margin: "0 0 8px", letterSpacing: "-0.5px" }}>
+            <h1 style={{ fontSize: "26px", fontWeight: 700, color: colors.navy, margin: "0 0 8px", letterSpacing: "-0.5px", fontFamily: fontStack }}>
               ACC Performance Evaluation
             </h1>
             <div style={{ fontSize: "14px", color: colors.gray, display: "flex", gap: "24px", flexWrap: "wrap" }}>
               <span>
-                <strong style={{ color: colors.navy }}>Coach:</strong> {evaluation.coach_identifier}
+                <strong style={{ color: colors.navy }}>Transcript:</strong> {currentTranscriptFilename || evaluation.coach_identifier}
               </span>
               <span>
                 <strong style={{ color: colors.navy }}>Date:</strong> {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
@@ -2284,7 +2315,6 @@ export default function Assessor() {
                 gap: "10px",
               }}
             >
-              {evaluation.score_calculation?.result === "Pass" && "✓"}
               {evaluation.score_calculation?.result === "Pass" ? "PASS" : "BELOW PASSING"}
             </div>
           </div>
@@ -2566,7 +2596,7 @@ function Section({ title, subtitle, children, colors, rightLabel }) {
     <section style={{ marginBottom: "36px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: `1px solid ${colors.border}`, paddingBottom: "8px", marginBottom: "16px" }}>
         <div>
-          <h2 style={{ fontSize: "16px", fontWeight: 700, color: colors.navy, margin: 0, letterSpacing: "-0.2px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: 700, color: colors.navy, margin: 0, letterSpacing: "-0.2px", fontFamily: fontStack }}>
             {title}
           </h2>
           {subtitle && (
