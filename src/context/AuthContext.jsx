@@ -35,18 +35,6 @@ export function AuthProvider({ children }) {
       .single()
       .then(({ data }) => {
         setProfile(data ?? null)
-        // Sync account_created_at from Supabase auth's last_sign_in_at
-        if (data && user.last_sign_in_at && !data.account_created_at) {
-          supabase
-            .from('users')
-            .update({ account_created_at: user.last_sign_in_at })
-            .eq('id', user.id)
-            .then(() => {
-              setProfile(prev => prev ? { ...prev, account_created_at: user.last_sign_in_at } : null)
-            })
-            .catch(err => console.error('Failed to set account_created_at:', err))
-        }
-        // Update last accessed time
         if (data) {
           fetch('/api/update-last-accessed', {
             method: 'POST',
