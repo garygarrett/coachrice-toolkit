@@ -22,8 +22,9 @@ export default function AdminHistory() {
   const [users, setUsers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedTool, setSelectedTool] = useState('exam')
-  const [userHistory, setUserHistory] = useState({ exams: [], transcripts: [], chats: [] })
+  const [userHistory, setUserHistory] = useState({ exams: [], transcripts: [], chats: [], assessments2021: [], assessments2025: [] })
   const [toolHistory, setToolHistory] = useState([])
+  const [internalAssessments, setInternalAssessments] = useState([])
   const [toolCompetencyBreakdown, setToolCompetencyBreakdown] = useState({})
   const [loading, setLoading] = useState(false)
   const [expandedItems, setExpandedItems] = useState({})
@@ -38,7 +39,29 @@ export default function AdminHistory() {
 
   useEffect(() => {
     loadUsers()
+    loadInternalAssessments()
   }, [])
+
+  async function loadInternalAssessments() {
+    try {
+      const [res2025, res2021] = await Promise.all([
+        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`),
+        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`),
+      ])
+
+      const data2025 = res2025.ok ? await res2025.json() : { data: [] }
+      const data2021 = res2021.ok ? await res2021.json() : { data: [] }
+
+      const allAssessments = [
+        ...(data2025.data || []).map(a => ({ ...a, assessor_type: '2025' })),
+        ...(data2021.data || []).map(a => ({ ...a, assessor_type: '2021' })),
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      setInternalAssessments(allAssessments)
+    } catch (err) {
+      console.error('Error loading internal assessments:', err)
+    }
+  }
 
   useEffect(() => {
     if (selectedUserId) {
@@ -265,6 +288,36 @@ export default function AdminHistory() {
       console.error('Error deleting chat:', err)
       alert('Error deleting chat')
     }
+  }
+
+  async function deleteAssessment(assessmentId) {
+    if (!window.confirm('Delete this assessment?')) return
+    try {
+      const res = await fetch('/api/internal-assessments', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessmentId, userId: user.id }),
+      })
+      if (res.ok) {
+        setInternalAssessments(prev => prev.filter(a => a.id !== assessmentId))
+      } else {
+        alert('Failed to delete assessment')
+      }
+    } catch (err) {
+      console.error('Error deleting assessment:', err)
+      alert('Error deleting assessment')
+    }
+  }
+
+  function downloadAssessmentJSON(assessment) {
+    const dataStr = JSON.stringify(assessment.assessment_data, null, 2)
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Assessment_${assessment.id}.json`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   async function deleteToolSubmission(toolType, submissionId) {
@@ -618,6 +671,185 @@ export default function AdminHistory() {
             )}
           </div>
         )}
+
+        {/* Internal Assessments View */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>🤖 Internal Assessor Evaluations</h2>
+
+          {internalAssessments.length === 0 ? (
+            <p style={s.empty}>No internal assessments yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {internalAssessments.map(assessment => (
+                <div key={assessment.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => toggleExpand(`assessment-${assessment.id}`)}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>
+                        {assessment.assessment_data?.coach_identifier || 'Unknown Coach'} • Assessor {assessment.assessor_type}
+                      </div>
+                      <div style={s.itemDate}>
+                        {assessment.transcript_filename && <span>{assessment.transcript_filename} • </span>}
+                        {formatDate(assessment.created_at)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {assessment.assessment_data?.score_calculation && (
+                        <div style={{ color: assessment.assessment_data.score_calculation.result === 'Pass' ? '#15803d' : '#dc2626', fontWeight: '700' }}>
+                          {(assessment.assessment_data.score_calculation.final_score ?? 0).toFixed(2)}
+                        </div>
+                      )}
+                      <span style={s.expandIcon}>{expandedItems[`assessment-${assessment.id}`] ? '▼' : '▶'}</span>
+                    </div>
+                  </div>
+
+                  {expandedItems[`assessment-${assessment.id}`] && assessment.assessment_data && (
+                    <div style={{ ...s.itemDetails, maxHeight: '800px', overflowY: 'auto' }}>
+                      {/* Full Assessment Report Inline */}
+                      <div style={{ background: '#fff', borderRadius: '8px', padding: '24px', marginBottom: '16px' }}>
+                        <div style={{ borderBottom: `2px solid ${COLORS.navy}`, paddingBottom: '16px', marginBottom: '24px' }}>
+                          <div style={{ fontSize: '14px', color: COLORS.gray, display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                            <span><strong>Coach:</strong> {assessment.assessment_data.coach_identifier}</span>
+                            <span><strong>Assessor:</strong> {assessment.assessor_type === '2025' ? 'Nov 2025 BARS' : 'March 2024 BARS'}</span>
+                            {assessment.transcript_filename && <span><strong>Transcript:</strong> {assessment.transcript_filename}</span>}
+                          </div>
+                        </div>
+
+                        {/* Score Card */}
+                        <div
+                          style={{
+                            background: assessment.assessment_data.score_calculation?.result === 'Pass' ? '#f0fdf4' : '#fef2f2',
+                            border: `2px solid ${assessment.assessment_data.score_calculation?.result === 'Pass' ? '#86efac' : '#fca5a5'}`,
+                            borderRadius: '8px',
+                            padding: '24px',
+                            marginBottom: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '11px', letterSpacing: '2px', color: COLORS.gray, fontWeight: 500, marginBottom: '4px' }}>
+                              FINAL SCORE
+                            </div>
+                            <div style={{ fontSize: '44px', fontWeight: 700, color: COLORS.navy, lineHeight: 1, letterSpacing: '-1px' }}>
+                              {(assessment.assessment_data.score_calculation?.final_score ?? 0).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '13px', color: COLORS.gray, marginTop: '4px' }}>
+                              Pass threshold: 3.40
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '20px',
+                              fontWeight: 700,
+                              padding: '12px 24px',
+                              borderRadius: '6px',
+                              backgroundColor: assessment.assessment_data.score_calculation?.result === 'Pass' ? '#16a34a' : '#dc2626',
+                              color: '#fff',
+                              letterSpacing: '1.5px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                            }}
+                          >
+                            {assessment.assessment_data.score_calculation?.result === 'Pass' && '✓'}
+                            {assessment.assessment_data.score_calculation?.result === 'Pass' ? 'PASS' : 'BELOW'}
+                          </div>
+                        </div>
+
+                        {/* Competency Scores */}
+                        <div style={{ marginBottom: '24px', padding: '16px', background: COLORS['gray-light'], borderRadius: '8px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gray, letterSpacing: '1px', marginBottom: '12px' }}>COMPETENCY SCORES</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                            {[3, 4, 5, 6, 7, 8].map(comp => {
+                              const avg = assessment.assessment_data.score_calculation?.[`competency_${comp}_average`];
+                              return avg !== undefined ? (
+                                <div key={comp} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ color: COLORS['text-main'] }}>Competency {comp}:</span>
+                                  <span style={{ fontWeight: 700, color: COLORS.navy }}>{avg.toFixed(2)}</span>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Strengths */}
+                        {assessment.assessment_data.strengths?.length > 0 && (
+                          <div style={{ marginBottom: '24px' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Coaching Strengths
+                            </h4>
+                            {assessment.assessment_data.strengths.map((s, i) => (
+                              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', borderLeft: '4px solid #16a34a', borderRadius: '0 4px 4px 0' }}>
+                                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  {s.competency_name} · {s.code}
+                                </div>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>
+                                  {s.statement_title}
+                                </div>
+                                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>
+                                  {s.explanation}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Suggestions */}
+                        {assessment.assessment_data.suggestions?.length > 0 && (
+                          <div style={{ marginBottom: '24px' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Suggestions for Development
+                            </h4>
+                            {assessment.assessment_data.suggestions.map((s, i) => (
+                              <div key={i} style={{ marginBottom: '12px', padding: '12px', background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: '0 4px 4px 0' }}>
+                                <div style={{ fontSize: '10px', color: COLORS['text-muted'], fontWeight: '700', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  {s.competency_name} · {s.code}
+                                </div>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.navy, marginBottom: '6px' }}>
+                                  {s.statement_title}
+                                </div>
+                                <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151', marginBottom: '6px' }}>
+                                  {s.missed_opportunity}
+                                </div>
+                                {s.example_prompts?.length > 0 && (
+                                  <div style={{ fontSize: '11px', color: COLORS['text-main'] }}>
+                                    <strong>Example prompts:</strong>
+                                    <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>
+                                      {s.example_prompts.map((prompt, i) => (
+                                        <li key={i} style={{ marginBottom: '2px', fontStyle: 'italic' }}>"{prompt}"</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                          onClick={() => downloadAssessmentJSON(assessment)}
+                          style={{ ...s.deleteBtn, background: '#f0f2f5', border: '1px solid #e2e6ec', color: COLORS['text-main'], marginRight: 'auto' }}
+                        >
+                          📥 Download JSON
+                        </button>
+                        <button
+                          onClick={() => deleteAssessment(assessment.id)}
+                          style={s.deleteBtn}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   )
