@@ -63,14 +63,16 @@ export default function Agreements() {
   const [checked, setChecked] = useState({})
   const [expanded, setExpanded] = useState(null)
 
-  // If already accepted, redirect to dashboard
-  if (!loading && profile?.agreements_accepted) {
-    navigate('/dashboard', { replace: true })
-  }
-
   // If not logged in, redirect to login
   if (!loading && !user) {
     navigate('/login', { replace: true })
+    return
+  }
+
+  // If already accepted, redirect to dashboard
+  if (!loading && user && profile?.agreements_accepted) {
+    navigate('/dashboard', { replace: true })
+    return
   }
 
   const allChecked = agreements.every((a) => checked[a.id]);
@@ -84,6 +86,11 @@ export default function Agreements() {
   };
 
   const handleComplete = async () => {
+    if (!user || !user.id) {
+      setError('Auth session missing. Please log in again.')
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -93,7 +100,10 @@ export default function Agreements() {
         .update({ agreements_accepted: true, agreements_accepted_at: new Date().toISOString() })
         .eq('id', user.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Update error:', updateError)
+        throw updateError
+      }
 
       navigate('/dashboard', { replace: true })
     } catch (err) {
@@ -103,8 +113,15 @@ export default function Agreements() {
     }
   }
 
-  if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+  if (loading || !user) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '18px', fontWeight: '600', color: '#00205B', marginBottom: '8px' }}>Loading…</div>
+          <div style={{ fontSize: '13px', color: '#6b7a99' }}>Verifying your session</div>
+        </div>
+      </div>
+    )
   }
 
   return (
