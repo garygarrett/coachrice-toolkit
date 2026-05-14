@@ -330,6 +330,55 @@ export default function AdminHistory() {
     const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     const passStatus = evaluation.score_calculation?.result === 'Pass'
 
+    const competencyTitles = {
+      3: 'Establishes and Maintains Agreements',
+      4: 'Cultivates Trust and Safety',
+      5: 'Maintains Presence',
+      6: 'Listens Actively',
+      7: 'Evokes Awareness',
+      8: 'Facilitates Client Growth',
+    }
+
+    // Helper to render behavioral statements
+    const renderBehavioralStatements = () => {
+      const groupedStatements = {}
+      ;(evaluation.behavioral_statements || []).forEach((s) => {
+        const c = parseInt(s.code.split('.')[0], 10)
+        if (!groupedStatements[c]) groupedStatements[c] = []
+        groupedStatements[c].push(s)
+      })
+
+      return [3, 4, 5, 6, 7, 8].map((comp) => {
+        const statements = groupedStatements[comp] || []
+        const avg = evaluation.score_calculation?.[`competency_${comp}_average`]
+
+        return `
+          <section>
+            <div class="section-header">
+              <h2 class="section-title">${comp}. ${competencyTitles[comp]}</h2>
+              ${avg !== undefined ? `<span style="color: #7C7E7F; font-size: 13px;">Avg: ${avg.toFixed(2)}</span>` : ''}
+            </div>
+            ${statements.length > 0 ? `
+              <div>
+                ${statements.map(stmt => `
+                  <div class="statement-item">
+                    <div class="statement-header">
+                      <span class="statement-code">${stmt.code}</span>
+                      <span class="statement-score">${(stmt.score ?? 0).toFixed(2)}</span>
+                    </div>
+                    <div class="statement-title">${stmt.statement_title}</div>
+                    <div class="statement-rating">Rating: ${stmt.rating}</div>
+                    ${stmt.qualifiers && stmt.qualifiers.length > 0 ? `<div style="font-size: 11px; color: #7C7E7F; margin-bottom: 8px;"><strong>Qualifiers:</strong> ${stmt.qualifiers.join(', ')}</div>` : ''}
+                    ${stmt.justification ? `<div class="statement-content">${stmt.justification}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </section>
+        `
+      }).join('')
+    }
+
     doc.write(`
       <!DOCTYPE html>
       <html>
@@ -698,6 +747,85 @@ export default function AdminHistory() {
               </div>
             ` : ''}
           </section>
+
+          <section>
+            <div class="section-header">
+              <h2 class="section-title">2. Embodies a Coaching Mindset</h2>
+            </div>
+            <p class="section-subtitle">Develops and maintains a mindset that is open, curious, flexible and client-centered.</p>
+            <p style="font-size: 13px; color: #7C7E7F; line-height: 1.6; margin: 0; font-style: italic;">
+              There are no Behavioral Statements for Competency 2 in the ACC BARS system. Candidates are assessed on their knowledge of and ability to apply Competency 2 as part of the ICF Credentialing Exam.
+            </p>
+          </section>
+
+          ${renderBehavioralStatements()}
+
+          ${evaluation.strengths && evaluation.strengths.length > 0 ? `
+            <section>
+              <div class="section-header">
+                <h2 class="section-title">Coaching Competency Strengths</h2>
+              </div>
+              <div>
+                ${evaluation.strengths.map(strength => `
+                  <div class="strength-item">
+                    <div class="item-title">${strength.code} · ${strength.statement_title}</div>
+                    <div class="item-text">${strength.explanation}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+
+          ${evaluation.suggestions && evaluation.suggestions.length > 0 ? `
+            <section>
+              <div class="section-header">
+                <h2 class="section-title">Suggestions for Competency Development</h2>
+              </div>
+              <div>
+                ${evaluation.suggestions.map(suggestion => `
+                  <div class="suggestion-item">
+                    <div class="item-title">${suggestion.code} · ${suggestion.statement_title}</div>
+                    <div class="item-text">${suggestion.missed_opportunity}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+
+          ${evaluation.score_calculation ? `
+            <section>
+              <div class="section-header">
+                <h2 class="section-title">Score Calculation</h2>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>COMPETENCY</th>
+                    <th>AVERAGE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${[3, 4, 5, 6, 7, 8].map(comp => {
+                    const avg = evaluation.score_calculation[`competency_${comp}_average`]
+                    return avg !== undefined ? `
+                      <tr>
+                        <td>${comp}. ${competencyTitles[comp]}</td>
+                        <td style="text-align: right; font-weight: 600;">${avg.toFixed(2)}</td>
+                      </tr>
+                    ` : ''
+                  }).join('')}
+                  <tr style="background: #f9fafc;">
+                    <td style="font-weight: 600;">Total Raw Score (avg of competency averages)</td>
+                    <td style="text-align: right; font-weight: 600;">${(evaluation.score_calculation.final_score / 2 + 1.7).toFixed(2)}</td>
+                  </tr>
+                  <tr style="background: #00205B; color: white;">
+                    <td style="font-weight: 600;">Final Score = (Raw " 1) × 2</td>
+                    <td style="text-align: right; font-weight: 600;">${(evaluation.score_calculation.final_score ?? 0).toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          ` : ''}
 
           <footer class="footer">
             <div>CoachRICE Internal Assessor Report</div>
