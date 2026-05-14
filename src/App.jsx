@@ -5,6 +5,7 @@ import { VisibilityProvider } from './context/VisibilityContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import SetPassword from './pages/SetPassword'
+import Agreements from './pages/Agreements'
 import CoachDashboard from './pages/CoachDashboard'
 import History from './pages/History'
 import AdminHistory from './pages/AdminHistory'
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/agreements" element={<Agreements />} />
         <Route
           path="/dashboard"
           element={

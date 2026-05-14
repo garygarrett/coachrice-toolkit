@@ -36,7 +36,7 @@ export default function SetPassword() {
       return
     }
 
-    navigate('/dashboard', { replace: true })
+    navigate('/agreements', { replace: true })
   }
 
   return (

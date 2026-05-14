@@ -21,7 +21,11 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user && profile) {
-      navigate('/dashboard', { replace: true })
+      if (!profile.agreements_accepted) {
+        navigate('/agreements', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     }
   }, [user, profile, loading, navigate])
 
