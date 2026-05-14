@@ -177,6 +177,29 @@ export function AssessmentReportDisplay({ assessment }) {
             </tbody>
           </table>
         </div>
+
+        {/* Ethical Practice Notes */}
+        {(evaluation.ethical_practice?.icf_code_alignment === 'Not Observed' && evaluation.ethical_practice?.icf_code_alignment_note) && (
+          <div style={{ marginTop: '16px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
+              Rationale: ICF Code of Ethics Alignment
+            </div>
+            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
+              {evaluation.ethical_practice.icf_code_alignment_note}
+            </div>
+          </div>
+        )}
+
+        {(evaluation.ethical_practice?.coach_role_alignment === 'Not Observed' && evaluation.ethical_practice?.coach_role_alignment_note) && (
+          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
+              Rationale: Coach Role Alignment
+            </div>
+            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
+              {evaluation.ethical_practice.coach_role_alignment_note}
+            </div>
+          </div>
+        )}
       </Section>
 
       {/* Competency 2 — informational */}
