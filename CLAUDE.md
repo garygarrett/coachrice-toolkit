@@ -95,9 +95,14 @@ Two AI-powered tools for coaches to evaluate teaching transcripts against ICF st
 - Upload PDF or .txt coaching transcript
 - AI evaluates against ICF ACC BARS standards (nov 2025 or March 2024)
 - Generates full assessment with evidence citations, competency scores, strengths, suggestions
-- Can download as PDF or text
-- **NEW:** Can save to History for later viewing
+- Can download as PDF (print-to-PDF via browser print dialog)
+- Can save to History for later viewing
 - Saved assessments store full JSON + competency breakdown
+
+**Scoring Gate (IMPORTANT):**
+- Both ethical practice qualifiers must be marked "Observed" to pass
+- If either "ICF Code of Ethics alignment" OR "Coach role alignment" = "Not Observed", result is automatically "Below Passing Standard"
+- This is a hard requirement gate — qualifiers override numerical score ≥ 3.4
 
 ## Scoring Framework
 
@@ -185,6 +190,15 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - Individual View Report and Download PDF buttons per result
 - Auto-save of all results to internal_assessments table
 - Error handling with per-file error messages
+
+**May 2026 Updates (Phase 2 Polish):**
+- ✓ Professional PDF export using print-to-PDF (browser print dialog)
+- ✓ Fixed ethical practice scoring: qualifiers now gate pass/fail regardless of numerical score
+- ✓ Excel export for assessment history with dynamic competency calculations
+- ✓ Agreement/Terms acceptance flow for new users
+- ✓ Improved PDF styling with boxes, visual hierarchy, proper text wrapping
+- ✓ Download PDF button moved to top of expanded assessments in history
+- ✓ Ethical practice rationale notes display in history view (matching direct report view)
 
 **Next Phase:**
 - Apply bulk analyzer to Assessor2025.jsx (2025 BARS guide)
