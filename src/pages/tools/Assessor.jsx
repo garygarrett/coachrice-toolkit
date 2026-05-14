@@ -1771,7 +1771,6 @@ export default function Assessor() {
             </div>
           </div>
 
-          {
           <div>
             <div style={{
               border: `2px dashed ${colors.border}`,
