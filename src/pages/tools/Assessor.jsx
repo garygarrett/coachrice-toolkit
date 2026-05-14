@@ -166,11 +166,6 @@ When a transcript is submitted, follow this procedure in order. Do not skip step
    - The "missed opportunity" sentence must reference the specific contra-evidence or absence-of-evidence you already cited for that skill in Step 5 — do not introduce new observations.
    - The example prompts must be brief, constructive coaching prompts the coach could have used at the moment you already identified — not new advice. Tone stays constructive, not punitive, even when the rating is harsh.
 
-   **Selecting divergence flags (0–5):**
-   - For each behavioral statement you already rated in Step 4, ask: would a typical human assessor likely read this same evidence differently? Flag only skills where the answer is yes.
-   - Reference the rating you already assigned and the evidence you already cited. Do not change the rating.
-   - The "reason" must explain why a human assessor reading the same evidence might land at the predicted alternate rating, grounded in the BARS criteria for that specific behavior.
-
    **Self-consistency check before finalizing:** Before producing the JSON, verify that (a) every strength references a skill rated Proficient or higher; (b) every suggestion references a skill rated Sufficient or lower; (c) every timestamp and quote in the summary appears in the per-skill evidence above; (d) no claim in the summary contradicts a rating or piece of evidence already cited. If any inconsistency exists, fix the summary, not the ratings.
 
 ## OUTPUT FORMAT
@@ -227,17 +222,6 @@ CRITICAL: You MUST respond with a single valid JSON object only. No prose before
       "example_prompts": ["example question 1", "example question 2"]
     }
     // 1 or 2 suggestions max
-  ],
-  "divergence_flags": [
-    {
-      "code": "string (e.g., '4.1')",
-      "ai_rating": "string (the rating you assigned)",
-      "likely_human_rating": "string (what a typical human assessor would likely assign — could be higher OR lower)",
-      "direction": "AI rated lower" | "AI rated higher",
-      "reason": "1–2 sentences explaining why a human assessor might read this differently. Reference the specific evidence and the BARS criterion that creates the disagreement."
-    }
-    // Include only the skills where you predict the AI's strict read may diverge from a typical human read.
-    // 0 to 5 entries. Empty array if all ratings would likely match.
   ],
   "ethical_concerns": "None" | "string describing concern with Code of Ethics section"
 }
@@ -772,27 +756,6 @@ export default function Assessor() {
     });
 
     out.push(HR);
-    out.push("CALIBRATION DIVERGENCE FLAGS");
-    out.push(HR);
-    out.push("");
-    if (evaluation.divergence_flags && evaluation.divergence_flags.length > 0) {
-      out.push("  Skills where this AI assessor's strict read may differ from a typical");
-      out.push("  human assessor's read. Use these as comparison points when reviewing");
-      out.push("  a human assessor's evaluation.");
-      out.push("");
-      evaluation.divergence_flags.forEach((d, idx) => {
-        out.push(`  ${idx + 1}. ${d.code}  (AI: ${d.ai_rating}  |  Likely human: ${d.likely_human_rating})`);
-        const arrow = d.direction === "AI rated lower" ? "AI is stricter" : "AI is more generous";
-        out.push(`     [${arrow}]`);
-        out.push(wrapText(d.reason, 72, "     "));
-        out.push("");
-      });
-    } else {
-      out.push("  No flags. The AI's read is expected to align with a typical human assessor's read.");
-      out.push("");
-    }
-
-    out.push(HR);
     out.push("ETHICAL CONCERNS");
     out.push(HR);
     out.push("");
@@ -1316,73 +1279,6 @@ export default function Assessor() {
       });
     };
 
-    // ---- Divergence Flags ----
-    const drawDivergenceFlags = () => {
-      const flags = evaluation.divergence_flags || [];
-      drawSectionTitle(
-        "Calibration Divergence Flags",
-        "Skills where this AI assessor's strict read may differ from a typical human assessor's read."
-      );
-
-      if (flags.length === 0) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        doc.setTextColor(...GRAY);
-        const text = "No flags. The AI's read is expected to align with a typical human assessor's read.";
-        const lines = doc.splitTextToSize(text, CONTENT_W);
-        ensureSpace(lines.length * 11 + 16);
-        doc.text(lines, MARGIN_X, y);
-        y += lines.length * 11 + 16;
-        return;
-      }
-
-      flags.forEach((d) => {
-        const reasonLines = doc.splitTextToSize(d.reason || "", CONTENT_W - 24);
-        const cardH = reasonLines.length * 11 + 56;
-        ensureSpace(cardH);
-
-        // Card with orange left border (visual flag indicator)
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(...LIGHT_GRAY);
-        doc.rect(MARGIN_X, y, CONTENT_W, cardH, "FD");
-        doc.setFillColor(...ORANGE);
-        doc.rect(MARGIN_X, y, 4, cardH, "F");
-
-        // Code + direction tag
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.setTextColor(...NAVY);
-        doc.text(d.code, MARGIN_X + 16, y + 16);
-
-        const arrowText = d.direction === "AI rated lower" ? "AI IS STRICTER" : "AI IS MORE GENEROUS";
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(...GRAY);
-        doc.text(arrowText, PAGE_W - MARGIN_X - 16, y + 16, { align: "right" });
-
-        // AI Read | Human Read
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(...TEXT);
-        doc.text(`AI read: `, MARGIN_X + 16, y + 32);
-        doc.setFont("helvetica", "bold");
-        doc.text(d.ai_rating || "", MARGIN_X + 56, y + 32);
-
-        doc.setFont("helvetica", "normal");
-        doc.text(`Likely human read: `, MARGIN_X + 200, y + 32);
-        doc.setFont("helvetica", "bold");
-        doc.text(d.likely_human_rating || "", MARGIN_X + 296, y + 32);
-
-        // Reason
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(...TEXT);
-        doc.text(reasonLines, MARGIN_X + 16, y + 46);
-
-        y += cardH + 10;
-      });
-    };
-
     // ---- Ethical Concerns ----
     const drawEthicalConcerns = () => {
       drawSectionTitle("Ethical Concerns");
@@ -1430,7 +1326,6 @@ export default function Assessor() {
     drawScoreCalculation();
     drawStrengths();
     drawSuggestions();
-    drawDivergenceFlags();
     drawEthicalConcerns();
     addFooters();
 
@@ -2429,39 +2324,6 @@ export default function Assessor() {
               </div>
             ))}
           </Section>
-
-          {/* Calibration Divergence Flags */}
-          {evaluation.divergence_flags && evaluation.divergence_flags.length > 0 && (
-            <Section title="Calibration Divergence Flags" subtitle="Skills where this AI assessor's strict read may differ from a typical human assessor's read. Use these as comparison points when reviewing a human assessor's evaluation." colors={colors}>
-              <div style={{ overflow: "hidden", borderRadius: "6px", border: `1px solid ${colors.border}` }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: colors.navy, color: colors.white }}>
-                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "11px", letterSpacing: "1px", width: "60px" }}>CODE</th>
-                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "11px", letterSpacing: "1px", width: "150px" }}>AI READ</th>
-                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "11px", letterSpacing: "1px", width: "150px" }}>LIKELY HUMAN READ</th>
-                      <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "11px", letterSpacing: "1px" }}>WHY THEY MAY DIVERGE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {evaluation.divergence_flags.map((d, idx) => (
-                      <tr key={idx} style={{ backgroundColor: colors.white, borderTop: idx > 0 ? `1px solid ${colors.border}` : "none" }}>
-                        <td style={{ padding: "12px 14px", fontWeight: 700, color: colors.navy, verticalAlign: "top" }}>{d.code}</td>
-                        <td style={{ padding: "12px 14px", verticalAlign: "top" }}>
-                          <div style={{ fontWeight: 600 }}>{d.ai_rating}</div>
-                          <div style={{ fontSize: "11px", color: colors.gray, marginTop: "2px" }}>
-                            {d.direction === "AI rated lower" ? "↓ stricter" : "↑ more generous"}
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px 14px", verticalAlign: "top", fontWeight: 600, color: colors.gray }}>{d.likely_human_rating}</td>
-                        <td style={{ padding: "12px 14px", verticalAlign: "top", lineHeight: 1.5, color: "#374151" }}>{d.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Section>
-          )}
 
           {/* Ethical Concerns */}
           <Section title="Ethical Concerns" colors={colors}>
