@@ -33,15 +33,28 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', user.id)
       .single()
-      .then(({ data }) => {
-        setProfile(data ?? null)
-        if (data) {
-          fetch('/api/update-last-accessed', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id }),
-          }).catch(err => console.error('Failed to update last accessed:', err))
+      .then(({ data, error }) => {
+        if (error && error.code === 'PGRST116') {
+          // Row not found - this is expected for new users
+          console.log('Profile not found for user, creating empty profile object')
+          setProfile({ id: user.id, email: user.email, agreements_accepted: false })
+        } else if (error) {
+          console.error('Error fetching profile:', error)
+          setProfile(null)
+        } else {
+          setProfile(data ?? null)
+          if (data) {
+            fetch('/api/update-last-accessed', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id }),
+            }).catch(err => console.error('Failed to update last accessed:', err))
+          }
         }
+      })
+      .catch(err => {
+        console.error('Unexpected error fetching profile:', err)
+        setProfile(null)
       })
   }, [user])
 

@@ -140,7 +140,7 @@ export default function Agreements() {
     }
   }
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" }}>
         <div style={{ textAlign: 'center' }}>
