@@ -367,10 +367,12 @@ export default function AdminHistory() {
             <div>
               ${statements.map(stmt => {
                 const evidenceText = (stmt.evidence || []).map(e => `${e.timestamp} "${e.quote}"`).join(' · ')
+                const ratingColor = stmt.rating === 'Proficient' ? '#78b3e0' : stmt.rating === 'Sufficient' ? '#fcd34d' : stmt.rating === 'Not Quite Sufficient' ? '#fed7aa' : '#fee2e2'
                 return `
                   <div class="statement-item">
                     <div class="statement-header">
                       <span class="statement-code">${stmt.code}</span>
+                      <span style="display: inline-block; padding: 3px 8px; background: ${ratingColor}; color: #0f1c3a; font-weight: 600; font-size: 10px; border-radius: 3px; text-transform: uppercase;">${stmt.rating || 'Not Rated'}</span>
                     </div>
                     <div class="statement-title">${stmt.title || stmt.statement_title || ''}</div>
                     <div style="font-size: 12px; color: #0f1c3a; line-height: 1.5; margin-bottom: 8px;">
@@ -538,28 +540,29 @@ export default function AdminHistory() {
             background: ${passStatus ? '#f0fdf4' : '#fef2f2'};
             border: 2px solid ${passStatus ? '#86efac' : '#fca5a5'};
             border-radius: 8px;
-            padding: 28px;
-            margin-bottom: 32px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
             gap: 24px;
             align-items: center;
             width: 100%;
+            justify-content: space-between;
           }
           .score-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             color: #7C7E7F;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
           }
           .score-value {
-            font-size: 48px;
+            font-size: 32px;
             font-weight: 700;
             color: #00205B;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
+            line-height: 1;
           }
           .score-threshold {
-            font-size: 11px;
+            font-size: 10px;
             color: #7C7E7F;
           }
           .badge {
@@ -775,32 +778,14 @@ export default function AdminHistory() {
           <div class="header">
             <div class="header-meta">DOERR INSTITUTE FOR NEW LEADERS · COACHRICE LEVEL 1</div>
             <h1 class="header-title">ACC Performance Evaluation</h1>
-            <div class="header-details">
-              <div>
-                <div class="detail-label">Coach</div>
-                <div>${coach}</div>
-              </div>
-              <div>
-                <div class="detail-label">Date</div>
-                <div>${dateStr}</div>
-              </div>
-              <div>
-                <div class="detail-label">Rubric</div>
-                <div>ICF ACC BARS (${assessment.assessor_type === '2025' ? 'Nov 2025' : 'March 2024'})</div>
-              </div>
-            </div>
-            ${assessment.transcript_filename ? `<div style="margin-top: 12px;"><div class="detail-label">Transcript</div><div>${assessment.transcript_filename}</div></div>` : ''}
           </div>
 
           <div class="score-box">
             <div>
               <div class="score-label">FINAL SCORE</div>
               <div class="score-value">${(evaluation.score_calculation?.final_score ?? 0).toFixed(2)}</div>
-              <div class="score-threshold">Pass threshold: 3.40</div>
             </div>
-            <div style="text-align: right;">
-              <div class="badge">${passStatus ? '✓ PASS' : 'BELOW PASSING'}</div>
-            </div>
+            <div class="badge">${passStatus ? '✓ PASS' : 'BELOW PASSING'}</div>
           </div>
 
           <section>
