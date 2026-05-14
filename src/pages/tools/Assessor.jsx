@@ -284,8 +284,8 @@ export default function Assessor() {
   const reportRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Bulk mode state
-  const [bulkMode, setBulkMode] = useState(false);
+  // Bulk mode state (always true for this assessor version)
+  const [bulkMode] = useState(true);
   const [bulkQueue, setBulkQueue] = useState([]);
   const [bulkResults, setBulkResults] = useState([]);
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -1729,7 +1729,7 @@ export default function Assessor() {
           </div>
 
           <button
-            onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); setStage("input"); }}
+            onClick={() => { setBulkQueue([]); setBulkResults([]); setStage("input"); }}
             style={{
               padding: "14px 32px",
               fontSize: "14px",
@@ -1767,166 +1767,11 @@ export default function Assessor() {
                 </p>
               </div>
               <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                <button
-                  onClick={() => { setBulkMode(false); setBulkQueue([]); setBulkResults([]); }}
-                  style={{
-                    padding: "8px 16px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    backgroundColor: !bulkMode ? colors.navy : colors.border,
-                    color: !bulkMode ? colors.white : colors.gray,
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Single
-                </button>
-                <button
-                  onClick={() => { setBulkMode(true); setTranscript(""); setFilename(""); }}
-                  style={{
-                    padding: "8px 16px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    backgroundColor: bulkMode ? colors.navy : colors.border,
-                    color: bulkMode ? colors.white : colors.gray,
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Bulk
-                </button>
               </div>
             </div>
           </div>
 
-          {!bulkMode && (
-          <>
-          {/* Single file upload area */}
-          <div
-            style={{
-              backgroundColor: colors.white,
-              border: `2px dashed ${colors.border}`,
-              borderRadius: "8px",
-              padding: "40px",
-              textAlign: "center",
-              marginBottom: "24px",
-              cursor: "pointer",
-              transition: "border-color 0.2s",
-            }}
-            onClick={() => fileInputRef.current?.click()}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = colors.softBlue)}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = colors.border)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = colors.softBlue;
-              e.currentTarget.style.backgroundColor = "#f9fafb";
-            }}
-            onDragLeave={(e) => {
-              e.currentTarget.style.borderColor = colors.border;
-              e.currentTarget.style.backgroundColor = colors.white;
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = colors.border;
-              e.currentTarget.style.backgroundColor = colors.white;
-              const file = e.dataTransfer.files?.[0];
-              if (file) {
-                const event = { target: { files: [file] } };
-                handleFileUpload(event);
-              }
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt"
-              onChange={handleFileUpload}
-              style={{ display: "none" }}
-            />
-            <div style={{ fontSize: "16px", fontWeight: 600, color: colors.navy, marginBottom: "4px" }}>
-              {filename ? filename : "Click to upload PDF or .txt file"}
-            </div>
-            <div style={{ fontSize: "13px", color: colors.gray }}>
-              {filename ? "File loaded — extracted text appears below" : "PDF text extraction happens in your browser"}
-            </div>
-          </div>
-
-          <div style={{ textAlign: "center", color: colors.gray, fontSize: "13px", margin: "16px 0", letterSpacing: "1px" }}>
-            — OR PASTE BELOW —
-          </div>
-
-          <textarea
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            placeholder="Paste the full coaching session transcript here. Timestamps in any common format are accepted — (MM:SS), [HH:MM:SS], 12:34, etc. Sessions without timestamps will be referenced by speaker turn instead."
-            style={{
-              width: "100%",
-              minHeight: "260px",
-              padding: "16px",
-              fontSize: "14px",
-              fontFamily: fontStack,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "8px",
-              resize: "vertical",
-              backgroundColor: colors.white,
-              color: "#1a1a1a",
-              lineHeight: 1.6,
-              boxSizing: "border-box",
-            }}
-          />
-
-          {transcript.trim() && (
-            <div style={{ marginTop: "12px", fontSize: "13px", color: colors.gray }}>
-              {transcript.trim().split(/\s+/).length.toLocaleString()} words ready for evaluation.
-            </div>
-          )}
-
-          {error && (
-            <div
-              style={{
-                marginTop: "16px",
-                padding: "12px 16px",
-                backgroundColor: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                borderRadius: "6px",
-                color: "#991B1B",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-              }}
-            >
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div style={{ marginTop: "32px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-            <button
-              onClick={() => transcript.trim() && setStage("preview")}
-              disabled={!transcript.trim()}
-              style={{
-                backgroundColor: transcript.trim() ? colors.navy : colors.border,
-                color: colors.white,
-                border: "none",
-                padding: "14px 32px",
-                fontSize: "14px",
-                fontWeight: 600,
-                fontFamily: fontStack,
-                letterSpacing: "0.5px",
-                cursor: transcript.trim() ? "pointer" : "not-allowed",
-                borderRadius: "6px",
-                transition: "background-color 0.2s",
-              }}
-            >
-              REVIEW TRANSCRIPT →
-            </button>
-          </div>
-          </>
-          )}
-
-          {bulkMode && (
+          {
           <div>
             <div style={{
               border: `2px dashed ${colors.border}`,
@@ -2035,7 +1880,6 @@ export default function Assessor() {
               </button>
             </div>
           </div>
-          )}
         </div>
       </Layout>
     );
