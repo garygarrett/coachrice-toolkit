@@ -343,19 +343,22 @@ export default function AdminHistory() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            box-sizing: border-box;
           }
           body {
             margin: 0;
-            padding: 24px;
+            padding: 48px;
             font-family: 'Montserrat', sans-serif;
             background: white;
             color: #0f1c3a;
             line-height: 1.6;
+            font-size: 13px;
           }
           .container {
             max-width: 900px;
             margin: 0 auto;
             background: white;
+            width: 100%;
           }
           .header {
             border-bottom: 4px solid #00205B;
@@ -382,6 +385,7 @@ export default function AdminHistory() {
             gap: 24px;
             font-size: 13px;
             color: #7C7E7F;
+            width: 100%;
           }
           .detail-label {
             font-size: 11px;
@@ -399,6 +403,7 @@ export default function AdminHistory() {
             grid-template-columns: 1fr 1fr;
             gap: 24px;
             align-items: center;
+            width: 100%;
           }
           .score-label {
             font-size: 11px;
@@ -425,11 +430,11 @@ export default function AdminHistory() {
             font-weight: 700;
             font-size: 14px;
             letter-spacing: 1px;
-            text-align: right;
           }
           section {
             margin-bottom: 32px;
             page-break-inside: avoid;
+            width: 100%;
           }
           .section-header {
             display: flex;
@@ -438,6 +443,7 @@ export default function AdminHistory() {
             border-bottom: 2px solid #00205B;
             padding-bottom: 8px;
             margin-bottom: 16px;
+            width: 100%;
           }
           .section-title {
             font-size: 16px;
@@ -449,8 +455,9 @@ export default function AdminHistory() {
           .section-subtitle {
             font-size: 12px;
             color: #7C7E7F;
-            margin-top: 3px;
+            margin-top: 8px;
             font-style: italic;
+            width: 100%;
           }
           table {
             width: 100%;
@@ -460,6 +467,7 @@ export default function AdminHistory() {
             border: 1px solid #e2e6ec;
             border-radius: 6px;
             overflow: hidden;
+            table-layout: fixed;
           }
           thead tr {
             background: #00205B;
@@ -474,11 +482,13 @@ export default function AdminHistory() {
           }
           th:last-child {
             text-align: right;
-            width: 180px;
           }
           td {
             padding: 12px 16px;
             border-bottom: 1px solid #e2e6ec;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
           }
           tbody tr:last-child td {
             border-bottom: none;
@@ -486,10 +496,12 @@ export default function AdminHistory() {
           .observed-yes {
             color: #16a34a;
             font-weight: 600;
+            text-align: right;
           }
           .observed-no {
             color: #dc2626;
             font-weight: 600;
+            text-align: right;
           }
           .note-box {
             margin-top: 12px;
@@ -497,6 +509,9 @@ export default function AdminHistory() {
             background: #f9fafc;
             border-left: 4px solid #ff8200;
             border-radius: 4px;
+            width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
           }
           .note-label {
             font-size: 11px;
@@ -509,18 +524,25 @@ export default function AdminHistory() {
             color: #6b7a99;
             font-style: italic;
             line-height: 1.5;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
           }
           .statement-item {
             margin-bottom: 16px;
-            padding: 12px;
+            padding: 16px;
             border-left: 4px solid #69cce6;
             border-radius: 4px;
-            background: #f0f2f5;
+            background: #f9fafc;
+            border: 1px solid #e2e6ec;
+            width: 100%;
+            page-break-inside: avoid;
           }
           .statement-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            width: 100%;
           }
           .statement-code {
             font-weight: 600;
@@ -533,9 +555,13 @@ export default function AdminHistory() {
             font-size: 13px;
           }
           .statement-title {
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: 600;
             margin-bottom: 8px;
-            color: #0f1c3a;
+            color: #00205B;
+            width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
           }
           .statement-rating {
             font-size: 11px;
@@ -543,19 +569,50 @@ export default function AdminHistory() {
             font-weight: 500;
             margin-bottom: 8px;
           }
+          .statement-content {
+            font-size: 12px;
+            color: #0f1c3a;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+          }
+          .statement-content strong {
+            color: #00205B;
+            font-weight: 600;
+          }
           .strength-item, .suggestion-item {
             margin-bottom: 16px;
+            padding: 12px 16px;
+            background: #f9fafc;
+            border-left: 4px solid #69cce6;
+            border-radius: 4px;
+            width: 100%;
+            page-break-inside: avoid;
           }
           .item-title {
             font-weight: 600;
             color: #00205B;
             font-size: 13px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
           }
           .item-text {
             font-size: 12px;
             color: #0f1c3a;
             line-height: 1.5;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+          }
+          .competency-section {
+            background: #f9fafc;
+            border: 1px solid #e2e6ec;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 24px;
+            page-break-inside: avoid;
+            width: 100%;
           }
           .footer {
             margin-top: 48px;
@@ -564,6 +621,7 @@ export default function AdminHistory() {
             font-size: 10px;
             color: #7C7E7F;
             text-align: center;
+            width: 100%;
           }
           @media print {
             body { margin: 0; padding: 48px; }
