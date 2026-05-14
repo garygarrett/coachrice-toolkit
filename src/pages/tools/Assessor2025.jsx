@@ -332,7 +332,7 @@ export default function Assessor2025() {
   const [customDownloadFilename, setCustomDownloadFilename] = useState("");
   const [error, setError] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [systemPrompt, setSystemPrompt] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [showApiKey, setShowApiKey] = useState(false);
   const [usageLog, setUsageLog] = useState([]);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);

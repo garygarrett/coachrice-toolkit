@@ -276,6 +276,7 @@ export default function Assessor() {
   const [customDownloadFilename, setCustomDownloadFilename] = useState("");
   const [error, setError] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
   const [showApiKey, setShowApiKey] = useState(false);
   const [usageLog, setUsageLog] = useState([]);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
@@ -341,6 +342,17 @@ export default function Assessor() {
       }
     }
     loadApiKey()
+  }, []);
+
+  // Load system prompt from Supabase
+  useEffect(() => {
+    async function loadSystemPrompt() {
+      const { data } = await supabase.from('config').select('key, value').eq('key', 'ai_assessor_prompt')
+      if (data && data.length > 0) {
+        setSystemPrompt(data[0].value)
+      }
+    }
+    loadSystemPrompt()
   }, []);
 
   const handleFileUpload = async (e) => {
@@ -435,7 +447,7 @@ export default function Assessor() {
       body: JSON.stringify({
         model: "claude-opus-4-7",
         max_tokens: 8000,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
