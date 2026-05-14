@@ -63,14 +63,21 @@ export default function Agreements() {
   const [checked, setChecked] = useState({})
   const [expanded, setExpanded] = useState(null)
 
+  // Debug logging
+  if (!loading) {
+    console.log('Agreements page state:', { user: user?.id, profile, loading })
+  }
+
   // If not logged in, redirect to login
   if (!loading && !user) {
+    console.log('No user, redirecting to login')
     navigate('/login', { replace: true })
     return
   }
 
   // If already accepted, redirect to dashboard
-  if (!loading && user && profile?.agreements_accepted) {
+  if (!loading && user && profile && profile.agreements_accepted) {
+    console.log('Agreements already accepted, redirecting to dashboard')
     navigate('/dashboard', { replace: true })
     return
   }
@@ -86,7 +93,10 @@ export default function Agreements() {
   };
 
   const handleComplete = async () => {
+    console.log('handleComplete called, user:', user?.id)
+
     if (!user || !user.id) {
+      console.error('User or user.id missing:', user)
       setError('Auth session missing. Please log in again.')
       return
     }
@@ -95,20 +105,37 @@ export default function Agreements() {
     setError(null)
 
     try {
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ agreements_accepted: true, agreements_accepted_at: new Date().toISOString() })
-        .eq('id', user.id)
+      // First check if user profile exists
+      if (!profile) {
+        console.log('No profile found, this might be a new user')
+        // User might not have a profile row yet, try to create one
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([{ id: user.id, email: user.email, agreements_accepted: true, agreements_accepted_at: new Date().toISOString() }])
+          .select()
 
-      if (updateError) {
-        console.error('Update error:', updateError)
-        throw updateError
+        if (insertError && !insertError.message.includes('duplicate')) {
+          console.error('Insert error:', insertError)
+          throw insertError
+        }
+      } else {
+        // Profile exists, just update it
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ agreements_accepted: true, agreements_accepted_at: new Date().toISOString() })
+          .eq('id', user.id)
+
+        if (updateError) {
+          console.error('Update error:', updateError)
+          throw updateError
+        }
       }
 
+      console.log('Successfully saved agreements')
       navigate('/dashboard', { replace: true })
     } catch (err) {
       console.error('Error accepting agreements:', err)
-      setError('Failed to save your acceptance. Please try again.')
+      setError(`Failed to save your acceptance: ${err.message || 'Unknown error'}. Please try again.`)
       setSubmitting(false)
     }
   }
