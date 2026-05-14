@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
 import { AssessmentReportDisplay, generateAssessmentPDF } from '../components/AssessmentReport'
+import { exportAssessmentsToExcel } from '../utils/exportAssessments'
 
 const COLORS = {
   navy: '#00205B',
@@ -689,7 +690,31 @@ export default function AdminHistory() {
         {/* Internal Assessments View */}
         {view === 'assessments' && (
           <div style={s.section}>
-            <h2 style={s.sectionTitle}>Internal Assessor Evaluations</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={s.sectionTitle}>Internal Assessor Evaluations</h2>
+              {internalAssessments.length > 0 && (
+                <button
+                  onClick={() => exportAssessmentsToExcel(internalAssessments)}
+                  style={{
+                    padding: '10px 16px',
+                    background: COLORS.navy,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontFamily: 'Montserrat, sans-serif',
+                    letterSpacing: '0.3px',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#001a3f'}
+                  onMouseLeave={(e) => e.target.style.background = COLORS.navy}
+                >
+                  📊 Export to Excel
+                </button>
+              )}
+            </div>
 
           {internalAssessments.length === 0 ? (
             <p style={s.empty}>No internal assessments yet.</p>
