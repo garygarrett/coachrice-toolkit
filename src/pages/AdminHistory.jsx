@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
-import { AssessmentReportDisplay, generateAssessmentPDF } from '../components/AssessmentReport'
+import { AssessmentReportDisplay } from '../components/AssessmentReport'
+import { ProfessionalAssessmentReport } from '../components/ProfessionalAssessmentReport'
 import { exportAssessmentsToExcel } from '../utils/exportAssessments'
 
 const COLORS = {
@@ -320,14 +321,6 @@ export default function AdminHistory() {
     }
   }
 
-  function downloadAssessmentPDF(assessment) {
-    try {
-      generateAssessmentPDF(assessment)
-    } catch (err) {
-      console.error('PDF generation failed:', err)
-      alert('PDF download failed. Please try again.')
-    }
-  }
 
   async function deleteToolSubmission(toolType, submissionId) {
     const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat' }[toolType] || toolType
@@ -744,19 +737,13 @@ export default function AdminHistory() {
 
                   {expandedItems[`assessment-${assessment.id}`] && assessment.assessment_data && (
                     <div style={{ ...s.itemDetails, maxHeight: '1000px', overflowY: 'auto' }}>
-                      <AssessmentReportDisplay assessment={assessment} />
+                      <ProfessionalAssessmentReport assessment={assessment} />
 
                       {/* Action Buttons */}
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
                         <button
-                          onClick={() => downloadAssessmentPDF(assessment)}
-                          style={{ ...s.deleteBtn, background: COLORS.navy, border: 'none', color: '#fff', marginRight: 'auto', padding: '10px 20px', borderRadius: '6px' }}
-                        >
-                          📄 Download PDF
-                        </button>
-                        <button
                           onClick={() => deleteAssessment(assessment.id)}
-                          style={s.deleteBtn}
+                          style={{ ...s.deleteBtn, marginLeft: 'auto' }}
                         >
                           🗑️ Delete
                         </button>
