@@ -330,6 +330,12 @@ export default function AdminHistory() {
     const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     const passStatus = evaluation.score_calculation?.result === 'Pass'
 
+    // Debug: log what we have
+    console.log('Assessment data:', evaluation)
+    console.log('Behavioral statements:', evaluation.behavioral_statements)
+    console.log('Strengths:', evaluation.strengths)
+    console.log('Suggestions:', evaluation.suggestions)
+
     const competencyTitles = {
       3: 'Establishes and Maintains Agreements',
       4: 'Cultivates Trust and Safety',
@@ -359,18 +365,21 @@ export default function AdminHistory() {
           </div>
           ${statements.length > 0 ? `
             <div>
-              ${statements.map(stmt => `
-                <div class="statement-item">
-                  <div class="statement-header">
-                    <span class="statement-code">${stmt.code}</span>
-                    <span class="statement-score">${(stmt.score ?? 0).toFixed(2)}</span>
+              ${statements.map(stmt => {
+                const evidenceText = (stmt.evidence || []).map(e => `${e.timestamp} "${e.quote}"`).join(' · ')
+                return `
+                  <div class="statement-item">
+                    <div class="statement-header">
+                      <span class="statement-code">${stmt.code}</span>
+                    </div>
+                    <div class="statement-title">${stmt.title || stmt.statement_title || ''}</div>
+                    <div style="font-size: 12px; color: #0f1c3a; line-height: 1.5; margin-bottom: 8px;">
+                      <strong>EVIDENCE:</strong> ${evidenceText}
+                    </div>
+                    ${stmt.contra_evidence ? `<div style="font-size: 12px; color: #991B1B; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e2e6ec;"><strong>CONTRA:</strong> ${stmt.contra_evidence}</div>` : ''}
                   </div>
-                  <div class="statement-title">${stmt.statement_title}</div>
-                  <div class="statement-rating">Rating: ${stmt.rating}</div>
-                  ${stmt.qualifiers && stmt.qualifiers.length > 0 ? `<div style="font-size: 11px; color: #7C7E7F; margin-bottom: 8px;"><strong>Qualifiers:</strong> ${stmt.qualifiers.join(', ')}</div>` : ''}
-                  ${stmt.justification ? `<div class="statement-content">${stmt.justification}</div>` : ''}
-                </div>
-              `).join('')}
+                `
+              }).join('')}
             </div>
           ` : ''}
         </section>
@@ -385,8 +394,13 @@ export default function AdminHistory() {
         <div>
           ${evaluation.strengths.map(strength => `
             <div class="strength-item">
-              <div class="item-title">${strength.code} · ${strength.statement_title}</div>
-              <div class="item-text">${strength.explanation}</div>
+              <div style="font-size: 10px; color: #6b7a99; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                ${strength.competency_name || ''} · ${strength.code || ''}
+              </div>
+              <div style="font-size: 13px; font-weight: 600; color: #00205B; margin-bottom: 8px;">
+                ${strength.statement_title || ''}
+              </div>
+              <div class="item-text">${strength.explanation || ''}</div>
             </div>
           `).join('')}
         </div>
@@ -401,8 +415,21 @@ export default function AdminHistory() {
         <div>
           ${evaluation.suggestions.map(suggestion => `
             <div class="suggestion-item">
-              <div class="item-title">${suggestion.code} · ${suggestion.statement_title}</div>
-              <div class="item-text">${suggestion.missed_opportunity}</div>
+              <div style="font-size: 10px; color: #6b7a99; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                ${suggestion.competency_name || ''} · ${suggestion.code || ''}
+              </div>
+              <div style="font-size: 13px; font-weight: 600; color: #00205B; margin-bottom: 8px;">
+                ${suggestion.statement_title || ''}
+              </div>
+              <div class="item-text">${suggestion.missed_opportunity || ''}</div>
+              ${suggestion.example_prompts && suggestion.example_prompts.length > 0 ? `
+                <div style="font-size: 12px; color: #0f1c3a; margin-top: 8px;">
+                  <strong>Example prompts:</strong>
+                  <ul style="margin: 4px 0 0; padding-left: 18px;">
+                    ${suggestion.example_prompts.map(prompt => `<li>${prompt}</li>`).join('')}
+                  </ul>
+                </div>
+              ` : ''}
             </div>
           `).join('')}
         </div>
