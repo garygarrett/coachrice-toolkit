@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
-import { AssessmentReportDisplay, generateAssessmentPDF } from '../components/AssessmentReport'
+import { AssessmentReportDisplay } from '../components/AssessmentReport'
 import { exportAssessmentsToExcel } from '../utils/exportAssessments'
 
 const COLORS = {
@@ -321,12 +321,341 @@ export default function AdminHistory() {
   }
 
   function downloadAssessmentPDF(assessment) {
-    try {
-      generateAssessmentPDF(assessment)
-    } catch (err) {
-      console.error('PDF generation failed:', err)
-      alert('PDF download failed. Please try again.')
-    }
+    const printWindow = window.open('', '', 'width=900,height=1200')
+    const doc = printWindow.document
+
+    // Write the HTML structure matching the history view
+    const evaluation = assessment.assessment_data || {}
+    const coach = evaluation.coach_identifier || 'Submitted Coach'
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    const passStatus = evaluation.score_calculation?.result === 'Pass'
+
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Assessment Report</title>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Montserrat', sans-serif;
+            background: white;
+            color: #0f1c3a;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+          }
+          .header {
+            border-bottom: 4px solid #00205B;
+            padding-bottom: 20px;
+            margin-bottom: 32px;
+          }
+          .header-meta {
+            font-size: 10px;
+            letter-spacing: 2.5px;
+            color: #7C7E7F;
+            font-weight: 600;
+            margin-bottom: 8px;
+          }
+          .header-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00205B;
+            margin: 0 0 16px;
+            letter-spacing: -0.5px;
+          }
+          .header-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            font-size: 13px;
+            color: #7C7E7F;
+          }
+          .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #00205B;
+            margin-bottom: 4px;
+          }
+          .score-box {
+            background: ${passStatus ? '#f0fdf4' : '#fef2f2'};
+            border: 2px solid ${passStatus ? '#86efac' : '#fca5a5'};
+            border-radius: 8px;
+            padding: 28px;
+            margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: center;
+          }
+          .score-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #7C7E7F;
+            margin-bottom: 8px;
+          }
+          .score-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #00205B;
+            margin-bottom: 8px;
+          }
+          .score-threshold {
+            font-size: 11px;
+            color: #7C7E7F;
+          }
+          .badge {
+            display: inline-block;
+            background: ${passStatus ? '#16a34a' : '#dc2626'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-align: right;
+          }
+          section {
+            margin-bottom: 32px;
+            page-break-inside: avoid;
+          }
+          .section-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            border-bottom: 2px solid #00205B;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+          }
+          .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #00205B;
+            margin: 0;
+            letter-spacing: -0.2px;
+          }
+          .section-subtitle {
+            font-size: 12px;
+            color: #7C7E7F;
+            margin-top: 3px;
+            font-style: italic;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e6ec;
+            border-radius: 6px;
+            overflow: hidden;
+          }
+          thead tr {
+            background: #00205B;
+            color: white;
+          }
+          th {
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 1px;
+          }
+          th:last-child {
+            text-align: right;
+            width: 180px;
+          }
+          td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e6ec;
+          }
+          tbody tr:last-child td {
+            border-bottom: none;
+          }
+          .observed-yes {
+            color: #16a34a;
+            font-weight: 600;
+          }
+          .observed-no {
+            color: #dc2626;
+            font-weight: 600;
+          }
+          .note-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafc;
+            border-left: 4px solid #ff8200;
+            border-radius: 4px;
+          }
+          .note-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #00205B;
+            margin-bottom: 6px;
+          }
+          .note-text {
+            font-size: 12px;
+            color: #6b7a99;
+            font-style: italic;
+            line-height: 1.5;
+          }
+          .statement-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            border-left: 4px solid #69cce6;
+            border-radius: 4px;
+            background: #f0f2f5;
+          }
+          .statement-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+          }
+          .statement-code {
+            font-weight: 600;
+            color: #00205B;
+            font-size: 13px;
+          }
+          .statement-score {
+            font-weight: 600;
+            color: #00205B;
+            font-size: 13px;
+          }
+          .statement-title {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #0f1c3a;
+          }
+          .statement-rating {
+            font-size: 11px;
+            color: #7C7E7F;
+            font-weight: 500;
+            margin-bottom: 8px;
+          }
+          .strength-item, .suggestion-item {
+            margin-bottom: 16px;
+          }
+          .item-title {
+            font-weight: 600;
+            color: #00205B;
+            font-size: 13px;
+            margin-bottom: 4px;
+          }
+          .item-text {
+            font-size: 12px;
+            color: #0f1c3a;
+            line-height: 1.5;
+          }
+          .footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e6ec;
+            font-size: 10px;
+            color: #7C7E7F;
+            text-align: center;
+          }
+          @media print {
+            body { margin: 0; padding: 48px; }
+            section { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="header-meta">DOERR INSTITUTE FOR NEW LEADERS · COACHRICE LEVEL 1</div>
+            <h1 class="header-title">ACC Performance Evaluation</h1>
+            <div class="header-details">
+              <div>
+                <div class="detail-label">Coach</div>
+                <div>${coach}</div>
+              </div>
+              <div>
+                <div class="detail-label">Date</div>
+                <div>${dateStr}</div>
+              </div>
+              <div>
+                <div class="detail-label">Rubric</div>
+                <div>ICF ACC BARS (${assessment.assessor_type === '2025' ? 'Nov 2025' : 'March 2024'})</div>
+              </div>
+            </div>
+            ${assessment.transcript_filename ? `<div style="margin-top: 12px;"><div class="detail-label">Transcript</div><div>${assessment.transcript_filename}</div></div>` : ''}
+          </div>
+
+          <div class="score-box">
+            <div>
+              <div class="score-label">FINAL SCORE</div>
+              <div class="score-value">${(evaluation.score_calculation?.final_score ?? 0).toFixed(2)}</div>
+              <div class="score-threshold">Pass threshold: 3.40</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="badge">${passStatus ? '✓ PASS' : 'BELOW PASSING'}</div>
+            </div>
+          </div>
+
+          <section>
+            <div class="section-header">
+              <h2 class="section-title">1. Demonstrates Ethical Practice</h2>
+            </div>
+            <p class="section-subtitle">Understands and consistently applies coaching ethics and standards of coaching.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>QUALIFIER</th>
+                  <th>OBSERVED</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1. Coach demonstrates alignment with the ICF Code of Ethics.</td>
+                  <td class="${evaluation.ethical_practice?.icf_code_alignment === 'Observed' ? 'observed-yes' : 'observed-no'}">${evaluation.ethical_practice?.icf_code_alignment}</td>
+                </tr>
+                <tr>
+                  <td>2. Coach demonstrates consistent alignment with the role of "coach."</td>
+                  <td class="${evaluation.ethical_practice?.coach_role_alignment === 'Observed' ? 'observed-yes' : 'observed-no'}">${evaluation.ethical_practice?.coach_role_alignment}</td>
+                </tr>
+              </tbody>
+            </table>
+            ${evaluation.ethical_practice?.icf_code_alignment === 'Not Observed' && evaluation.ethical_practice?.icf_code_alignment_note ? `
+              <div class="note-box">
+                <div class="note-label">Rationale: ICF Code of Ethics Alignment</div>
+                <div class="note-text">${evaluation.ethical_practice.icf_code_alignment_note}</div>
+              </div>
+            ` : ''}
+            ${evaluation.ethical_practice?.coach_role_alignment === 'Not Observed' && evaluation.ethical_practice?.coach_role_alignment_note ? `
+              <div class="note-box">
+                <div class="note-label">Rationale: Coach Role Alignment</div>
+                <div class="note-text">${evaluation.ethical_practice.coach_role_alignment_note}</div>
+              </div>
+            ` : ''}
+          </section>
+
+          <footer class="footer">
+            <div>CoachRICE Internal Assessor Report</div>
+            <div>Generated on ${dateStr}</div>
+          </footer>
+        </div>
+      </body>
+      </html>
+    `)
+
+    doc.close()
+
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
   }
 
   async function deleteToolSubmission(toolType, submissionId) {
