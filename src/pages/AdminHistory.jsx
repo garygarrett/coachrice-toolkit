@@ -1275,23 +1275,22 @@ export default function AdminHistory() {
 
                   {expandedItems[`assessment-${assessment.id}`] && assessment.assessment_data && (
                     <div style={{ ...s.itemDetails, maxHeight: '1000px', overflowY: 'auto' }}>
-                      <AssessmentReportDisplay assessment={assessment} />
-
                       {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${COLORS['gray-border']}` }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', paddingBottom: '16px', borderBottom: `1px solid ${COLORS['gray-border']}` }}>
                         <button
                           onClick={() => downloadAssessmentPDF(assessment)}
-                          style={{ ...s.deleteBtn, background: COLORS.navy, border: 'none', color: '#fff', marginRight: 'auto', padding: '10px 20px', borderRadius: '6px' }}
+                          style={{ background: COLORS.navy, border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
                         >
                           📄 Download PDF
                         </button>
                         <button
                           onClick={() => deleteAssessment(assessment.id)}
-                          style={s.deleteBtn}
+                          style={{ ...s.deleteBtn, marginLeft: 'auto' }}
                         >
                           🗑️ Delete
                         </button>
                       </div>
+                      <AssessmentReportDisplay assessment={assessment} />
                     </div>
                   )}
                 </div>

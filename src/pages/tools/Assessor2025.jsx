@@ -1479,7 +1479,7 @@ export default function Assessor2025() {
         competency_8_average: round2(compAverages[8]),
         raw_score: round2(rawScore),
         final_score: round2(finalScore),
-        result: finalScore >= 3.4 ? "Pass" : "Below Passing Standard",
+        result: (finalScore >= 3.4 && evaluation.ethical_practice?.icf_code_alignment === 'Observed' && evaluation.ethical_practice?.coach_role_alignment === 'Observed') ? "Pass" : "Below Passing Standard",
       },
     };
   };
