@@ -537,12 +537,27 @@ export function generateAssessmentPDF(assessment) {
     doc.text('OBSERVED', PAGE_W - MARGIN_X - 10, y + 14, { align: 'right' })
     y += 22
 
-    rows.forEach(([qualifier, observed]) => {
-      ensureSpace(28)
+    rows.forEach(([qualifier, observed], idx) => {
+      let rowHeight = 26
+      let noteText = ''
+
+      // Get note based on which qualifier this is
+      if (idx === 0 && ep.icf_code_alignment_note) {
+        noteText = ep.icf_code_alignment_note
+      } else if (idx === 1 && ep.coach_role_alignment_note) {
+        noteText = ep.coach_role_alignment_note
+      }
+
+      if (noteText) {
+        const noteLines = doc.splitTextToSize(noteText, CONTENT_W - 20)
+        rowHeight = 26 + (noteLines.length * 7) + 8
+      }
+
+      ensureSpace(rowHeight)
       doc.setFillColor(255, 255, 255)
-      doc.rect(MARGIN_X, y, CONTENT_W, 26, 'F')
+      doc.rect(MARGIN_X, y, CONTENT_W, rowHeight, 'F')
       doc.setDrawColor(...LIGHT_GRAY)
-      doc.line(MARGIN_X, y + 26, PAGE_W - MARGIN_X, y + 26)
+      doc.line(MARGIN_X, y + rowHeight, PAGE_W - MARGIN_X, y + rowHeight)
 
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
@@ -555,7 +570,16 @@ export function generateAssessmentPDF(assessment) {
       doc.setTextColor(...obsColor)
       doc.text(observed, PAGE_W - MARGIN_X - 10, y + 16, { align: 'right' })
 
-      y += 26
+      // Add note if present
+      if (noteText) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(8)
+        doc.setTextColor(...GRAY)
+        const noteLines = doc.splitTextToSize(noteText, CONTENT_W - 20)
+        doc.text(noteLines, MARGIN_X + 10, y + 26 + 4)
+      }
+
+      y += rowHeight
     })
     y += 14
   }
