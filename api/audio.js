@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { Anthropic } from '@anthropic-ai/sdk'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '100mb',
-    },
-  },
-}
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const TEMP_DIR = path.join(__dirname, '..', '.tmp-audio-uploads')
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -21,13 +20,49 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, serviceRoleKey)
   const anthropic = new Anthropic({ apiKey: anthropicKey })
 
-  const { action, userId, transcriptId, sessionId } = req.query
+  const { action, userId, transcriptId, sessionId, uploadSessionId, chunkIndex, totalChunks } = req.query
 
   if (!action) {
     return res.status(400).json({ error: 'action is required' })
   }
 
-  // TRANSCRIBE - Upload audio file and start transcription job
+  // UPLOAD CHUNK - Handle chunked audio file uploads
+  if (action === 'upload-chunk' && req.method === 'POST') {
+    if (!uploadSessionId || chunkIndex === undefined || !totalChunks) {
+      return res.status(400).json({ error: 'uploadSessionId, chunkIndex, and totalChunks are required' })
+    }
+
+    try {
+      const uploadDir = path.join(TEMP_DIR, uploadSessionId)
+
+      // Create temp directory if needed
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true })
+      }
+
+      // Clean up orphaned uploads (older than 1 hour)
+      cleanupOldUploads()
+
+      // Write chunk to disk
+      const chunkPath = path.join(uploadDir, `chunk-${chunkIndex}`)
+      fs.writeFileSync(chunkPath, req.body)
+
+      // Check if all chunks are received
+      const chunks = fs.readdirSync(uploadDir).filter(f => f.startsWith('chunk-')).length
+      const allReceived = chunks === parseInt(totalChunks)
+
+      return res.status(200).json({
+        chunkReceived: parseInt(chunkIndex) + 1,
+        totalChunks: parseInt(totalChunks),
+        allReceived,
+      })
+    } catch (error) {
+      console.error('Chunk upload error:', error)
+      return res.status(500).json({ error: error.message })
+    }
+  }
+
+  // TRANSCRIBE - Start transcription job with chunks or direct upload
   if (action === 'transcribe' && req.method === 'POST') {
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' })
@@ -57,9 +92,20 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'User not found' })
       }
 
-      // Get the audio file from request body (binary)
-      if (!req.body || !req.body.length) {
-        return res.status(400).json({ error: 'No audio file provided' })
+      // Get audio file - either from chunks or direct body
+      let audioBuffer
+      if (uploadSessionId) {
+        // Reassemble chunks
+        audioBuffer = reassembleChunks(uploadSessionId)
+        if (!audioBuffer) {
+          return res.status(400).json({ error: 'Chunks not ready or missing' })
+        }
+      } else {
+        // Direct upload
+        if (!req.body || !req.body.length) {
+          return res.status(400).json({ error: 'No audio file provided' })
+        }
+        audioBuffer = req.body
       }
 
       // Upload audio to AssemblyAI
@@ -68,8 +114,13 @@ export default async function handler(req, res) {
         headers: {
           'Authorization': assemblyAIKey,
         },
-        body: req.body,
+        body: audioBuffer,
       })
+
+      // Clean up temp files if chunked upload
+      if (uploadSessionId) {
+        cleanupUploadSession(uploadSessionId)
+      }
 
       if (!uploadResponse.ok) {
         const error = await uploadResponse.text()
@@ -401,6 +452,68 @@ Return only the JSON array, nothing else.`,
   }
 
   return res.status(400).json({ error: 'Invalid action' })
+}
+
+function reassembleChunks(uploadSessionId) {
+  try {
+    const uploadDir = path.join(TEMP_DIR, uploadSessionId)
+    if (!fs.existsSync(uploadDir)) {
+      return null
+    }
+
+    // Get all chunk files and sort by index
+    const chunkFiles = fs.readdirSync(uploadDir)
+      .filter(f => f.startsWith('chunk-'))
+      .sort((a, b) => {
+        const indexA = parseInt(a.split('-')[1])
+        const indexB = parseInt(b.split('-')[1])
+        return indexA - indexB
+      })
+
+    if (chunkFiles.length === 0) {
+      return null
+    }
+
+    // Combine chunks into single buffer
+    const buffers = chunkFiles.map(file => fs.readFileSync(path.join(uploadDir, file)))
+    return Buffer.concat(buffers)
+  } catch (error) {
+    console.error('Reassemble chunks error:', error)
+    return null
+  }
+}
+
+function cleanupUploadSession(uploadSessionId) {
+  try {
+    const uploadDir = path.join(TEMP_DIR, uploadSessionId)
+    if (fs.existsSync(uploadDir)) {
+      fs.rmSync(uploadDir, { recursive: true, force: true })
+    }
+  } catch (error) {
+    console.error('Cleanup upload session error:', error)
+  }
+}
+
+function cleanupOldUploads() {
+  try {
+    if (!fs.existsSync(TEMP_DIR)) {
+      return
+    }
+
+    const now = Date.now()
+    const maxAge = 60 * 60 * 1000 // 1 hour
+
+    const sessions = fs.readdirSync(TEMP_DIR)
+    sessions.forEach(sessionId => {
+      const sessionPath = path.join(TEMP_DIR, sessionId)
+      const stats = fs.statSync(sessionPath)
+      if (now - stats.mtimeMs > maxAge) {
+        fs.rmSync(sessionPath, { recursive: true, force: true })
+      }
+    })
+  } catch (error) {
+    console.error('Cleanup old uploads error:', error)
+  }
 }
 
 function formatTime(ms) {

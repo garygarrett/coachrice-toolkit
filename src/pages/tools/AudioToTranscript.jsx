@@ -18,7 +18,12 @@ const COLORS = {
 }
 
 const SUPPORTED_FORMATS = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/aac']
-const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
+const CHUNK_SIZE = 8 * 1024 * 1024 // 8MB chunks
+
+function generateUploadSessionId() {
+  return `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
 
 export default function AudioToTranscript() {
   const { user } = useAuth()
@@ -81,10 +86,47 @@ export default function AudioToTranscript() {
         setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
 
-      // Upload audio
-      const uploadRes = await fetch(`/api/audio?action=transcribe&userId=${user.id}`, {
+      // Handle chunked uploads for files > 10MB
+      let uploadSessionId = null
+      if (file.size > 10 * 1024 * 1024) {
+        // Use chunked upload
+        uploadSessionId = generateUploadSessionId()
+        const chunks = Math.ceil(file.size / CHUNK_SIZE)
+        setStatusMessage(`Uploading audio (chunk 1 of ${chunks})…`)
+
+        for (let i = 0; i < chunks; i++) {
+          const start = i * CHUNK_SIZE
+          const end = Math.min(start + CHUNK_SIZE, file.size)
+          const chunk = file.slice(start, end)
+
+          const chunkRes = await fetch(
+            `/api/audio?action=upload-chunk&uploadSessionId=${uploadSessionId}&chunkIndex=${i}&totalChunks=${chunks}`,
+            {
+              method: 'POST',
+              body: chunk,
+            }
+          )
+
+          if (!chunkRes.ok) {
+            const error = await chunkRes.json()
+            throw new Error(error.error || `Failed to upload chunk ${i + 1}`)
+          }
+
+          // Update status message for current chunk
+          if (chunks > 1) {
+            setStatusMessage(`Uploading audio (chunk ${i + 2} of ${chunks})…`)
+          }
+        }
+      }
+
+      // Start transcription (with chunks or direct upload)
+      const transcribeParams = uploadSessionId
+        ? `/api/audio?action=transcribe&userId=${user.id}&uploadSessionId=${uploadSessionId}`
+        : `/api/audio?action=transcribe&userId=${user.id}`
+
+      const uploadRes = await fetch(transcribeParams, {
         method: 'POST',
-        body: file,
+        body: uploadSessionId ? undefined : file,
       })
 
       if (!uploadRes.ok) {
