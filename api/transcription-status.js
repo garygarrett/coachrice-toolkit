@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { Anthropic } from '@anthropic-ai/sdk'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -7,12 +8,14 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const anthropicKey = process.env.VITE_ANTHROPIC_API_KEY
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !serviceRoleKey || !anthropicKey) {
     return res.status(500).json({ error: 'Server misconfiguration' })
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
+  const anthropic = new Anthropic({ apiKey: anthropicKey })
 
   // Fetch AssemblyAI key from Supabase config
   const { data: configData } = await supabase
@@ -75,31 +78,36 @@ export default async function handler(req, res) {
       // Collect all text for PII detection
       const allText = transcriptData.utterances.map(u => u.text).join('\n')
 
-      // Call detect-pii endpoint
+      // Detect PII using Claude
       let piiTerms = []
       try {
-        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
-        const piiDetectRes = await fetch(`${baseUrl}/api/detect-pii`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcriptText: allText }),
+        const piiResponse = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [
+            {
+              role: 'user',
+              content: `Given this transcript text, identify any potential PII: full names of people, company/organization names, institutions, universities, email addresses, phone numbers, and place names. Return ONLY a JSON array of exact strings found in the text to highlight. Be conservative - flag only clear identifiers, not common words. If no PII found, return an empty array [].
+
+Transcript:
+${allText}
+
+Return only the JSON array, nothing else.`,
+            },
+          ],
         })
 
-        if (piiDetectRes.ok) {
+        if (piiResponse.content && piiResponse.content.length > 0) {
           try {
-            const piiData = await piiDetectRes.json()
-            piiTerms = piiData.piiTerms || []
-          } catch (jsonError) {
-            console.error('Failed to parse PII response JSON:', jsonError)
+            const piiText = piiResponse.content[0].type === 'text' ? piiResponse.content[0].text : '[]'
+            piiTerms = JSON.parse(piiText)
+          } catch (parseError) {
+            console.error('Failed to parse Claude PII response:', parseError, 'Response text:', piiResponse.content[0]?.text)
             piiTerms = []
           }
-        } else {
-          const errorText = await piiDetectRes.text()
-          console.error('PII detection failed with status', piiDetectRes.status, ':', errorText)
-          piiTerms = []
         }
       } catch (e) {
-        console.error('PII detection fetch error:', e)
+        console.error('PII detection error:', e)
         piiTerms = []
       }
 
