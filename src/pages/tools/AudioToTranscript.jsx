@@ -19,7 +19,7 @@ const COLORS = {
 
 const SUPPORTED_FORMATS = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm', 'audio/aac']
 const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
-const CHUNK_SIZE = 8 * 1024 * 1024 // 8MB chunks
+const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB chunks (leaving headroom for headers)
 
 function generateUploadSessionId() {
   return `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
