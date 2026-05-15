@@ -61,6 +61,13 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
         <line x1="8" y1="13.5" x2="8" y2="15" />
       </svg>
     ),
+    analytics: (
+      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
+        <rect x="2" y="10" width="2" height="4" rx="0.5" />
+        <rect x="6" y="6" width="2" height="8" rx="0.5" />
+        <rect x="10" y="2" width="2" height="12" rx="0.5" />
+      </svg>
+    ),
   }
   return icons[id] || null
 }
@@ -116,6 +123,10 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
               <div style={{ ...styles.navItem, ...(active === 'admin' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin')}>
                 <ToolIcon id="dashboard" size={14} color={active === 'admin' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
                 <span>Dashboard</span>
+              </div>
+              <div style={{ ...styles.navItem, ...(active === 'admin-analytics' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin/analytics')}>
+                <ToolIcon id="analytics" size={14} color={active === 'admin-analytics' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
+                <span>Analytics</span>
               </div>
               <div style={{ ...styles.navItem, ...(active === 'admin-history' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin/history')}>
                 <ToolIcon id="history" size={14} color={active === 'admin-history' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />

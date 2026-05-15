@@ -20,14 +20,17 @@ export default function History() {
   const [examAttempts, setExamAttempts] = useState([])
   const [transcriptAnalyses, setTranscriptAnalyses] = useState([])
   const [chatSessions, setChatSessions] = useState([])
+  const [audioTranscripts, setAudioTranscripts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedExam, setExpandedExam] = useState(null)
   const [expandedTranscript, setExpandedTranscript] = useState(null)
   const [expandedChat, setExpandedChat] = useState(null)
+  const [expandedAudio, setExpandedAudio] = useState(null)
   const [examDetails, setExamDetails] = useState({})
   const [chatDetails, setChatDetails] = useState({})
   const [transcriptDetails, setTranscriptDetails] = useState({})
+  const [audioDetails, setAudioDetails] = useState({})
 
   useEffect(() => {
     loadHistory()
@@ -39,23 +42,26 @@ export default function History() {
     setError(null)
 
     try {
-      const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
+      const [examsRes, transcriptsRes, chatsRes, audioRes] = await Promise.all([
         fetch(`/api/exam-history?userId=${user.id}`),
         fetch(`/api/transcript-history?userId=${user.id}`),
         fetch(`/api/chat-history?userId=${user.id}`),
+        fetch(`/api/audio-history?userId=${user.id}`),
       ])
 
-      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
+      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok || !audioRes.ok) {
         throw new Error('Failed to load history')
       }
 
       const examsData = await examsRes.json()
       const transcriptsData = await transcriptsRes.json()
       const chatsData = await chatsRes.json()
+      const audioData = await audioRes.json()
 
       setExamAttempts(examsData.data || [])
       setTranscriptAnalyses(transcriptsData.data || [])
       setChatSessions(chatsData.data || [])
+      setAudioTranscripts(audioData.data || [])
     } catch (err) {
       setError(err.message)
       console.error('Error loading history:', err)
@@ -152,6 +158,37 @@ export default function History() {
       }
     } catch (err) {
       console.error('Error deleting session:', err)
+    }
+  }
+
+  async function loadAudioDetails(sessionId) {
+    try {
+      const res = await fetch(`/api/audio-history?userId=${user.id}&sessionId=${sessionId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setAudioDetails(prev => ({ ...prev, [sessionId]: data }))
+      }
+    } catch (err) {
+      console.error('Error loading audio details:', err)
+    }
+  }
+
+  async function deleteAudio(sessionId) {
+    if (!window.confirm('Delete this audio transcript?')) return
+    try {
+      const res = await fetch('/api/audio-history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, userId: user.id }),
+      })
+      if (res.ok) {
+        setAudioTranscripts(prev => prev.filter(a => a.id !== sessionId))
+        setExpandedAudio(null)
+      } else {
+        alert('Failed to delete transcript')
+      }
+    } catch (err) {
+      console.error('Error deleting transcript:', err)
     }
   }
 
@@ -463,6 +500,80 @@ export default function History() {
             </div>
           )}
         </div>
+
+        {/* Audio Transcriptions Section */}
+        <div style={s.section}>
+          <h2 style={s.sectionTitle}>
+            <span style={s.sectionIcon}>🎙️</span> Audio Transcriptions ({audioTranscripts.length})
+          </h2>
+          {audioTranscripts.length === 0 ? (
+            <p style={s.empty}>No audio transcriptions yet.</p>
+          ) : (
+            <div style={s.listContainer}>
+              {audioTranscripts.map(audio => (
+                <div key={audio.id} style={s.item}>
+                  <div style={s.itemHeader} onClick={() => {
+                    setExpandedAudio(expandedAudio === audio.id ? null : audio.id)
+                    if (expandedAudio !== audio.id && !audioDetails[audio.id]) {
+                      loadAudioDetails(audio.id)
+                    }
+                  }}>
+                    <div style={s.itemInfo}>
+                      <div style={s.itemTitle}>{audio.filename}</div>
+                      <div style={s.itemDate}>{formatDate(audio.created_at)} • {audio.duration}</div>
+                    </div>
+                    <span style={s.expandIcon}>{expandedAudio === audio.id ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedAudio === audio.id && (
+                    <div style={s.itemDetails}>
+                      {audioDetails[audio.id] && (
+                        <>
+                          <div style={s.transcriptContainer}>
+                            {audioDetails[audio.id].segments?.map((segment, i) => (
+                              <div key={i} style={s.transcriptSegment}>
+                                <div style={s.transcriptHeader}>
+                                  <strong style={s.transcriptSpeaker}>[{segment.speaker}]</strong>
+                                  <span style={s.transcriptTime}>{segment.startTime} — {segment.endTime}</span>
+                                </div>
+                                <p style={s.transcriptText}>
+                                  {segment.text.split(' ').map((word, wordIdx) => {
+                                    const highlighted = segment.piiTerms?.some(
+                                      term => term.toLowerCase() === word.toLowerCase()
+                                    )
+                                    return (
+                                      <span
+                                        key={wordIdx}
+                                        style={{
+                                          backgroundColor: highlighted ? '#faad14' : 'transparent',
+                                          padding: highlighted ? '2px 4px' : 0,
+                                          borderRadius: highlighted ? '2px' : 0,
+                                          marginRight: '4px',
+                                        }}
+                                        title={highlighted ? 'Potential PII' : ''}
+                                      >
+                                        {word}
+                                      </span>
+                                    )
+                                  })}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => deleteAudio(audio.id)}
+                            style={s.deleteBtn}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   )
@@ -663,5 +774,37 @@ const s = {
     color: '#666',
     fontStyle: 'italic',
     lineHeight: '1.4',
+  },
+  transcriptContainer: {
+    marginBottom: '16px',
+    maxHeight: '400px',
+    overflowY: 'auto',
+    backgroundColor: COLORS['gray-light'],
+    borderRadius: '4px',
+    padding: '12px',
+  },
+  transcriptSegment: {
+    marginBottom: '12px',
+    paddingBottom: '12px',
+    borderBottom: `1px solid ${COLORS['gray-border']}`,
+  },
+  transcriptHeader: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '8px',
+    fontSize: '11px',
+  },
+  transcriptSpeaker: {
+    fontWeight: '700',
+    color: COLORS.navy,
+  },
+  transcriptTime: {
+    color: COLORS['text-muted'],
+  },
+  transcriptText: {
+    margin: 0,
+    fontSize: '12px',
+    lineHeight: '1.6',
+    color: COLORS['text-main'],
   },
 }
