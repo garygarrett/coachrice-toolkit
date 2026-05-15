@@ -675,7 +675,7 @@ export default function AdminPanel() {
 
     try {
       // Update user through API (uses service role key for privileged operations)
-      const res = await fetch('/api/update-user', {
+      const res = await fetch('/api/user-actions?action=profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -46,7 +46,7 @@ export default function History() {
         fetch(`/api/exam-history?userId=${user.id}`),
         fetch(`/api/transcript-history?userId=${user.id}`),
         fetch(`/api/chat-history?userId=${user.id}`),
-        fetch(`/api/audio-history?userId=${user.id}`),
+        fetch(`/api/audio?action=history&userId=${user.id}`),
       ])
 
       if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok || !audioRes.ok) {
@@ -163,7 +163,7 @@ export default function History() {
 
   async function loadAudioDetails(sessionId) {
     try {
-      const res = await fetch(`/api/audio-history?userId=${user.id}&sessionId=${sessionId}`)
+      const res = await fetch(`/api/audio?action=history&userId=${user.id}&sessionId=${sessionId}`)
       if (res.ok) {
         const data = await res.json()
         setAudioDetails(prev => ({ ...prev, [sessionId]: data }))
@@ -176,7 +176,7 @@ export default function History() {
   async function deleteAudio(sessionId) {
     if (!window.confirm('Delete this audio transcript?')) return
     try {
-      const res = await fetch('/api/audio-history', {
+      const res = await fetch('/api/audio?action=delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, userId: user.id }),

@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
         } else {
           setProfile(data ?? null)
           if (data) {
-            fetch('/api/update-last-accessed', {
+            fetch('/api/user-actions?action=last-accessed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: user.id }),

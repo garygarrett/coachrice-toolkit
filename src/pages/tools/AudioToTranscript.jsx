@@ -82,7 +82,7 @@ export default function AudioToTranscript() {
       }, 1000)
 
       // Upload audio
-      const uploadRes = await fetch(`/api/transcribe-audio?userId=${user.id}`, {
+      const uploadRes = await fetch(`/api/audio?action=transcribe&userId=${user.id}`, {
         method: 'POST',
         body: file,
       })
@@ -104,7 +104,7 @@ export default function AudioToTranscript() {
         pollCount++
 
         const statusRes = await fetch(
-          `/api/transcription-status?transcriptId=${uploadData.transcriptId}&userId=${user.id}`
+          `/api/audio?action=status&transcriptId=${uploadData.transcriptId}&userId=${user.id}`
         )
 
         if (!statusRes.ok) {
@@ -164,7 +164,7 @@ export default function AudioToTranscript() {
         speaker: speakerLabels[s.speaker],
       }))
 
-      const saveRes = await fetch(`/api/audio-history?userId=${user.id}`, {
+      const saveRes = await fetch(`/api/audio?action=save&userId=${user.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
