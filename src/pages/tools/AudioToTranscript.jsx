@@ -124,10 +124,11 @@ export default function AudioToTranscript() {
         ? `/api/audio?action=transcribe&userId=${user.id}&uploadSessionId=${uploadSessionId}`
         : `/api/audio?action=transcribe&userId=${user.id}`
 
-      const uploadRes = await fetch(transcribeParams, {
-        method: 'POST',
-        body: uploadSessionId ? undefined : file,
-      })
+      const transcribeOptions = { method: 'POST' }
+      if (!uploadSessionId) {
+        transcribeOptions.body = file
+      }
+      const uploadRes = await fetch(transcribeParams, transcribeOptions)
 
       if (!uploadRes.ok) {
         const error = await uploadRes.json()
