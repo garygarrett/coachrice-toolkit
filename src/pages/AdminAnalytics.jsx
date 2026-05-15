@@ -792,11 +792,6 @@ const styles = {
   tableRow: {
     borderBottom: `1px solid ${COLORS['gray-border']}`,
   },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: 10,
-  },
 }
 
 // Fix table styles with proper CSS selector styling
