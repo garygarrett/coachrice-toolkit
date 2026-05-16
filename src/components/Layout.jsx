@@ -54,13 +54,6 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
         <circle cx="8" cy="2" r="1" />
       </svg>
     ),
-    audio: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <rect x="5.5" y="1" width="5" height="8" rx="2.5" />
-        <path d="M2.5 8.5c0 3 2.5 5 5.5 5s5.5-2 5.5-5" />
-        <line x1="8" y1="13.5" x2="8" y2="15" />
-      </svg>
-    ),
     analytics: (
       <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
         <rect x="2" y="10" width="2" height="4" rx="0.5" />
@@ -75,7 +68,7 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
 export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
-  const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true, audio: true }
+  const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true }
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -85,7 +78,6 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     { id: 'exam', label: 'ACC Practice Exam', path: '/tools/exam' },
     { id: 'transcript', label: 'Transcript Reviewer', path: '/tools/transcript' },
     { id: 'ai', label: 'AI Client', path: '/tools/ai' },
-    { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' },
   ]
   const isAdmin = profile?.role === 'admin'
   const toolItems = isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])

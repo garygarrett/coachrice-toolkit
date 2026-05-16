@@ -14,7 +14,6 @@ import AdminAnalytics from './pages/AdminAnalytics'
 import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
-import AudioToTranscript from './pages/tools/AudioToTranscript'
 import Assessor from './pages/tools/Assessor'
 import Assessor2025 from './pages/tools/Assessor2025'
 import AssessorTest from './pages/tools/AssessorTest'
@@ -107,14 +106,6 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="any">
               <AIClient />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tools/audio"
-          element={
-            <ProtectedRoute allowedRole="any">
-              <AudioToTranscript />
             </ProtectedRoute>
           }
         />

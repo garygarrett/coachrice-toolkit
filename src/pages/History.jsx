@@ -42,26 +42,23 @@ export default function History() {
     setError(null)
 
     try {
-      const [examsRes, transcriptsRes, chatsRes, audioRes] = await Promise.all([
+      const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
         fetch(`/api/exam-history?userId=${user.id}`),
         fetch(`/api/transcript-history?userId=${user.id}`),
         fetch(`/api/chat-history?userId=${user.id}`),
-        fetch(`/api/audio?action=history&userId=${user.id}`),
       ])
 
-      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok || !audioRes.ok) {
+      if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
         throw new Error('Failed to load history')
       }
 
       const examsData = await examsRes.json()
       const transcriptsData = await transcriptsRes.json()
       const chatsData = await chatsRes.json()
-      const audioData = await audioRes.json()
 
       setExamAttempts(examsData.data || [])
       setTranscriptAnalyses(transcriptsData.data || [])
       setChatSessions(chatsData.data || [])
-      setAudioTranscripts(audioData.data || [])
     } catch (err) {
       setError(err.message)
       console.error('Error loading history:', err)
@@ -487,80 +484,6 @@ export default function History() {
                           )}
                           <button
                             onClick={() => deleteChat(chat.id)}
-                            style={s.deleteBtn}
-                          >
-                            🗑️ Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Audio Transcriptions Section */}
-        <div style={s.section}>
-          <h2 style={s.sectionTitle}>
-            <span style={s.sectionIcon}>🎙️</span> Audio Transcriptions ({audioTranscripts.length})
-          </h2>
-          {audioTranscripts.length === 0 ? (
-            <p style={s.empty}>No audio transcriptions yet.</p>
-          ) : (
-            <div style={s.listContainer}>
-              {audioTranscripts.map(audio => (
-                <div key={audio.id} style={s.item}>
-                  <div style={s.itemHeader} onClick={() => {
-                    setExpandedAudio(expandedAudio === audio.id ? null : audio.id)
-                    if (expandedAudio !== audio.id && !audioDetails[audio.id]) {
-                      loadAudioDetails(audio.id)
-                    }
-                  }}>
-                    <div style={s.itemInfo}>
-                      <div style={s.itemTitle}>{audio.filename}</div>
-                      <div style={s.itemDate}>{formatDate(audio.created_at)} • {audio.duration}</div>
-                    </div>
-                    <span style={s.expandIcon}>{expandedAudio === audio.id ? '▼' : '▶'}</span>
-                  </div>
-                  {expandedAudio === audio.id && (
-                    <div style={s.itemDetails}>
-                      {audioDetails[audio.id] && (
-                        <>
-                          <div style={s.transcriptContainer}>
-                            {audioDetails[audio.id].segments?.map((segment, i) => (
-                              <div key={i} style={s.transcriptSegment}>
-                                <div style={s.transcriptHeader}>
-                                  <strong style={s.transcriptSpeaker}>[{segment.speaker}]</strong>
-                                  <span style={s.transcriptTime}>{segment.startTime} — {segment.endTime}</span>
-                                </div>
-                                <p style={s.transcriptText}>
-                                  {segment.text.split(' ').map((word, wordIdx) => {
-                                    const highlighted = segment.piiTerms?.some(
-                                      term => term.toLowerCase() === word.toLowerCase()
-                                    )
-                                    return (
-                                      <span
-                                        key={wordIdx}
-                                        style={{
-                                          backgroundColor: highlighted ? '#faad14' : 'transparent',
-                                          padding: highlighted ? '2px 4px' : 0,
-                                          borderRadius: highlighted ? '2px' : 0,
-                                          marginRight: '4px',
-                                        }}
-                                        title={highlighted ? 'Potential PII' : ''}
-                                      >
-                                        {word}
-                                      </span>
-                                    )
-                                  })}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => deleteAudio(audio.id)}
                             style={s.deleteBtn}
                           >
                             🗑️ Delete
