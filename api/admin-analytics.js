@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       const { data: users } = await supabase
         .from('users')
         .select('id, full_name, email, created_at, last_accessed_at, cohort_id, mentor_coach_id, cohorts(name), mentor_coaches(full_name)')
-        .eq('role', 'coach')
+        .in('role', ['coach', 'admin'])
         .order('full_name')
 
       const { data: sessions } = await supabase
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
         .from('users')
         .select('id, full_name, email, created_at, last_accessed_at, cohort_id, mentor_coach_id, cohorts(name), mentor_coaches(full_name)')
         .eq('id', userId)
-        .eq('role', 'coach')
+        .in('role', ['coach', 'admin'])
         .single()
 
       if (!user) {
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
         .from('users')
         .select('id, full_name, email, created_at, last_accessed_at')
         .eq('cohort_id', cohortId)
-        .eq('role', 'coach')
+        .in('role', ['coach', 'admin'])
 
       const { data: sessions } = await supabase
         .from('sessions')
@@ -275,7 +275,7 @@ export default async function handler(req, res) {
         .from('users')
         .select('id, full_name, email, created_at, last_accessed_at')
         .eq('mentor_coach_id', mentorCoachId)
-        .eq('role', 'coach')
+        .in('role', ['coach', 'admin'])
 
       const { data: sessions } = await supabase
         .from('sessions')
