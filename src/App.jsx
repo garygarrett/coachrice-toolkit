@@ -44,7 +44,7 @@ export default function App() {
       <VisibilityProvider>
         <InviteRedirect />
         <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/access" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/access" element={<AccessCodeEntry />} />
         <Route path="/access/transcript" element={<GuestRoute><TranscriptScorerGuest /></GuestRoute>} />
