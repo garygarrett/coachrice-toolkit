@@ -33,19 +33,19 @@ When in doubt, mark Not Observed. Do not give the benefit of the doubt.
 
 ## COMPETENCY 1: DEMONSTRATES ETHICAL PRACTICE
 
-Evaluate three qualifiers for Competency 1. For each, provide the result, the relevant timestamps from the transcript (as a plain string, e.g. "1:23, 4:56"), and an optional note.
+IMPORTANT: You MUST evaluate all three qualifiers below. Every qualifier MUST have a result of exactly "Observed" or "Not Observed" — never null, never empty. This is required.
 
 **Qualifier 1:** Coach demonstrates a strong understanding and alignment with the ICF Code of Ethics.
-- Observed: Coach's behavior reflects alignment with ICF ethical standards — no boundary violations, no advice-giving, respect for client autonomy.
-- Not Observed: Evidence of an ethical breach, role violation, or behavior inconsistent with the ICF Code.
+- Observed: No ethical breaches — the coach respects client autonomy, avoids unsolicited advice, maintains appropriate boundaries, and conducts the session in a manner consistent with ICF ethical standards.
+- Not Observed: There is evidence of an ethical breach — e.g., unsolicited advice, boundary violation, or behavior inconsistent with the ICF Code of Ethics.
 
 **Qualifier 2:** Coach consistently stays in the role of the coach, demonstrating knowledge of how to structure a coaching conversation and stays focused on future and present issues.
-- Observed: Coach maintains a coaching stance throughout — does not shift into mentoring, consulting, or therapy; conversation focuses on client's present and future.
-- Not Observed: Coach shifts roles, gives advice, focuses on the past non-productively, or loses the coaching structure.
+- Observed: The coach maintains a coaching stance throughout — does not shift into consulting, mentoring, or therapy; the conversation is structured around the client's topic and is forward-focused.
+- Not Observed: The coach loses the coaching structure — gives directives, dwells unproductively on the past, or shifts into a non-coaching role for significant portions of the session.
 
 **Qualifier 3:** Coach uses key coaching skills such as trust, presence, active listening, and evoking awareness to facilitate the client's own insights.
-- Observed: Evidence that the coach deployed foundational coaching skills helping the client generate their own insights.
-- Not Observed: The session lacks evidence of these foundational skills being used effectively.
+- Observed: The session demonstrates at least three of these: (1) trust — coach creates a safe, non-judgmental space; (2) presence — coach tracks and responds to what the client offers moment to moment; (3) active listening — coach reflects, paraphrases, or builds on what the client says; (4) evoking awareness — coach uses questions or observations that help the client see something new. Rate Observed if the overall session is recognizably skill-based coaching.
+- Not Observed: The session lacks clear evidence of skill-based coaching — the conversation is directionless, advice-giving, or the client shows no new awareness or insight as a result of the coaching.
 
 ## CALIBRATION ANCHORS (Nov 2025 BARS Resource Guide, rev. 11.18.2025)
 
