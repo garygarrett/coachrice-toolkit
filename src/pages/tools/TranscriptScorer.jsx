@@ -1116,11 +1116,9 @@ export default function TranscriptScorer() {
                           <div style={{ fontSize: '12px', fontWeight: '700', color: COLORS.navy }}>Qualifier {i + 1}</div>
                           <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#1a1a1a', marginTop: '4px' }}>{row.label}</div>
                         </div>
-                        {row.result && (
-                          <span style={{ display: 'inline-block', padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '4px', background: row.result === 'Observed' ? '#dcfce7' : '#fee2e2', color: row.result === 'Observed' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
-                            {row.result === 'Observed' ? '✓ Observed' : '✗ Not Observed'}
+                        <span style={{ display: 'inline-block', padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '4px', background: row.result === 'Observed' ? '#dcfce7' : row.result === 'Not Observed' ? '#fee2e2' : '#f3f4f6', color: row.result === 'Observed' ? '#16a34a' : row.result === 'Not Observed' ? '#dc2626' : '#9ca3af', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                            {row.result === 'Observed' ? '✓ Observed' : row.result === 'Not Observed' ? '✗ Not Observed' : '—'}
                           </span>
-                        )}
                       </div>
                       {row.timestamps && <div style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>Timestamps: {row.timestamps}</div>}
                       {row.note && <div style={{ fontSize: '12px', color: '#666', marginTop: '6px', fontStyle: 'italic' }}>{row.note}</div>}
