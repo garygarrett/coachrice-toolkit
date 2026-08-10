@@ -238,12 +238,12 @@ A8.2: "Coach supports the client to use their learning to plan next steps."
 A8.3: "Coach supports the client to close the session."`
 
 const CONTENT_DEFAULTS = {
-  transcript_start_badge: '',
-  transcript_start_title: '',
-  transcript_start_subtitle: '',
-  transcript_start_info_1: '',
-  transcript_start_info_2: '',
-  transcript_start_info_3: '',
+  transcript_start_badge: 'Session Review',
+  transcript_start_title: 'ACC Transcript Reviewer',
+  transcript_start_subtitle: 'Upload or paste a coaching session transcript to receive AI-powered feedback aligned with the ICF ACC Minimum Skills Requirements (Nov 2025).',
+  transcript_start_info_1: 'Anonymize your transcript before uploading — remove your client\'s name and any identifying information.',
+  transcript_start_info_2: 'Ensure you have obtained informed consent from your client before submitting.',
+  transcript_start_info_3: 'Review time is typically 30–60 seconds depending on transcript length.',
 }
 
 const COLORS = {
