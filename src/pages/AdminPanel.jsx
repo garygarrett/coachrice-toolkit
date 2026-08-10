@@ -282,6 +282,14 @@ export default function AdminPanel() {
   const [qError, setQError] = useState(null)
   const [qSuccess, setQSuccess] = useState(null)
 
+  // ── Access codes state ──
+  const [accessCodes, setAccessCodes] = useState([])
+  const [accessCodesLoading, setAccessCodesLoading] = useState(false)
+  const [newCodeForm, setNewCodeForm] = useState({ code: '', label: '' })
+  const [accessCodeError, setAccessCodeError] = useState(null)
+  const [accessCodeSuccess, setAccessCodeSuccess] = useState(null)
+  const [accessCodeSubmitting, setAccessCodeSubmitting] = useState(false)
+
   useEffect(() => { loadUsers() }, [])
   useEffect(() => {
     setToolError(null)
@@ -290,6 +298,8 @@ export default function AdminPanel() {
       loadUsers()
     } else if (activeTab.startsWith('tool-')) {
       loadToolSettings()
+    } else if (activeTab === 'access-codes') {
+      loadAccessCodes()
     }
   }, [activeTab])
 
@@ -745,6 +755,181 @@ export default function AdminPanel() {
       await loadUsers()
     }
   }
+
+  // ── Access codes functions ──
+  async function loadAccessCodes() {
+    setAccessCodesLoading(true)
+    try {
+      const res = await fetch('/api/access-codes?action=list')
+      const data = await res.json()
+      setAccessCodes(data.codes || [])
+    } catch {
+      setAccessCodeError('Failed to load access codes.')
+    } finally {
+      setAccessCodesLoading(false)
+    }
+  }
+
+  async function createAccessCode(e) {
+    e.preventDefault()
+    if (!newCodeForm.code.trim() || !newCodeForm.label.trim()) return
+    setAccessCodeError(null)
+    setAccessCodeSuccess(null)
+    setAccessCodeSubmitting(true)
+    try {
+      const res = await fetch('/api/access-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: newCodeForm.code.trim(), label: newCodeForm.label.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAccessCodeError(data.error || 'Failed to create code.'); return }
+      setAccessCodeSuccess(`Code "${newCodeForm.code}" created.`)
+      setNewCodeForm({ code: '', label: '' })
+      loadAccessCodes()
+    } catch {
+      setAccessCodeError('Something went wrong.')
+    } finally {
+      setAccessCodeSubmitting(false)
+    }
+  }
+
+  async function toggleAccessCode(id, active) {
+    setAccessCodeError(null)
+    setAccessCodeSuccess(null)
+    try {
+      const res = await fetch('/api/access-codes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, active }),
+      })
+      if (!res.ok) { setAccessCodeError('Failed to update code.'); return }
+      setAccessCodeSuccess(active ? 'Code activated.' : 'Code deactivated.')
+      loadAccessCodes()
+    } catch {
+      setAccessCodeError('Something went wrong.')
+    }
+  }
+
+  async function deleteAccessCode(id, code) {
+    if (!window.confirm(`Delete code "${code}"? This cannot be undone.`)) return
+    setAccessCodeError(null)
+    setAccessCodeSuccess(null)
+    try {
+      const res = await fetch('/api/access-codes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) { setAccessCodeError('Failed to delete code.'); return }
+      setAccessCodeSuccess('Code deleted.')
+      loadAccessCodes()
+    } catch {
+      setAccessCodeError('Something went wrong.')
+    }
+  }
+
+  const renderAccessCodesTab = () => (
+    <div>
+      <div style={s.titleRow}>
+        <h1 style={s.heading}>Access Codes</h1>
+      </div>
+      <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '24px', lineHeight: '1.6' }}>
+        Access codes let participants open the Transcript Reviewer without a personal account.
+        Share the link <strong>/access</strong> and a valid code. Sessions are anonymous — no history is saved.
+      </p>
+
+      {accessCodeError && <div style={{ background: '#fff3e6', border: '1px solid #ffe0b2', borderRadius: '6px', padding: '10px 14px', fontSize: '12px', color: '#00205B', marginBottom: '16px' }}>{accessCodeError}</div>}
+      {accessCodeSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 14px', fontSize: '12px', color: '#15803d', marginBottom: '16px' }}>{accessCodeSuccess}</div>}
+
+      {/* Add new code form */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '24px', marginBottom: '28px' }}>
+        <h3 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add New Access Code</h3>
+        <form onSubmit={createAccessCode} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1', minWidth: '160px' }}>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: COLORS['text-main'], marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Code</label>
+            <input
+              type="text"
+              value={newCodeForm.code}
+              onChange={e => setNewCodeForm(v => ({ ...v, code: e.target.value }))}
+              placeholder="e.g. CoachRICE2026"
+              required
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 12px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ flex: '2', minWidth: '200px' }}>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: COLORS['text-main'], marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Label</label>
+            <input
+              type="text"
+              value={newCodeForm.label}
+              onChange={e => setNewCodeForm(v => ({ ...v, label: e.target.value }))}
+              placeholder="e.g. CoachRICE Spring 2026 Cohort"
+              required
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 12px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', boxSizing: 'border-box' }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={accessCodeSubmitting || !newCodeForm.code.trim() || !newCodeForm.label.trim()}
+            style={{ height: '38px', padding: '0 20px', background: COLORS.navy, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', opacity: accessCodeSubmitting ? 0.7 : 1 }}
+          >
+            {accessCodeSubmitting ? 'Adding…' : '+ Add Code'}
+          </button>
+        </form>
+      </div>
+
+      {/* Existing codes table */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr style={{ background: '#f7f8fa' }}>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Code</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Label</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Created</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accessCodesLoading ? (
+              <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>Loading…</td></tr>
+            ) : accessCodes.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>No access codes yet. Add one above.</td></tr>
+            ) : accessCodes.map(ac => (
+              <tr key={ac.id} style={{ borderTop: '1px solid #f0f2f5' }}>
+                <td style={{ padding: '12px 16px', fontWeight: 700, color: COLORS.navy, fontFamily: 'monospace', fontSize: '13px' }}>{ac.code}</td>
+                <td style={{ padding: '12px 16px', color: COLORS['text-main'] }}>{ac.label}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: ac.active ? '#dcfce7' : '#f3f4f6', color: ac.active ? '#16a34a' : '#6b7a99' }}>
+                    {ac.active ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td style={{ padding: '12px 16px', color: COLORS['text-muted'], fontSize: '12px' }}>
+                  {new Date(ac.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => toggleAccessCode(ac.id, !ac.active)}
+                      style={{ padding: '5px 12px', borderRadius: '5px', border: '1px solid #e2e6ec', background: '#fff', fontSize: '11px', fontWeight: 600, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', color: COLORS['text-main'] }}
+                    >
+                      {ac.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={() => deleteAccessCode(ac.id, ac.code)}
+                      style={{ padding: '5px 12px', borderRadius: '5px', border: '1px solid #fecaca', background: '#fff', fontSize: '11px', fontWeight: 600, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', color: '#dc2626' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 
   // ── Tool tab renderer ──
   const renderToolTab = (tool) => (
@@ -1362,7 +1547,7 @@ export default function AdminPanel() {
   return (
     <Layout active="admin" pageTitle="Dashboard">
       <div style={s.tabBar}>
-        {[{ id: 'users', label: 'Users' }, ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label }))].map(tab => (
+        {[{ id: 'users', label: 'Users' }, ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label })), { id: 'access-codes', label: 'Access Codes' }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -1376,6 +1561,7 @@ export default function AdminPanel() {
       <div style={s.content}>
         {activeTab === 'users' && usersContent}
         {activeTab.startsWith('tool-') && renderToolTab(TOOLS.find(t => `tool-${t.id}` === activeTab))}
+        {activeTab === 'access-codes' && renderAccessCodesTab()}
       </div>
     </Layout>
   )

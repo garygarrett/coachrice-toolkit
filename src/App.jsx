@@ -3,7 +3,10 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { VisibilityProvider } from './context/VisibilityContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import GuestRoute from './components/GuestRoute'
 import Login from './pages/Login'
+import AccessCodeEntry from './pages/AccessCodeEntry'
+import TranscriptScorerGuest from './pages/tools/TranscriptScorerGuest'
 import SetPassword from './pages/SetPassword'
 import Agreements from './pages/Agreements'
 import CoachDashboard from './pages/CoachDashboard'
@@ -43,6 +46,8 @@ export default function App() {
         <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/access" element={<AccessCodeEntry />} />
+        <Route path="/access/transcript" element={<GuestRoute><TranscriptScorerGuest /></GuestRoute>} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/agreements" element={<Agreements />} />
         <Route
