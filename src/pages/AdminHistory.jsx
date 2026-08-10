@@ -1303,12 +1303,44 @@ export default function AdminHistory() {
 
                       {expandedItems[`guest-${analysis.id}`] && (
                         <div style={s.itemDetails}>
+                          {/* Competency 1: Ethical Practice qualifiers */}
+                          {(() => {
+                            const ep = evalData.ethical_practice || {}
+                            const quals = ep.qualifiers || []
+                            const q1Labels = [
+                              'ICF Code of Ethics alignment',
+                              'Stays in the role of the coach, focuses on present/future',
+                              'Uses key coaching skills to facilitate client insights',
+                            ]
+                            const rows = quals.length === 3
+                              ? quals.map((q, i) => ({ label: q1Labels[i], result: q.result }))
+                              : [
+                                { label: q1Labels[0], result: ep.icf_code_alignment },
+                                { label: q1Labels[1], result: ep.coach_role_alignment },
+                                { label: q1Labels[2], result: null },
+                              ]
+                            return (
+                              <div style={{ marginBottom: '20px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>1. Demonstrates Ethical Practice</div>
+                                {rows.map((row, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', marginBottom: '2px', background: '#f9fafc', borderRadius: '4px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: '700', color: COLORS.navy, width: '70px', flexShrink: 0 }}>Q{i + 1}</span>
+                                    <span style={{ fontSize: '11px', color: COLORS['text-main'], flex: 1 }}>{row.label}</span>
+                                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '3px', whiteSpace: 'nowrap', background: row.result === 'Observed' ? '#dcfce7' : row.result === 'Not Observed' ? '#fee2e2' : '#f3f4f6', color: row.result === 'Observed' ? '#16a34a' : row.result === 'Not Observed' ? '#dc2626' : '#9ca3af' }}>
+                                      {row.result === 'Observed' ? '✓ Observed' : row.result === 'Not Observed' ? '✗ Not Observed' : '—'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          })()}
+
                           {/* Competency scores summary */}
                           {stmts.length > 0 && (() => {
                             const compTitles = { 3: 'Establishes and Maintains Agreements', 4: 'Cultivates Trust and Safety', 5: 'Maintains Presence', 6: 'Listens Actively', 7: 'Evokes Awareness', 8: 'Facilitates Client Growth' }
                             const grouped = {}
                             stmts.forEach(st => {
-                              const c = parseInt(st.code.split('.')[0], 10)
+                              const c = parseInt(st.code.replace(/^[A-Za-z]+/, '').split('.')[0], 10)
                               if (!grouped[c]) grouped[c] = []
                               grouped[c].push(st)
                             })
