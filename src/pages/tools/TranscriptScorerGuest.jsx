@@ -349,13 +349,10 @@ export default function TranscriptScorerGuest() {
       .select('key, value')
       .in('key', ['api_key_transcript', 'transcript_reviewer_prompt'])
       .then(({ data }) => {
-        if (data) {
-          const map = {}
-          data.forEach(row => { map[row.key] = row.value })
-          if (map.api_key_transcript) setApiKey(map.api_key_transcript)
-          if (map.transcript_reviewer_prompt) setSystemPrompt(map.transcript_reviewer_prompt)
-        }
-        if (!data?.some(r => r.key === 'transcript_reviewer_prompt')) setSystemPrompt(SYSTEM_PROMPT_DEFAULT)
+        const map = {}
+        if (data) data.forEach(row => { map[row.key] = row.value })
+        if (map.api_key_transcript) setApiKey(map.api_key_transcript)
+        setSystemPrompt(map.transcript_reviewer_prompt || SYSTEM_PROMPT_DEFAULT)
       })
   }, [])
 
