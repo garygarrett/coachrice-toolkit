@@ -56,7 +56,7 @@ export default function AccessCodeEntry() {
               type="text"
               value={code}
               onChange={e => setCode(e.target.value)}
-              placeholder="e.g. CoachRICE2026"
+              placeholder="Enter your access code"
               required
               autoFocus
               autoCapitalize="none"
@@ -86,6 +86,12 @@ export default function AccessCodeEntry() {
             Need help? Contact{' '}
             <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
           </p>
+
+          <div style={s.adminRow}>
+            <button onClick={() => navigate('/login')} style={s.adminLink}>
+              Admin sign in →
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -219,5 +225,22 @@ const s = {
     color: '#00205B',
     fontWeight: '600',
     textDecoration: 'none',
+  },
+  adminRow: {
+    textAlign: 'center',
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f0f2f5',
+  },
+  adminLink: {
+    background: 'none',
+    border: 'none',
+    color: '#6b7a99',
+    fontSize: '10px',
+    fontWeight: '600',
+    fontFamily: "'Montserrat', sans-serif",
+    cursor: 'pointer',
+    padding: 0,
+    letterSpacing: '0.3px',
   },
 }
