@@ -315,7 +315,7 @@ const gh = {
 
 export default function TranscriptScorerGuest() {
   const [stage, setStage] = useState('input')
-  const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false })
+  const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false, disclaimer: false })
   const allConsented = Object.values(consentChecked).every(Boolean)
   const [transcript, setTranscript] = useState('')
   const [filename, setFilename] = useState('')
@@ -698,11 +698,13 @@ export default function TranscriptScorerGuest() {
         doc.setTextColor(110, 110, 110);
         doc.text(noteL, tx, ty + 2);
       }
-      if (result) {
+      {
         const isObs = result === "Observed";
+        const isNotObs = result === "Not Observed";
+        const displayText = isObs ? "Observed" : isNotObs ? "Not Observed" : "—";
         doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-        doc.setTextColor(...(isObs ? OBS_GREEN : NOT_OBS_RED));
-        doc.text(result, MX + LC + RC / 2, y + rH / 2 + 3, { align: "center" });
+        doc.setTextColor(isObs ? OBS_GREEN[0] : isNotObs ? NOT_OBS_RED[0] : 160, isObs ? OBS_GREEN[1] : isNotObs ? NOT_OBS_RED[1] : 160, isObs ? OBS_GREEN[2] : isNotObs ? NOT_OBS_RED[2] : 160);
+        doc.text(displayText, MX + LC + RC / 2, y + rH / 2 + 3, { align: "center" });
       }
       y += rH;
     };
@@ -930,6 +932,7 @@ export default function TranscriptScorerGuest() {
             { key: 'anonymized', text: 'I have anonymized this transcript to the best of my ability, removing my client\'s name and any other identifying information.' },
             { key: 'consent', text: 'I have obtained informed consent from my client before submitting this transcript for evaluation.' },
             { key: 'data', text: 'I understand that the Doerr Institute will not store this transcript and is not responsible for any breach of data associated with this AI tool.' },
+            { key: 'disclaimer', text: 'I understand that this tool is still being tested and may make mistakes. I will use my own judgment when reviewing the feedback, and this tool does not replace a qualified mentor coach.' },
           ].map(({ key, text }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
               <input

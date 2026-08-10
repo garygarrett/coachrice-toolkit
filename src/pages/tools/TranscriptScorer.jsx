@@ -249,7 +249,7 @@ const CONTENT_DEFAULTS = {
 export default function TranscriptScorer() {
   const { user } = useAuth();
   const [stage, setStage] = useState("input");
-  const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false });
+  const [consentChecked, setConsentChecked] = useState({ anonymized: false, consent: false, data: false, disclaimer: false });
   const allConsented = Object.values(consentChecked).every(Boolean);
   const [transcript, setTranscript] = useState("");
   const [filename, setFilename] = useState("");
@@ -646,11 +646,13 @@ export default function TranscriptScorer() {
         doc.setTextColor(110, 110, 110);
         doc.text(noteL, tx, ty + 2);
       }
-      if (result) {
+      {
         const isObs = result === "Observed";
+        const isNotObs = result === "Not Observed";
+        const displayText = isObs ? "Observed" : isNotObs ? "Not Observed" : "—";
         doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-        doc.setTextColor(...(isObs ? OBS_GREEN : NOT_OBS_RED));
-        doc.text(result, MX + LC + RC / 2, y + rH / 2 + 3, { align: "center" });
+        doc.setTextColor(isObs ? OBS_GREEN[0] : isNotObs ? NOT_OBS_RED[0] : 160, isObs ? OBS_GREEN[1] : isNotObs ? NOT_OBS_RED[1] : 160, isObs ? OBS_GREEN[2] : isNotObs ? NOT_OBS_RED[2] : 160);
+        doc.text(displayText, MX + LC + RC / 2, y + rH / 2 + 3, { align: "center" });
       }
       y += rH;
     };
@@ -906,6 +908,15 @@ export default function TranscriptScorer() {
                   style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                 />
                 <span style={{ fontSize: '13px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that the Doerr Institute will not store this transcript and is not responsible for any breach of data associated with this AI tool.</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={consentChecked.disclaimer}
+                  onChange={(e) => setConsentChecked(v => ({ ...v, disclaimer: e.target.checked }))}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '13px', color: COLORS['text-main'], lineHeight: '1.5' }}>I understand that this tool is still being tested and may make mistakes. I will use my own judgment when reviewing the feedback, and this tool does not replace a qualified mentor coach.</span>
               </label>
             </div>
           </div>
