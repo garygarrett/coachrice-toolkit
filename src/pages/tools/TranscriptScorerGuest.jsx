@@ -411,7 +411,22 @@ export default function TranscriptScorerGuest() {
       }
       setEvaluation(parsed)
       setStage('report')
-      // No history saving — this is an anonymous guest session
+
+      // Save analysis (no transcript, no user identity) so admins can review results
+      try {
+        const label = sessionStorage.getItem('coachrice_access_label') || 'Guest'
+        const competencyScores = parsed.behavioral_statements?.reduce((acc, stmt) => {
+          acc[stmt.code] = stmt.result
+          return acc
+        }, {}) || null
+        await fetch('/api/access-codes?action=save-analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessCodeLabel: label, analysisData: parsed, competencyScores }),
+        })
+      } catch (err) {
+        console.error('[Guest] Error saving analysis:', err)
+      }
     } catch (err) {
       setError(err.message)
       setStage('preview')

@@ -20,7 +20,7 @@ const COLORS = {
 
 export default function AdminHistory() {
   const { user } = useAuth()
-  const [view, setView] = useState('user') // 'user', 'tool', or 'assessments'
+  const [view, setView] = useState('user') // 'user', 'tool', 'assessments', or 'guest'
   const [users, setUsers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedTool, setSelectedTool] = useState('exam')
@@ -32,6 +32,8 @@ export default function AdminHistory() {
   const [expandedItems, setExpandedItems] = useState({})
   const [userDetails, setUserDetails] = useState({})
   const [questionStats, setQuestionStats] = useState([])
+  const [guestAnalyses, setGuestAnalyses] = useState([])
+  const [guestLoading, setGuestLoading] = useState(false)
 
   const tools = [
     { id: 'exam', label: 'Exam Attempts' },
@@ -52,6 +54,37 @@ export default function AdminHistory() {
     loadUsers()
     loadInternalAssessments()
   }, [])
+
+  useEffect(() => {
+    if (view === 'guest') loadGuestAnalyses()
+  }, [view])
+
+  async function loadGuestAnalyses() {
+    setGuestLoading(true)
+    try {
+      const res = await fetch('/api/access-codes?action=list-analyses')
+      const data = await res.json()
+      setGuestAnalyses(data.analyses || [])
+    } catch (err) {
+      console.error('Error loading guest analyses:', err)
+    } finally {
+      setGuestLoading(false)
+    }
+  }
+
+  async function deleteGuestAnalysis(id) {
+    if (!window.confirm('Delete this guest analysis? This cannot be undone.')) return
+    try {
+      await fetch('/api/access-codes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type: 'analysis' }),
+      })
+      setGuestAnalyses(prev => prev.filter(a => a.id !== id))
+    } catch (err) {
+      console.error('Error deleting guest analysis:', err)
+    }
+  }
 
   async function loadInternalAssessments() {
     try {
@@ -911,6 +944,12 @@ export default function AdminHistory() {
           >
             Internal Assessments
           </button>
+          <button
+            onClick={() => setView('guest')}
+            style={{ ...s.viewBtn, ...(view === 'guest' ? s.viewBtnActive : {}) }}
+          >
+            Guest Sessions
+          </button>
         </div>
 
         {/* User History View */}
@@ -1214,6 +1253,122 @@ export default function AdminHistory() {
                   )}
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Guest Sessions View */}
+        {view === 'guest' && (
+          <div style={s.section}>
+            <h2 style={s.sectionTitle}>Guest Sessions</h2>
+            <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '20px', lineHeight: '1.6' }}>
+              Anonymous transcript evaluations submitted via access code. No user identity or transcript text is stored — only the AI evaluation results.
+            </p>
+
+            {guestLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
+                <LoadingBar />
+              </div>
+            ) : guestAnalyses.length === 0 ? (
+              <p style={s.empty}>No guest sessions yet.</p>
+            ) : (
+              <div style={s.listContainer}>
+                {guestAnalyses.map(analysis => {
+                  const evalData = analysis.analysis_data || {}
+                  const stmts = evalData.behavioral_statements || []
+                  const obsCount = stmts.filter(s => s.result === 'Observed').length
+                  return (
+                    <div key={analysis.id} style={s.item}>
+                      <div style={s.itemHeader} onClick={() => toggleExpand(`guest-${analysis.id}`)}>
+                        <div style={s.itemInfo}>
+                          <div style={s.itemTitle}>
+                            {evalData.coach_identifier || 'Anonymous Coach'} — {analysis.access_code_label}
+                          </div>
+                          <div style={s.itemDate}>{formatDate(analysis.created_at)}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: COLORS.navy }}>
+                            {obsCount}/{stmts.length} observed
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteGuestAnalysis(analysis.id) }}
+                            style={s.deleteBtn}
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                          <span style={s.expandIcon}>{expandedItems[`guest-${analysis.id}`] ? '▼' : '▶'}</span>
+                        </div>
+                      </div>
+
+                      {expandedItems[`guest-${analysis.id}`] && (
+                        <div style={s.itemDetails}>
+                          {/* Competency scores summary */}
+                          {stmts.length > 0 && (() => {
+                            const compTitles = { 3: 'Establishes and Maintains Agreements', 4: 'Cultivates Trust and Safety', 5: 'Maintains Presence', 6: 'Listens Actively', 7: 'Evokes Awareness', 8: 'Facilitates Client Growth' }
+                            const grouped = {}
+                            stmts.forEach(st => {
+                              const c = parseInt(st.code.split('.')[0], 10)
+                              if (!grouped[c]) grouped[c] = []
+                              grouped[c].push(st)
+                            })
+                            return (
+                              <div style={{ marginBottom: '20px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Competency Results</div>
+                                {[3, 4, 5, 6, 7, 8].map(n => {
+                                  const skills = grouped[n] || []
+                                  const obs = skills.filter(sk => sk.result === 'Observed').length
+                                  return (
+                                    <div key={n} style={{ marginBottom: '8px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '3px' }}>
+                                        <span style={{ color: COLORS['text-main'], fontWeight: '600' }}>{n}. {compTitles[n]}</span>
+                                        <span style={{ color: COLORS['text-muted'] }}>{obs}/{skills.length}</span>
+                                      </div>
+                                      {skills.map(sk => (
+                                        <div key={sk.code} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', marginBottom: '2px', background: '#f9fafc', borderRadius: '4px' }}>
+                                          <span style={{ fontSize: '11px', fontWeight: '700', color: COLORS.navy, width: '28px', flexShrink: 0 }}>{sk.code}</span>
+                                          <span style={{ fontSize: '11px', color: COLORS['text-main'], flex: 1 }}>{sk.title}</span>
+                                          <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '3px', background: sk.result === 'Observed' ? '#dcfce7' : '#fee2e2', color: sk.result === 'Observed' ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
+                                            {sk.result === 'Observed' ? '✓' : '✗'} {sk.result}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
+
+                          {/* Strengths */}
+                          {evalData.strengths?.length > 0 && (
+                            <div style={{ marginBottom: '16px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Strengths</div>
+                              {evalData.strengths.map((st, i) => (
+                                <div key={i} style={{ padding: '10px 12px', background: '#f0fdf4', borderLeft: '3px solid #16a34a', borderRadius: '0 4px 4px 0', marginBottom: '6px', fontSize: '12px', color: '#374151', lineHeight: '1.5' }}>
+                                  <strong style={{ color: COLORS.navy }}>{st.code} — {st.statement_title}</strong><br />{st.explanation}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Suggestions */}
+                          {evalData.suggestions?.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: '700', color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Suggestions</div>
+                              {evalData.suggestions.map((su, i) => (
+                                <div key={i} style={{ padding: '10px 12px', background: '#fef2f2', borderLeft: '3px solid #dc2626', borderRadius: '0 4px 4px 0', marginBottom: '6px', fontSize: '12px', color: '#374151', lineHeight: '1.5' }}>
+                                  <strong style={{ color: COLORS.navy }}>{su.code} — {su.statement_title}</strong><br />{su.missed_opportunity}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         )}

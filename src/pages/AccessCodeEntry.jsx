@@ -20,6 +20,7 @@ export default function AccessCodeEntry() {
 
       if (data.valid) {
         sessionStorage.setItem('coachrice_access', 'granted')
+        sessionStorage.setItem('coachrice_access_label', data.label || 'Guest')
         navigate('/access/transcript', { replace: true })
       } else {
         setError('That access code is not valid. Please check your code and try again.')
