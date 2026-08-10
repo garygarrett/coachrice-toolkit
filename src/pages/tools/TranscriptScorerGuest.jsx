@@ -294,6 +294,14 @@ export default function TranscriptScorerGuest() {
   const fileInputRef = useRef(null)
 
   useEffect(() => {
+    // API key and system prompt were fetched server-side during code verification
+    // and stored in sessionStorage — no Supabase session needed here
+    const storedKey = sessionStorage.getItem('coachrice_api_key')
+    const storedPrompt = sessionStorage.getItem('coachrice_system_prompt')
+    if (storedKey) setApiKey(storedKey)
+    setSystemPrompt(storedPrompt || SYSTEM_PROMPT_DEFAULT)
+
+    // site_content is readable by anon (no sensitive data)
     supabase
       .from('site_content')
       .select('key, value')
@@ -305,20 +313,6 @@ export default function TranscriptScorerGuest() {
           setContent(prev => ({ ...prev, ...map }))
         }
         setContentLoaded(true)
-      })
-
-    supabase
-      .from('config')
-      .select('key, value')
-      .in('key', ['api_key_transcript', 'transcript_reviewer_prompt'])
-      .then(({ data }) => {
-        if (data) {
-          const map = {}
-          data.forEach(row => { map[row.key] = row.value })
-          if (map.api_key_transcript) setApiKey(map.api_key_transcript)
-          if (map.transcript_reviewer_prompt) setSystemPrompt(map.transcript_reviewer_prompt)
-        }
-        if (!data?.some(r => r.key === 'transcript_reviewer_prompt')) setSystemPrompt(SYSTEM_PROMPT_DEFAULT)
       })
   }, [])
 

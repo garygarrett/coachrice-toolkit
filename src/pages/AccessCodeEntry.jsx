@@ -21,6 +21,8 @@ export default function AccessCodeEntry() {
       if (data.valid) {
         sessionStorage.setItem('coachrice_access', 'granted')
         sessionStorage.setItem('coachrice_access_label', data.label || 'Guest')
+        if (data.apiKey) sessionStorage.setItem('coachrice_api_key', data.apiKey)
+        if (data.systemPrompt) sessionStorage.setItem('coachrice_system_prompt', data.systemPrompt)
         navigate('/access/transcript', { replace: true })
       } else {
         setError('That access code is not valid. Please check your code and try again.')
