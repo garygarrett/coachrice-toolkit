@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import Layout from "../../components/Layout";
 import LoadingBar from "../../components/LoadingBar";
+import { generateACCObservationReportPDF } from "../../lib/accObservationReport";
 
 const SYSTEM_PROMPT_DEFAULT = `## ROLE
 
@@ -305,12 +306,19 @@ export default function TranscriptScorer() {
     document.head.appendChild(s);
   }, []);
 
-  // Load jsPDF library
+  // Load jsPDF + AutoTable
   useEffect(() => {
-    if (window.jspdf) { setJsPdfLoaded(true); return; }
+    const loadAutoTable = () => {
+      if (window.jspdf?.jsPDF?.prototype?.autoTable) { setJsPdfLoaded(true); return; }
+      const at = document.createElement("script");
+      at.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+      at.onload = () => setJsPdfLoaded(true);
+      document.head.appendChild(at);
+    };
+    if (window.jspdf) { loadAutoTable(); return; }
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-    s.onload = () => setJsPdfLoaded(true);
+    s.onload = loadAutoTable;
     document.head.appendChild(s);
   }, []);
 
@@ -517,332 +525,68 @@ export default function TranscriptScorer() {
   };
 
   const doDownloadPDF = () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "pt", format: "letter" });
-
-    // ── Colors ────────────────────────────────────────────────────────────
-    const NAVY = [0, 32, 91];
-    const MID_BLUE = [95, 145, 195];
-    const WHITE = [255, 255, 255];
-    const TEXT = [20, 20, 20];
-    const TEXT_MID = [90, 90, 90];
-    const ROW_ALT = [248, 249, 251];
-    const BORDER = [195, 200, 210];
-    const OBS_GREEN = [22, 163, 74];
-    const NOT_OBS_RED = [185, 28, 28];
-
-    // ── Layout ────────────────────────────────────────────────────────────
-    const PW = 612, PH = 792;
-    const MX = 36, MB = 42;
-    const CW = PW - 2 * MX;   // 540
-    const RC = 128;            // right column
-    const LC = CW - RC;       // left column = 412
-    let y = 0, pageNum = 0;
-
-    const wrap = (text, width, size) => {
-      doc.setFontSize(size);
-      return doc.splitTextToSize(String(text || ""), width);
-    };
-    const LH = (sz) => sz * 1.4;
-
-    const newPage = () => {
-      if (pageNum > 0) doc.addPage();
-      pageNum++;
-      y = 44;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-      doc.setTextColor(...TEXT_MID);
-      doc.text("CoachRICE: Level 1", MX, y); y += 12;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-      doc.setTextColor(...NAVY);
-      doc.text("Associate Certified Coach (ACC) Observation Form", MX, y); y += 6;
-      doc.setDrawColor(...NAVY); doc.setLineWidth(0.75);
-      doc.line(MX, y, PW - MX, y); y += 12;
-    };
-
-    const drawFooter = () => {
-      doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-      doc.setTextColor(140, 140, 140);
-      doc.text("Aligned to ICF Minimum Skills Requirements (2025)", MX, PH - 18);
-      doc.setTextColor(...TEXT);
-      doc.text(String(pageNum), PW / 2, PH - 18, { align: "center" });
-    };
-
-    const ensureSpace = (needed) => {
-      if (y + needed > PH - MB - 20) { drawFooter(); newPage(); }
-    };
-
-    const drawCompHeader = (title, subtitle) => {
-      doc.setFontSize(8);
-      const subL = subtitle ? wrap(subtitle, CW - 16, 8) : [];
-      const hH = 14 + (subL.length ? subL.length * LH(8) + 2 : 0) + 8;
-      ensureSpace(hH + 44);
-      doc.setFillColor(...NAVY);
-      doc.rect(MX, y, CW, hH, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-      doc.setTextColor(...WHITE);
-      doc.text(title, MX + 8, y + 13);
-      if (subL.length) {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-        doc.text(subL, MX + 8, y + 13 + LH(9.5));
-      }
-      y += hH;
-    };
-
-    const drawColHeader = (leftLabel) => {
-      const rH = 22;
-      doc.setFillColor(...MID_BLUE);
-      doc.rect(MX, y, LC, rH, "F");
-      doc.rect(MX + LC, y, RC, rH, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-      doc.setTextColor(...WHITE);
-      doc.text(leftLabel, MX + 8, y + 14);
-      doc.text("Observed/Not Observed", MX + LC + RC / 2, y + 14, { align: "center" });
-      doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-      doc.rect(MX, y, CW, rH);
-      doc.line(MX + LC, y, MX + LC, y + rH);
-      y += rH;
-    };
-
-    const drawRow = (boldPrefix, bodyText, result, tsString, note, shade) => {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-      const pfxW = boldPrefix ? doc.getTextWidth(boldPrefix + " ") : 0;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      const bodyL = wrap(bodyText, LC - pfxW - 16, 9);
-      doc.setFont("helvetica", "italic"); doc.setFontSize(8);
-      const tsL = wrap(tsString || "Timestamps:", LC - 16, 8);
-      const noteL = note ? wrap(note, LC - 16, 8) : [];
-      const rH = Math.max(
-        14 + bodyL.length * LH(9) + tsL.length * LH(8) + (noteL.length ? noteL.length * LH(8) + 3 : 0) + 8,
-        40
-      );
-      ensureSpace(rH);
-      doc.setFillColor(...(shade ? ROW_ALT : WHITE));
-      doc.rect(MX, y, LC, rH, "F");
-      doc.setFillColor(...WHITE);
-      doc.rect(MX + LC, y, RC, rH, "F");
-      doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-      doc.rect(MX, y, CW, rH);
-      doc.line(MX + LC, y, MX + LC, y + rH);
-      let tx = MX + 8, ty = y + 12;
-      if (boldPrefix) {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-        doc.setTextColor(...TEXT);
-        doc.text(boldPrefix, tx, ty);
-      }
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      doc.setTextColor(...TEXT);
-      doc.text(bodyL, tx + pfxW, ty);
-      ty += bodyL.length * LH(9) + 2;
-      doc.setFont("helvetica", "italic"); doc.setFontSize(8);
-      doc.setTextColor(...TEXT_MID);
-      doc.text(tsL, tx, ty);
-      ty += tsL.length * LH(8);
-      if (noteL.length) {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-        doc.setTextColor(110, 110, 110);
-        doc.text(noteL, tx, ty + 2);
-      }
-      {
-        const isObs = result === "Observed";
-        const isNotObs = result === "Not Observed";
-        const displayText = isObs ? "Observed" : isNotObs ? "Not Observed" : "—";
-        doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-        doc.setTextColor(isObs ? OBS_GREEN[0] : isNotObs ? NOT_OBS_RED[0] : 160, isObs ? OBS_GREEN[1] : isNotObs ? NOT_OBS_RED[1] : 160, isObs ? OBS_GREEN[2] : isNotObs ? NOT_OBS_RED[2] : 160);
-        doc.text(displayText, MX + LC + RC / 2, y + rH / 2 + 3, { align: "center" });
-      }
-      y += rH;
-    };
-
-    // ════════════════════════════════════════════════════════════════════════
-    newPage();
-
-    // Coach / Assessor / Date header row
-    const infoH = 26, thirds = CW / 3;
-    doc.setFillColor(...NAVY);
-    doc.rect(MX, y, CW, infoH, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...WHITE);
-    doc.text("Coach:", MX + 8, y + 16);
-    doc.text("Assessor:", MX + thirds + 8, y + 16);
-    doc.text("Date:", MX + thirds * 2 + 8, y + 16);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    const coachLW = doc.getTextWidth("Coach: ");
-    const dateLW = doc.getTextWidth("Date: ");
-    const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    doc.text(evaluation.coach_identifier || "Submitted Coach", MX + 8 + coachLW, y + 16);
-    doc.text(dateStr, MX + thirds * 2 + 8 + dateLW, y + 16);
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-    doc.line(MX + thirds, y, MX + thirds, y + infoH);
-    doc.line(MX + thirds * 2, y, MX + thirds * 2, y + infoH);
-    doc.rect(MX, y, CW, infoH);
-    y += infoH + 8;
-
-    // ── COMPETENCY 1 ──────────────────────────────────────────────────────
     const ep = evaluation.ethical_practice || {};
-    const qualifiers = ep.qualifiers || [];
-    const q1Texts = [
-      "Coach demonstrates a strong understanding and alignment with the ICF Code of Ethics.",
-      "Coach consistently stays in the role of the coach, demonstrating knowledge of how to structure a coaching conversation and stays focused on future and present issues.",
-      "Use key coaching skills such as trust, presence, active listening, and evoking awareness to facilitate the client's own insights."
-    ];
-    drawCompHeader("1. Demonstrates Ethical Practice", "Understands and consistently applies coaching ethics and standards of coaching.");
-    drawColHeader("Qualifier");
-    if (qualifiers.length === 3) {
-      qualifiers.forEach((q, i) => {
-        const tsStr = q.timestamps ? "Timestamps: " + q.timestamps : "Timestamps:";
-        drawRow(String(i + 1) + ".", q1Texts[i], q.result, tsStr, q.note, i % 2 === 1);
+    const quals = ep.qualifiers || [];
+
+    // Map qualifiers (Comp 1)
+    const observed = {};
+    const evidenceNotes = {};
+
+    if (quals.length === 3) {
+      ['item1','item2','item3'].forEach((id, i) => {
+        observed[id] = quals[i].result || '';
+        evidenceNotes[id] = quals[i].timestamps || '';
       });
     } else {
-      drawRow("1.", q1Texts[0], ep.icf_code_alignment || null, "Timestamps:", ep.icf_code_alignment_note, false);
-      drawRow("2.", q1Texts[1], ep.coach_role_alignment || null, "Timestamps:", ep.coach_role_alignment_note, true);
-      drawRow("3.", q1Texts[2], null, "Timestamps:", "", false);
+      observed.item1 = ep.icf_code_alignment || '';
+      observed.item2 = ep.coach_role_alignment || '';
+      observed.item3 = '';
     }
-    y += 6;
 
-    // ── COMPETENCY 2 ──────────────────────────────────────────────────────
-    drawCompHeader("2. Embodies a Coaching Mindset", "Develops and maintains a mindset that is open, curious, flexible and client-centered.");
-    const c2H = 34; ensureSpace(c2H);
-    doc.setFillColor(...WHITE); doc.rect(MX, y, CW, c2H, "F");
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.5); doc.rect(MX, y, CW, c2H);
-    doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...TEXT);
-    doc.text("Candidates' understanding of this competency is evaluated in the ICF ACC Exam.", MX + 8, y + 20);
-    y += c2H + 8;
-
-    // ── COMPETENCIES 3-8 ─────────────────────────────────────────────────
-    const grouped = {};
-    (evaluation.behavioral_statements || []).forEach(s => {
-      const c = parseInt(s.code.replace(/^[A-Za-z]+/, "").split(".")[0], 10);
-      if (!grouped[c]) grouped[c] = [];
-      grouped[c].push(s);
-    });
-
-    const compMeta = [
-      { n: 3, name: "3. Establishes and Maintains Agreements", sub: "Partners with the client and relevant stakeholders to create clear agreements about the coaching relationship, process, plans and goals. Establishes agreements for the overall coaching engagement as well as those for each coaching session." },
-      { n: 4, name: "4. Cultivates Trust and Safety", sub: "Partners with the client to create a safe, supportive environment that allows the client to share freely. Maintains a relationship of mutual respect and trust." },
-      { n: 5, name: "5. Maintains Presence", sub: "Is fully conscious and present with the client, employing a style that is open, flexible, grounded and confident." },
-      { n: 6, name: "6. Listens Actively", sub: "Focuses on what the client is and is not saying to fully understand what is being communicated in the context of the client systems and to support client self-expression." },
-      { n: 7, name: "7. Evokes Awareness", sub: "Facilitates client insight and learning by using tools and techniques such as powerful questioning, silence, metaphor or analogy." },
-      { n: 8, name: "8. Facilitates Client Growth", sub: "Partners with the client to transform learning and insight into action. Promotes client autonomy in the coaching process." },
-    ];
-    compMeta.forEach(comp => {
-      drawCompHeader(comp.name, comp.sub);
-      drawColHeader("Behavioral Statement");
-      (grouped[comp.n] || []).forEach((s, i) => {
-        const tsStr = s.evidence && s.evidence.length
-          ? "Timestamps: " + s.evidence.map(e => e.timestamp).join("  ·  ")
-          : "Timestamps:";
-        drawRow(s.code, s.title, s.result, tsStr, s.note, i % 2 === 1);
-      });
-      y += 6;
-    });
-
-    drawFooter();
-
-    // ── PAGE: Evaluation Evidence ─────────────────────────────────────────
-    newPage();
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...TEXT);
-    doc.text("Evaluation Evidence", MX, y);
-    doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...TEXT_MID);
-    doc.text("(Optional - Use to create final summary)", MX + doc.getTextWidth("Evaluation Evidence") + 6, y);
-    y += 13;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...TEXT_MID);
-    doc.text("Include associated behavioral statements, timestamps and/or quotes.", MX, y);
-    y += 11;
-
-    const halfW = CW / 2;
-    doc.setFillColor(...NAVY);
-    doc.rect(MX, y, halfW, 24, "F");
-    doc.rect(MX + halfW, y, halfW, 24, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...WHITE);
-    doc.text("Evidence", MX + halfW / 2, y + 15, { align: "center" });
-    doc.text("Contra-Evidence", MX + halfW + halfW / 2, y + 15, { align: "center" });
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-    doc.rect(MX, y, CW, 24); doc.line(MX + halfW, y, MX + halfW, y + 24);
-    y += 24;
-
-    const evLines = [], contraLines = [];
-    (evaluation.behavioral_statements || []).forEach(s => {
-      if (s.evidence && s.evidence.length) {
-        const txt = "[" + s.code + "] " + s.evidence.map(e => e.timestamp + ': "' + e.quote + '"').join("; ");
-        wrap(txt, halfW - 16, 8).forEach(l => evLines.push(l));
-        evLines.push("");
-      }
-      if (s.contra_evidence) {
-        const txt = "[" + s.code + "] " + s.contra_evidence;
-        wrap(txt, halfW - 16, 8).forEach(l => contraLines.push(l));
-        contraLines.push("");
-      }
-    });
-
-    const evH = Math.max(evLines.length * LH(8), contraLines.length * LH(8), PH - MB - y - 30);
-    doc.setFillColor(...WHITE);
-    doc.rect(MX, y, CW, evH, "F");
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-    doc.rect(MX, y, CW, evH); doc.line(MX + halfW, y, MX + halfW, y + evH);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    doc.setTextColor(...TEXT);
-    if (evLines.length) doc.text(evLines, MX + 8, y + 12);
-    doc.setTextColor(140, 80, 20);
-    if (contraLines.length) doc.text(contraLines, MX + halfW + 8, y + 12);
-    y += evH;
-    drawFooter();
-
-    // ── PAGE: Evaluation Summary ──────────────────────────────────────────
-    newPage();
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...TEXT);
-    doc.text("Evaluation Summary", MX, y);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...TEXT_MID);
-    doc.text("(Required)", MX + doc.getTextWidth("Evaluation Summary") + 6, y);
-    y += 11;
-
-    const labelW = 148, summW = CW - labelW;
-    doc.setFillColor(...NAVY);
-    doc.rect(MX, y, labelW, 24, "F");
-    doc.rect(MX + labelW, y, summW, 24, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...WHITE);
-    doc.text("Summary", MX + labelW + summW / 2, y + 15, { align: "center" });
-    doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-    doc.rect(MX, y, CW, 24); doc.line(MX + labelW, y, MX + labelW, y + 24);
-    y += 24;
-
-    const drawSummRow = (labelL1, labelL2, content) => {
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-      const cL = wrap(content, summW - 16, 9);
-      const rH = Math.max(cL.length * LH(9) + 20, 80);
-      doc.setFillColor(...WHITE); doc.rect(MX, y, CW, rH, "F");
-      doc.setDrawColor(...BORDER); doc.setLineWidth(0.5);
-      doc.rect(MX, y, CW, rH); doc.line(MX + labelW, y, MX + labelW, y + rH);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...TEXT);
-      const lMid = y + rH / 2;
-      doc.text(labelL1, MX + labelW / 2, labelL2 ? lMid - 4 : lMid + 4, { align: "center" });
-      if (labelL2) doc.text(labelL2, MX + labelW / 2, lMid + 10, { align: "center" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...TEXT);
-      if (cL.length) doc.text(cL, MX + labelW + 8, y + 14);
-      y += rH;
+    // Map behavioral statements (A3.1–A8.3)
+    const codeToId = {
+      'A3.1':'a3_1','A3.2':'a3_2','A3.3':'a3_3','A3.4':'a3_4',
+      'A4.1':'a4_1','A4.2':'a4_2','A4.3':'a4_3',
+      'A5.1':'a5_1','A5.2':'a5_2','A5.3':'a5_3','A5.4':'a5_4',
+      'A6.1':'a6_1','A6.2':'a6_2','A6.3':'a6_3',
+      'A7.1':'a7_1','A7.2':'a7_2','A7.3':'a7_3',
+      'A8.1':'a8_1','A8.2':'a8_2','A8.3':'a8_3',
     };
+    (evaluation.behavioral_statements || []).forEach(stmt => {
+      const id = codeToId[stmt.code];
+      if (!id) return;
+      observed[id] = stmt.result || '';
+      const evParts = (stmt.evidence || []).map(e => e.timestamp + ': "' + e.quote + '"');
+      if (stmt.contra_evidence) evParts.push('Contra: ' + stmt.contra_evidence);
+      evidenceNotes[id] = evParts.join(' · ');
+    });
 
-    const strengthsText = (evaluation.strengths || []).map((s, i) =>
-      (i + 1) + ". " + s.competency_name + " (" + s.code + "): " + s.explanation
-    ).join("\n\n");
-    const suggestionsText = (evaluation.suggestions || []).map((s, i) => {
-      let t = (i + 1) + ". " + s.competency_name + " (" + s.code + "): " + s.missed_opportunity;
-      if (s.example_prompts && s.example_prompts.length)
-        t += "\nExample prompts: " + s.example_prompts.map(p => '"' + p + '"').join(" / ");
-      return t;
-    }).join("\n\n");
+    // Strengths and suggestions
+    const summaryStrengths = (evaluation.strengths || [])
+      .map((s, i) => `${i + 1}. ${s.competency_name} (${s.code}): ${s.explanation}`)
+      .join('\n\n');
+    const summarySuggestions = (evaluation.suggestions || [])
+      .map((s, i) => {
+        let t = `${i + 1}. ${s.competency_name} (${s.code}): ${s.missed_opportunity}`;
+        if (s.example_prompts && s.example_prompts.length)
+          t += '\nExample prompts: ' + s.example_prompts.map(p => `"${p}"`).join(' / ');
+        return t;
+      })
+      .join('\n\n');
 
-    drawSummRow("Coaching Competency", "Strengths", strengthsText || "—");
-    drawSummRow("Suggestions for", "Competency Development", suggestionsText || "—");
-    drawSummRow("Ethical Concerns", "(if any)", (evaluation.ethical_concerns && evaluation.ethical_concerns !== "None") ? evaluation.ethical_concerns : "None");
-    drawFooter();
+    const sn = (downloadName.trim() || evaluation.coach_identifier || 'Coach').replace(/[^a-z0-9]/gi, '_');
+    const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 
-    // ── Output ────────────────────────────────────────────────────────────
-    const sn = (downloadName.trim() || evaluation.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "ACC_Feedback_" + sn + ".pdf";
-    a.style.display = "none"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    const doc = generateACCObservationReportPDF({
+      coachName: evaluation.coach_identifier || 'Submitted Coach',
+      sessionDate: dateStr,
+      observed,
+      evidenceNotes,
+      summaryStrengths,
+      summarySuggestions,
+    });
+
+    doc.save('ACC_Feedback_' + sn + '.pdf');
   };
 
   const COLORS = {
