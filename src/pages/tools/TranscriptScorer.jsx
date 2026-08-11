@@ -531,6 +531,7 @@ export default function TranscriptScorer() {
     const observed = {};
     const evidenceNotes = {};
     const contraEvidenceNotes = {};
+    const statementNotes = {};
 
     // Competency 1 qualifiers
     if (quals.length === 3) {
@@ -561,6 +562,7 @@ export default function TranscriptScorer() {
       // Each evidence item on its own line
       const evLines = (stmt.evidence || []).map(e => `${e.timestamp}: "${e.quote}"`);
       if (evLines.length) evidenceNotes[id] = evLines.join('\n');
+      if (stmt.note) statementNotes[id] = stmt.note;
       if (stmt.contra_evidence) contraEvidenceNotes[id] = stmt.contra_evidence;
     });
 
@@ -586,6 +588,7 @@ export default function TranscriptScorer() {
       observed,
       evidenceNotes,
       contraEvidenceNotes,
+      statementNotes,
       summaryStrengths,
       summarySuggestions,
     });

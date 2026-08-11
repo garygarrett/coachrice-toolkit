@@ -584,6 +584,7 @@ export default function TranscriptScorerGuest() {
     const observed = {};
     const evidenceNotes = {};
     const contraEvidenceNotes = {};
+    const statementNotes = {};
 
     if (quals.length === 3) {
       ['item1','item2','item3'].forEach((id, i) => {
@@ -611,6 +612,7 @@ export default function TranscriptScorerGuest() {
       observed[id] = stmt.result || '';
       const evLines = (stmt.evidence || []).map(e => `${e.timestamp}: "${e.quote}"`);
       if (evLines.length) evidenceNotes[id] = evLines.join('\n');
+      if (stmt.note) statementNotes[id] = stmt.note;
       if (stmt.contra_evidence) contraEvidenceNotes[id] = stmt.contra_evidence;
     });
 
@@ -635,6 +637,7 @@ export default function TranscriptScorerGuest() {
       observed,
       evidenceNotes,
       contraEvidenceNotes,
+      statementNotes,
       summaryStrengths,
       summarySuggestions,
     });

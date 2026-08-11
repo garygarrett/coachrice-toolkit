@@ -185,9 +185,11 @@ function generateACCObservationReportPDF(data) {
     const body = section.items.map(item => {
       const evRaw = (data.evidenceNotes && data.evidenceNotes[item.id]) || '';
       const contraRaw = (data.contraEvidenceNotes && data.contraEvidenceNotes[item.id]) || '';
+      const noteRaw = (data.statementNotes && data.statementNotes[item.id]) || '';
       const observed = (data.observed && data.observed[item.id]) || '';
 
       let statementCell = item.text;
+      if (noteRaw) statementCell += '\n\n' + noteRaw;
       if (evRaw || contraRaw) {
         statementCell += '\n';
         if (evRaw) statementCell += '\n' + evRaw;
