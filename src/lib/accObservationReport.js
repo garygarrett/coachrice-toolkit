@@ -187,14 +187,11 @@ function generateACCObservationReportPDF(data) {
       const contraRaw = (data.contraEvidenceNotes && data.contraEvidenceNotes[item.id]) || '';
       const observed = (data.observed && data.observed[item.id]) || '';
 
-      let statementCell = item.text + '\n';
-      if (evRaw) {
-        statementCell += '\nEvidence:\n' + evRaw;
-      } else {
-        statementCell += '\nEvidence:';
-      }
-      if (contraRaw) {
-        statementCell += '\n\nContra-evidence:\n' + contraRaw;
+      let statementCell = item.text;
+      if (evRaw || contraRaw) {
+        statementCell += '\n';
+        if (evRaw) statementCell += '\n' + evRaw;
+        if (contraRaw) statementCell += '\nContra: ' + contraRaw;
       }
       return [statementCell, observed];
     });
