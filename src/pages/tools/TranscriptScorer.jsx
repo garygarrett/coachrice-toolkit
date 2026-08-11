@@ -528,14 +528,16 @@ export default function TranscriptScorer() {
     const ep = evaluation.ethical_practice || {};
     const quals = ep.qualifiers || [];
 
-    // Map qualifiers (Comp 1)
     const observed = {};
     const evidenceNotes = {};
+    const contraEvidenceNotes = {};
 
+    // Competency 1 qualifiers
     if (quals.length === 3) {
       ['item1','item2','item3'].forEach((id, i) => {
         observed[id] = quals[i].result || '';
         evidenceNotes[id] = quals[i].timestamps || '';
+        if (quals[i].note) contraEvidenceNotes[id] = quals[i].note;
       });
     } else {
       observed.item1 = ep.icf_code_alignment || '';
@@ -543,7 +545,7 @@ export default function TranscriptScorer() {
       observed.item3 = '';
     }
 
-    // Map behavioral statements (A3.1–A8.3)
+    // Behavioral statements A3.1–A8.3
     const codeToId = {
       'A3.1':'a3_1','A3.2':'a3_2','A3.3':'a3_3','A3.4':'a3_4',
       'A4.1':'a4_1','A4.2':'a4_2','A4.3':'a4_3',
@@ -556,9 +558,10 @@ export default function TranscriptScorer() {
       const id = codeToId[stmt.code];
       if (!id) return;
       observed[id] = stmt.result || '';
-      const evParts = (stmt.evidence || []).map(e => e.timestamp + ': "' + e.quote + '"');
-      if (stmt.contra_evidence) evParts.push('Contra: ' + stmt.contra_evidence);
-      evidenceNotes[id] = evParts.join(' · ');
+      // Each evidence item on its own line
+      const evLines = (stmt.evidence || []).map(e => `${e.timestamp}: "${e.quote}"`);
+      if (evLines.length) evidenceNotes[id] = evLines.join('\n');
+      if (stmt.contra_evidence) contraEvidenceNotes[id] = stmt.contra_evidence;
     });
 
     // Strengths and suggestions
@@ -582,6 +585,7 @@ export default function TranscriptScorer() {
       sessionDate: dateStr,
       observed,
       evidenceNotes,
+      contraEvidenceNotes,
       summaryStrengths,
       summarySuggestions,
     });

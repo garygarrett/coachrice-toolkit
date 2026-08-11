@@ -183,9 +183,19 @@ function generateACCObservationReportPDF(data) {
 
   function drawItemsTable(section) {
     const body = section.items.map(item => {
-      const ev = (data.evidenceNotes && data.evidenceNotes[item.id]) || '';
+      const evRaw = (data.evidenceNotes && data.evidenceNotes[item.id]) || '';
+      const contraRaw = (data.contraEvidenceNotes && data.contraEvidenceNotes[item.id]) || '';
       const observed = (data.observed && data.observed[item.id]) || '';
-      const statementCell = ev ? `${item.text}\nEvidence/Contra-evidence: ${ev}` : `${item.text}\nEvidence/Contra-evidence:`;
+
+      let statementCell = item.text + '\n';
+      if (evRaw) {
+        statementCell += '\nEvidence:\n' + evRaw;
+      } else {
+        statementCell += '\nEvidence:';
+      }
+      if (contraRaw) {
+        statementCell += '\n\nContra-evidence:\n' + contraRaw;
+      }
       return [statementCell, observed];
     });
 

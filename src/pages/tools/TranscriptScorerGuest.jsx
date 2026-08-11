@@ -583,11 +583,13 @@ export default function TranscriptScorerGuest() {
 
     const observed = {};
     const evidenceNotes = {};
+    const contraEvidenceNotes = {};
 
     if (quals.length === 3) {
       ['item1','item2','item3'].forEach((id, i) => {
         observed[id] = quals[i].result || '';
         evidenceNotes[id] = quals[i].timestamps || '';
+        if (quals[i].note) contraEvidenceNotes[id] = quals[i].note;
       });
     } else {
       observed.item1 = ep.icf_code_alignment || '';
@@ -607,9 +609,9 @@ export default function TranscriptScorerGuest() {
       const id = codeToId[stmt.code];
       if (!id) return;
       observed[id] = stmt.result || '';
-      const evParts = (stmt.evidence || []).map(e => e.timestamp + ': "' + e.quote + '"');
-      if (stmt.contra_evidence) evParts.push('Contra: ' + stmt.contra_evidence);
-      evidenceNotes[id] = evParts.join(' · ');
+      const evLines = (stmt.evidence || []).map(e => `${e.timestamp}: "${e.quote}"`);
+      if (evLines.length) evidenceNotes[id] = evLines.join('\n');
+      if (stmt.contra_evidence) contraEvidenceNotes[id] = stmt.contra_evidence;
     });
 
     const summaryStrengths = (evaluation.strengths || [])
@@ -632,6 +634,7 @@ export default function TranscriptScorerGuest() {
       sessionDate: dateStr,
       observed,
       evidenceNotes,
+      contraEvidenceNotes,
       summaryStrengths,
       summarySuggestions,
     });
