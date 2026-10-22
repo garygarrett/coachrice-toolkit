@@ -103,7 +103,7 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
 
   return generateACCObservationReportPDF({
     coachName: ev.coach_identifier || sourceName || 'Submitted Coach',
-    assessorName: 'CoachRICE Internal Assessor',
+    assessorName: `Assessor (${version.id} version)`,
     sessionDate: dateStr,
     formTitle: 'ACC Performance Evaluation',
     sections,
@@ -113,7 +113,7 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
       finalScore: fmt(sc.final_score),
       result: sc.result === 'Pass' ? 'PASS' : 'BELOW PASSING STANDARD',
       rawScore: fmt(sc.raw_score),
-      rubric: version.label,
+      rubric: `${version.id} version: ${version.label}`,
       // The PDF font has no minus or multiplication sign, so spell the formula with plain characters
       note: `${version.formula.replace('−', '-').replace('×', 'x')}. Pass threshold ${PASS_THRESHOLD.toFixed(2)}, and both ethical practice qualifiers must be Observed.`,
     },

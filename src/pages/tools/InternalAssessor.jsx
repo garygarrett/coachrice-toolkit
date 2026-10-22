@@ -112,7 +112,7 @@ export default function InternalAssessor() {
     const added = []
     for (const file of files) {
       try {
-        added.push({ id: nextId.current++, filename: file.name, text: await readFile(file) })
+        added.push({ id: nextId.current++, filename: file.name, coachName: '', text: await readFile(file) })
       } catch (err) {
         setError(`${file.name}: ${err.message}`)
       }
@@ -122,7 +122,7 @@ export default function InternalAssessor() {
 
   function addPasted() {
     if (!pasted.trim()) return
-    setQueue((q) => [...q, { id: nextId.current++, filename: `Pasted transcript ${nextId.current - 1}`, text: pasted.trim() }])
+    setQueue((q) => [...q, { id: nextId.current++, filename: `Pasted transcript ${nextId.current - 1}`, coachName: '', text: pasted.trim() }])
     setPasted('')
   }
 
@@ -187,6 +187,8 @@ export default function InternalAssessor() {
           },
         )
         const evaluation = recomputeScores(vId, parsed)
+        // A coach name typed in by you wins over whatever the AI found in the transcript
+        if (item.coachName.trim()) evaluation.coach_identifier = item.coachName.trim()
         out.push({ filename: item.filename, versionId: vId, status: 'done', evaluation })
         await saveToHistory(vId, evaluation, item.filename)
       } catch (err) {
@@ -203,7 +205,7 @@ export default function InternalAssessor() {
   function downloadPdf(result) {
     try {
       const doc = buildAssessorPdf({ versionId: result.versionId, evaluation: result.evaluation, sourceName: result.filename })
-      const base = result.filename.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9]/gi, '_')
+      const base = (result.evaluation.coach_identifier || result.filename).replace(/\.[^/.]+$/, '').replace(/[^a-z0-9]/gi, '_')
       doc.save(`ACC_Evaluation_${result.versionId}_${base}.pdf`)
     } catch (err) {
       console.error(err)
@@ -264,8 +266,17 @@ export default function InternalAssessor() {
           {queue.length > 0 && (
             <div style={{ marginTop: 20 }}>
               {queue.map((q) => (
-                <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.soft, borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
-                  <span>{q.filename} <span style={{ color: C.gray }}>· {q.text.length.toLocaleString()} characters</span></span>
+                <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 12px', background: C.soft, borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                  <span style={{ flex: '1 1 240px' }}>{q.filename} <span style={{ color: C.gray }}>· {q.text.length.toLocaleString()} characters</span></span>
+                  <input
+                    type="text"
+                    value={q.coachName}
+                    disabled={running}
+                    onChange={(e) => setQueue((qs) => qs.map((x) => (x.id === q.id ? { ...x, coachName: e.target.value } : x)))}
+                    placeholder="Coach name"
+                    aria-label={`Coach name for ${q.filename}`}
+                    style={{ flex: '1 1 200px', padding: '8px 10px', borderRadius: 6, border: `1px solid ${C.border}`, fontFamily: font, fontSize: 13 }}
+                  />
                   <button disabled={running} onClick={() => setQueue((qs) => qs.filter((x) => x.id !== q.id))} style={{ background: 'none', border: 'none', color: C.orange, fontWeight: 700, cursor: 'pointer', fontFamily: font }}>Remove</button>
                 </div>
               ))}
@@ -298,7 +309,12 @@ export default function InternalAssessor() {
               <div key={i} style={{ padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: C.navy }}>{r.filename}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: C.navy }}>
+                      {r.status === 'done' && r.evaluation.coach_identifier ? `${r.evaluation.coach_identifier} ` : ''}
+                      <span style={{ fontWeight: r.status === 'done' && r.evaluation.coach_identifier ? 400 : 700, color: r.status === 'done' && r.evaluation.coach_identifier ? C.gray : C.navy }}>
+                        {r.status === 'done' && r.evaluation.coach_identifier ? `· ${r.filename}` : r.filename}
+                      </span>
+                    </div>
                     {r.status === 'done' ? (
                       <div style={{ fontSize: 12, marginTop: 2 }}>
                         Final score <strong>{r.evaluation.score_calculation.final_score.toFixed(2)}</strong> ·{' '}

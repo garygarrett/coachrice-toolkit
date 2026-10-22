@@ -416,7 +416,7 @@ export async function generateAssessmentPDF(assessment) {
       evaluation: assessment.assessment_data || {},
       sourceName: assessment.transcript_filename,
     })
-    const base = (assessment.transcript_filename || `Assessment_${assessment.id}`).replace(/\.[^/.]+$/, '').replace(/[^a-z0-9]/gi, '_')
+    const base = (assessment.assessment_data?.coach_identifier || assessment.transcript_filename || `Assessment_${assessment.id}`).replace(/\.[^/.]+$/, '').replace(/[^a-z0-9]/gi, '_')
     doc.save(`ACC_Evaluation_${versionId}_${base}.pdf`)
   } catch (err) {
     console.error('PDF generation failed:', err)
