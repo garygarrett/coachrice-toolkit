@@ -100,8 +100,8 @@ Two AI-powered tools for coaches to evaluate teaching transcripts against ICF st
 - Saved assessments store full JSON + competency breakdown
 
 **Scoring Gate (IMPORTANT):**
-- Both ethical practice qualifiers must be marked "Observed" to pass
-- If either "ICF Code of Ethics alignment" OR "Coach role alignment" = "Not Observed", result is automatically "Below Passing Standard"
+- Every ethical practice qualifier must be marked "Observed" to pass: two for the 2021 version (ICF Code of Ethics alignment, coach role alignment) and three for the 2025 version (adds "uses key coaching skills")
+- If any qualifier = "Not Observed", result is automatically "Below Passing Standard"
 - This is a hard requirement gate — qualifiers override numerical score ≥ 3.4
 
 ## Scoring Framework

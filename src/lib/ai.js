@@ -33,10 +33,12 @@ export function aiFetch(tool, { system, messages, accessCode } = {}) {
  * again, up to `maxAttempts` times in total, instead of failing the whole run.
  * Network and server errors (like a 401) are NOT retried.
  *
+ *   validate(parsed)  optional; return a short problem text if the JSON is valid
+ *                   but missing sections (null if fine). Counts like a bad answer.
  *   onUsage(usage)  optional; called with the token counts of every attempt,
  *                   so cost tracking still counts the retries.
  */
-export async function aiJson(tool, { system, messages }, { maxAttempts = 3, onUsage } = {}) {
+export async function aiJson(tool, { system, messages }, { maxAttempts = 3, onUsage, validate } = {}) {
   let lastError
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const response = await aiFetch(tool, { system, messages })
@@ -53,18 +55,29 @@ export async function aiJson(tool, { system, messages }, { maxAttempts = 3, onUs
     // Strip any accidental code fences, then try the whole text, then the
     // first {...} block inside it.
     const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim()
+    let parsed
     try {
-      return JSON.parse(cleaned)
+      parsed = JSON.parse(cleaned)
     } catch (parseErr) {
       try {
         const match = cleaned.match(/\{[\s\S]*\}/)
-        if (match) return JSON.parse(match[0])
-        lastError = new Error('Could not parse evaluation response.')
+        if (!match) throw new Error('Could not parse evaluation response.')
+        parsed = JSON.parse(match[0])
       } catch (innerErr) {
         lastError = innerErr
+        console.warn(`[aiJson] ${tool}: attempt ${attempt} of ${maxAttempts} returned invalid JSON (${lastError.message})`)
+        continue
       }
-      console.warn(`[aiJson] ${tool}: attempt ${attempt} of ${maxAttempts} returned invalid JSON (${lastError.message})`)
     }
+
+    // Optional shape check: ask again if the JSON is valid but missing sections.
+    const problem = validate ? validate(parsed) : null
+    if (problem) {
+      lastError = new Error(problem)
+      console.warn(`[aiJson] ${tool}: attempt ${attempt} of ${maxAttempts} had the wrong shape (${problem})`)
+      continue
+    }
+    return parsed
   }
-  throw new Error(`The AI returned a badly formatted answer ${maxAttempts} times in a row. Please try again. (${lastError?.message})`)
+  throw new Error(`The AI returned a badly formatted answer ${maxAttempts} times in a row. Please try again. (Last problem: ${lastError?.message})`)
 }

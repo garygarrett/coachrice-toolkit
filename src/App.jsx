@@ -17,8 +17,7 @@ import AdminAnalytics from './pages/AdminAnalytics'
 import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
-import Assessor from './pages/tools/Assessor'
-import Assessor2025 from './pages/tools/Assessor2025'
+import InternalAssessor from './pages/tools/InternalAssessor'
 import AssessorTest from './pages/tools/AssessorTest'
 
 /**
@@ -118,18 +117,11 @@ export default function App() {
           path="/tools/assessor"
           element={
             <ProtectedRoute allowedRole="admin">
-              <Assessor />
+              <InternalAssessor />
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/tools/assessor-2025"
-          element={
-            <ProtectedRoute allowedRole="admin">
-              <Assessor2025 />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/tools/assessor-2025" element={<Navigate to="/tools/assessor?version=2025" replace />} />
         <Route
           path="/tools/assessor-test"
           element={<AssessorTest />}
