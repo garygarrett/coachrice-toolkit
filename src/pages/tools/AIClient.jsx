@@ -1,3 +1,4 @@
+import { authFetch } from '../../lib/authFetch'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -146,7 +147,7 @@ export default function AIClient() {
     // Create a chat session for history tracking
     if (user) {
       try {
-        const res = await fetch('/api/chat-history', {
+        const res = await authFetch('/api/chat-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, action: 'create-session' }),
@@ -174,7 +175,7 @@ export default function AIClient() {
     // Save user message to history
     if (user && chatSessionId) {
       try {
-        await fetch('/api/chat-history', {
+        await authFetch('/api/chat-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -219,7 +220,7 @@ export default function AIClient() {
       // Save assistant message to history
       if (user && chatSessionId) {
         try {
-          await fetch('/api/chat-history', {
+          await authFetch('/api/chat-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -284,7 +285,7 @@ export default function AIClient() {
       // Save feedback/analysis to history
       if (user && chatSessionId) {
         try {
-          await fetch('/api/chat-history', {
+          await authFetch('/api/chat-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

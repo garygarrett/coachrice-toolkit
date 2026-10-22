@@ -1,4 +1,5 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
+import { authFetch } from '../../lib/authFetch'
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
 import LoadingBar from "../../components/LoadingBar";
@@ -442,7 +443,7 @@ export default function Assessor2025() {
         return;
       }
 
-      await fetch("/api/internal-assessments", {
+      await authFetch("/api/internal-assessments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

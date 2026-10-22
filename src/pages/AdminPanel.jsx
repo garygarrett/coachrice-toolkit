@@ -761,7 +761,7 @@ export default function AdminPanel() {
   async function loadAccessCodes() {
     setAccessCodesLoading(true)
     try {
-      const res = await fetch('/api/access-codes?action=list')
+      const res = await authFetch('/api/access-codes?action=list')
       const data = await res.json()
       setAccessCodes(data.codes || [])
     } catch {
@@ -778,7 +778,7 @@ export default function AdminPanel() {
     setAccessCodeSuccess(null)
     setAccessCodeSubmitting(true)
     try {
-      const res = await fetch('/api/access-codes', {
+      const res = await authFetch('/api/access-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCodeForm.code.trim(), label: newCodeForm.label.trim() }),
@@ -799,7 +799,7 @@ export default function AdminPanel() {
     setAccessCodeError(null)
     setAccessCodeSuccess(null)
     try {
-      const res = await fetch('/api/access-codes', {
+      const res = await authFetch('/api/access-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, active }),
@@ -817,7 +817,7 @@ export default function AdminPanel() {
     setAccessCodeError(null)
     setAccessCodeSuccess(null)
     try {
-      const res = await fetch('/api/access-codes', {
+      const res = await authFetch('/api/access-codes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),

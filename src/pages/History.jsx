@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authFetch'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
@@ -43,9 +44,9 @@ export default function History() {
 
     try {
       const [examsRes, transcriptsRes, chatsRes] = await Promise.all([
-        fetch(`/api/exam-history?userId=${user.id}`),
-        fetch(`/api/transcript-history?userId=${user.id}`),
-        fetch(`/api/chat-history?userId=${user.id}`),
+        authFetch(`/api/exam-history?userId=${user.id}`),
+        authFetch(`/api/transcript-history?userId=${user.id}`),
+        authFetch(`/api/chat-history?userId=${user.id}`),
       ])
 
       if (!examsRes.ok || !transcriptsRes.ok || !chatsRes.ok) {
@@ -68,7 +69,7 @@ export default function History() {
 
   async function loadExamDetails(attemptId) {
     try {
-      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
+      const res = await authFetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
       const data = await res.json()
       if (res.ok) {
         setExamDetails(prev => ({ ...prev, [attemptId]: data }))
@@ -80,7 +81,7 @@ export default function History() {
 
   async function loadChatDetails(sessionId) {
     try {
-      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
+      const res = await authFetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
       const data = await res.json()
       if (res.ok) {
         setChatDetails(prev => ({ ...prev, [sessionId]: data }))
@@ -92,7 +93,7 @@ export default function History() {
 
   async function loadTranscriptDetails(analysisId) {
     try {
-      const res = await fetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`)
+      const res = await authFetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`)
       const data = await res.json()
       if (res.ok) {
         setTranscriptDetails(prev => ({ ...prev, [analysisId]: data }))
@@ -105,7 +106,7 @@ export default function History() {
   async function deleteExam(attemptId) {
     if (!window.confirm('Delete this exam attempt?')) return
     try {
-      const res = await fetch('/api/exam-history', {
+      const res = await authFetch('/api/exam-history', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attemptId, userId: user.id }),
@@ -124,7 +125,7 @@ export default function History() {
   async function deleteTranscript(analysisId) {
     if (!window.confirm('Delete this transcript analysis?')) return
     try {
-      const res = await fetch('/api/transcript-history', {
+      const res = await authFetch('/api/transcript-history', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId, userId: user.id }),
@@ -142,7 +143,7 @@ export default function History() {
   async function deleteChat(sessionId) {
     if (!window.confirm('Delete this chat session?')) return
     try {
-      const res = await fetch('/api/chat-history', {
+      const res = await authFetch('/api/chat-history', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, userId: user.id }),

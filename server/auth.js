@@ -38,6 +38,27 @@ export async function requireUser(req, res, supabase) {
 }
 
 /**
+ * For endpoints where the browser sends "userId = me" (history, exams, chats).
+ * Verifies the login token, then rejects the request if the userId it claims
+ * is not the person the token actually belongs to. After this passes, the
+ * userId in the request can be trusted as the real caller.
+ * If no userId was sent, it only verifies the token (the endpoint's own
+ * "userId is required" check still runs afterward).
+ * Returns { user } on success, or sends 401/403 and returns null.
+ */
+export async function requireSelf(req, res, supabase, claimedUserId) {
+  const auth = await requireUser(req, res, supabase)
+  if (!auth) return null
+
+  if (claimedUserId && claimedUserId !== auth.user.id) {
+    res.status(403).json({ error: 'userId does not match the signed-in user' })
+    return null
+  }
+
+  return auth
+}
+
+/**
  * Confirms the request comes from a logged-in user whose role is 'admin'
  * in the users table (the same place the app already stores roles).
  * Returns { user } on success, or sends 401/403 and returns null.

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireSelf } from '../server/auth.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   // GET - Fetch internal assessments
   if (req.method === 'GET') {
     const { userId, assessmentId, viewingUserId, assessorType } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' })
@@ -86,6 +88,7 @@ export default async function handler(req, res) {
   // POST - Save internal assessment
   if (req.method === 'POST') {
     const { userId, assessorType, transcriptFilename, assessmentData, competencyScores } = req.body
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId || !assessorType || !assessmentData) {
       return res.status(400).json({ error: 'userId, assessorType, and assessmentData are required' })
@@ -113,6 +116,7 @@ export default async function handler(req, res) {
   // DELETE - Soft delete internal assessment
   if (req.method === 'DELETE') {
     const { assessmentId, userId } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!assessmentId || !userId) {
       return res.status(400).json({ error: 'assessmentId and userId are required' })
