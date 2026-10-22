@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireSelf } from '../server/auth.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   // GET - Fetch transcript analyses
   if (req.method === 'GET') {
     const { userId, analysisId, viewingUserId } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' })
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
   // POST - Save transcript analysis
   if (req.method === 'POST') {
     const { userId, analysisText, competencyScores } = req.body
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId || !analysisText) {
       return res.status(400).json({ error: 'userId and analysisText are required' })
@@ -107,6 +110,7 @@ export default async function handler(req, res) {
   // DELETE - Soft delete transcript analysis
   if (req.method === 'DELETE') {
     const { analysisId, userId } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!analysisId || !userId) {
       return res.status(400).json({ error: 'analysisId and userId are required' })

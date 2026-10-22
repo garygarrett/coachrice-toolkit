@@ -1,3 +1,4 @@
+import { authFetch } from '../../lib/authFetch'
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -143,7 +144,7 @@ export default function Exam() {
           is_correct: q.isCorrect,
         }))
 
-        const historyRes = await fetch('/api/exam-history', {
+        const historyRes = await authFetch('/api/exam-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

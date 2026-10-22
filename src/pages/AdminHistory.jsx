@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authFetch'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
@@ -62,7 +63,7 @@ export default function AdminHistory() {
   async function loadGuestAnalyses() {
     setGuestLoading(true)
     try {
-      const res = await fetch('/api/access-codes?action=list-analyses')
+      const res = await authFetch('/api/access-codes?action=list-analyses')
       const data = await res.json()
       setGuestAnalyses(data.analyses || [])
     } catch (err) {
@@ -75,7 +76,7 @@ export default function AdminHistory() {
   async function deleteGuestAnalysis(id) {
     if (!window.confirm('Delete this guest analysis? This cannot be undone.')) return
     try {
-      await fetch('/api/access-codes', {
+      await authFetch('/api/access-codes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, type: 'analysis' }),
@@ -89,8 +90,8 @@ export default function AdminHistory() {
   async function loadInternalAssessments() {
     try {
       const [res2025, res2021] = await Promise.all([
-        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`),
-        fetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`),
+        authFetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`),
+        authFetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`),
       ])
 
       const data2025 = res2025.ok ? await res2025.json() : { data: [] }
@@ -135,11 +136,11 @@ export default function AdminHistory() {
     setLoading(true)
     try {
       const [examsRes, transcriptsRes, chatsRes, assessments2021Res, assessments2025Res] = await Promise.all([
-        fetch(`/api/exam-history?userId=${user.id}&viewingUserId=${userId}`),
-        fetch(`/api/transcript-history?userId=${user.id}&viewingUserId=${userId}`),
-        fetch(`/api/chat-history?userId=${user.id}&viewingUserId=${userId}`),
-        fetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2021`),
-        fetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2025`),
+        authFetch(`/api/exam-history?userId=${user.id}&viewingUserId=${userId}`),
+        authFetch(`/api/transcript-history?userId=${user.id}&viewingUserId=${userId}`),
+        authFetch(`/api/chat-history?userId=${user.id}&viewingUserId=${userId}`),
+        authFetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2021`),
+        authFetch(`/api/internal-assessments?userId=${user.id}&viewingUserId=${userId}&assessorType=2025`),
       ])
 
       const examsData = await examsRes.json()
@@ -167,17 +168,17 @@ export default function AdminHistory() {
       let endpoint, data
       switch (toolType) {
         case 'exam':
-          const examsRes = await fetch(`/api/exam-history?userId=${user.id}`)
+          const examsRes = await authFetch(`/api/exam-history?userId=${user.id}`)
           data = await examsRes.json()
           endpoint = 'exams'
           break
         case 'transcript':
-          const transcriptsRes = await fetch(`/api/transcript-history?userId=${user.id}`)
+          const transcriptsRes = await authFetch(`/api/transcript-history?userId=${user.id}`)
           data = await transcriptsRes.json()
           endpoint = 'transcripts'
           break
         case 'chat':
-          const chatsRes = await fetch(`/api/chat-history?userId=${user.id}`)
+          const chatsRes = await authFetch(`/api/chat-history?userId=${user.id}`)
           data = await chatsRes.json()
           endpoint = 'chats'
           break
@@ -210,7 +211,7 @@ export default function AdminHistory() {
         const questionMap = {}
         for (const item of data.data || []) {
           // Fetch detailed answers for this exam to get competency and question data
-          const detailRes = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${item.id}`)
+          const detailRes = await authFetch(`/api/exam-history?userId=${user.id}&attemptId=${item.id}`)
           const detailData = await detailRes.json()
 
           if (detailData.answers) {
@@ -259,7 +260,7 @@ export default function AdminHistory() {
 
   async function loadExamDetails(attemptId, userId) {
     try {
-      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
+      const res = await authFetch(`/api/exam-history?userId=${user.id}&attemptId=${attemptId}`)
       const data = await res.json()
       if (res.ok) {
         setUserDetails(prev => ({ ...prev, [attemptId]: data }))
@@ -271,7 +272,7 @@ export default function AdminHistory() {
 
   async function loadChatDetails(sessionId, userId) {
     try {
-      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
+      const res = await authFetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`)
       const data = await res.json()
       if (res.ok) {
         setUserDetails(prev => ({ ...prev, [sessionId]: data }))
@@ -292,7 +293,7 @@ export default function AdminHistory() {
   async function deleteExam(examId) {
     if (!window.confirm('Are you sure you want to delete this exam attempt?')) return
     try {
-      const res = await fetch(`/api/exam-history?userId=${user.id}&attemptId=${examId}`, { method: 'DELETE' })
+      const res = await authFetch(`/api/exam-history?userId=${user.id}&attemptId=${examId}`, { method: 'DELETE' })
       if (res.ok) {
         setUserHistory(prev => ({ ...prev, exams: prev.exams.filter(e => e.id !== examId) }))
       } else {
@@ -307,7 +308,7 @@ export default function AdminHistory() {
   async function deleteTranscript(analysisId) {
     if (!window.confirm('Are you sure you want to delete this transcript analysis?')) return
     try {
-      const res = await fetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`, { method: 'DELETE' })
+      const res = await authFetch(`/api/transcript-history?userId=${user.id}&analysisId=${analysisId}`, { method: 'DELETE' })
       if (res.ok) {
         setUserHistory(prev => ({ ...prev, transcripts: prev.transcripts.filter(t => t.id !== analysisId) }))
       } else {
@@ -322,7 +323,7 @@ export default function AdminHistory() {
   async function deleteChat(sessionId) {
     if (!window.confirm('Are you sure you want to delete this chat session?')) return
     try {
-      const res = await fetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`, { method: 'DELETE' })
+      const res = await authFetch(`/api/chat-history?userId=${user.id}&sessionId=${sessionId}`, { method: 'DELETE' })
       if (res.ok) {
         setUserHistory(prev => ({ ...prev, chats: prev.chats.filter(c => c.id !== sessionId) }))
       } else {
@@ -337,7 +338,7 @@ export default function AdminHistory() {
   async function deleteAssessment(assessmentId) {
     if (!window.confirm('Delete this assessment?')) return
     try {
-      const res = await fetch('/api/internal-assessments', {
+      const res = await authFetch('/api/internal-assessments', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assessmentId, userId: user.id }),
@@ -909,7 +910,7 @@ export default function AdminHistory() {
           endpoint = `/api/chat-history?userId=${user.id}&sessionId=${submissionId}`
           break
       }
-      const res = await fetch(endpoint, { method: 'DELETE' })
+      const res = await authFetch(endpoint, { method: 'DELETE' })
       if (res.ok) {
         setToolHistory(prev => prev.filter(item => item.id !== submissionId))
       } else {

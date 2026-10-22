@@ -1,3 +1,4 @@
+import { authFetch } from '../../lib/authFetch'
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
@@ -382,7 +383,7 @@ export default function Assessor() {
         return;
       }
 
-      await fetch("/api/internal-assessments", {
+      await authFetch("/api/internal-assessments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

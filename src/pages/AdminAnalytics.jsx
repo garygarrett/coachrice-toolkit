@@ -1,3 +1,4 @@
+import { authFetch } from '../lib/authFetch'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
@@ -81,7 +82,7 @@ export default function AdminAnalytics() {
 
   const loadSummary = async () => {
     try {
-      const res = await fetch(`/api/admin-analytics?type=summary&viewingUserId=${user?.id}`)
+      const res = await authFetch(`/api/admin-analytics?type=summary&viewingUserId=${user?.id}`)
       const data = await res.json()
       if (data.coaches) setCoaches(data.coaches)
       if (data.cohorts) setCohorts(data.cohorts)
@@ -96,7 +97,7 @@ export default function AdminAnalytics() {
   const loadCoachDetail = async (coachId) => {
     try {
       setDetailLoading(true)
-      const res = await fetch(`/api/admin-analytics?type=user&userId=${coachId}&viewingUserId=${user?.id}`)
+      const res = await authFetch(`/api/admin-analytics?type=user&userId=${coachId}&viewingUserId=${user?.id}`)
       const data = await res.json()
       setCoachDetail(data)
     } catch (err) {
@@ -109,7 +110,7 @@ export default function AdminAnalytics() {
   const loadCohortDetail = async (cohortId) => {
     try {
       setDetailLoading(true)
-      const res = await fetch(`/api/admin-analytics?type=cohort&cohortId=${cohortId}&viewingUserId=${user?.id}`)
+      const res = await authFetch(`/api/admin-analytics?type=cohort&cohortId=${cohortId}&viewingUserId=${user?.id}`)
       const data = await res.json()
       setCohortDetail(data)
     } catch (err) {
@@ -122,7 +123,7 @@ export default function AdminAnalytics() {
   const loadMentorCoachDetail = async (mentorCoachId) => {
     try {
       setDetailLoading(true)
-      const res = await fetch(`/api/admin-analytics?type=mentorCoach&mentorCoachId=${mentorCoachId}&viewingUserId=${user?.id}`)
+      const res = await authFetch(`/api/admin-analytics?type=mentorCoach&mentorCoachId=${mentorCoachId}&viewingUserId=${user?.id}`)
       const data = await res.json()
       setMentorCoachDetail(data)
     } catch (err) {

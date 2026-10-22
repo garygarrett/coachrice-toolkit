@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../server/auth.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
 
     // ── Admin: list all codes ────────────────────────────────────────────────
     if (action === 'list') {
+      if (!(await requireAdmin(req, res, supabase))) return
       const { data, error } = await supabase
         .from('access_codes')
         .select('*')
@@ -56,6 +58,7 @@ export default async function handler(req, res) {
 
     // ── Admin: list guest analyses ────────────────────────────────────────────
     if (action === 'list-analyses') {
+      if (!(await requireAdmin(req, res, supabase))) return
       const { data, error } = await supabase
         .from('guest_analyses')
         .select('id, access_code_label, analysis_data, competency_scores, created_at')
@@ -87,7 +90,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ id: data.id })
     }
 
-    // Create a new access code
+    // Create a new access code (admin only)
+    if (!(await requireAdmin(req, res, supabase))) return
     const { code, label } = req.body
     if (!code || !label) return res.status(400).json({ error: 'code and label are required' })
 
@@ -103,6 +107,7 @@ export default async function handler(req, res) {
 
   // ── Admin: toggle active ────────────────────────────────────────────────────
   if (req.method === 'PATCH') {
+    if (!(await requireAdmin(req, res, supabase))) return
     const { id, active } = req.body
     if (!id || active === undefined) return res.status(400).json({ error: 'id and active are required' })
 
@@ -117,6 +122,7 @@ export default async function handler(req, res) {
 
   // ── Admin: delete a code or a guest analysis ──────────────────────────────
   if (req.method === 'DELETE') {
+    if (!(await requireAdmin(req, res, supabase))) return
     const { id, type } = req.body
     if (!id) return res.status(400).json({ error: 'id is required' })
 

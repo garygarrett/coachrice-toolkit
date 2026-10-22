@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../server/auth.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -10,23 +11,13 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-  const { type, viewingUserId, userId, cohortId, mentorCoachId } = req.query
+  const { type, userId, cohortId, mentorCoachId } = req.query
 
-  if (!viewingUserId) {
-    return res.status(400).json({ error: 'viewingUserId is required' })
-  }
+  // Only a signed-in admin may view analytics. The viewingUserId the site used
+  // to send is no longer trusted: identity now comes from the login token.
+  if (!(await requireAdmin(req, res, supabase))) return
 
   try {
-    // Verify viewing user is admin
-    const { data: adminUser } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', viewingUserId)
-      .single()
-
-    if (adminUser?.role !== 'admin') {
-      return res.status(403).json({ error: 'Unauthorized' })
-    }
 
     // SUMMARY - all coaches, cohorts, mentor coaches with counts
     if (type === 'summary') {

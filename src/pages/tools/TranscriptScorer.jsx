@@ -1,3 +1,4 @@
+import { authFetch } from '../../lib/authFetch'
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -395,7 +396,7 @@ export default function TranscriptScorer() {
       // Save analysis to history
       if (user) {
         try {
-          const analysisRes = await fetch('/api/transcript-history', {
+          const analysisRes = await authFetch('/api/transcript-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

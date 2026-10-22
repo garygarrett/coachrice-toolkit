@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireSelf } from '../server/auth.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   // GET - Fetch exam attempts or specific attempt
   if (req.method === 'GET') {
     const { userId, attemptId, viewingUserId } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' })
@@ -112,6 +114,7 @@ export default async function handler(req, res) {
   // POST - Save exam attempt
   if (req.method === 'POST') {
     const { userId, overallScore, totalQuestions, correctAnswers, answers } = req.body
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!userId || overallScore === undefined || !totalQuestions || !answers) {
       return res.status(400).json({ error: 'Missing required fields' })
@@ -154,6 +157,7 @@ export default async function handler(req, res) {
   // DELETE - Soft delete exam attempt
   if (req.method === 'DELETE') {
     const { attemptId, userId } = req.query
+    if (!(await requireSelf(req, res, supabase, userId))) return
 
     if (!attemptId || !userId) {
       return res.status(400).json({ error: 'attemptId and userId are required' })
