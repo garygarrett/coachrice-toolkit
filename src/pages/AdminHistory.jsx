@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
 import { AssessmentReportDisplay } from '../components/AssessmentReport'
 import { exportAssessmentsToExcel } from '../utils/exportAssessments'
+import { competencyNumber } from '../lib/competency'
 
 const COLORS = {
   navy: '#00205B',
@@ -382,7 +383,7 @@ export default function AdminHistory() {
     // Helper to render behavioral statements
     const groupedStatements = {}
     ;(evaluation.behavioral_statements || []).forEach((s) => {
-      const c = parseInt(s.code.split('.')[0], 10)
+      const c = competencyNumber(s.code)
       if (!groupedStatements[c]) groupedStatements[c] = []
       groupedStatements[c].push(s)
     })
@@ -496,10 +497,10 @@ export default function AdminHistory() {
             }).join('')}
             <tr style="background: #f9fafc;">
               <td style="font-weight: 600;">Total Raw Score (avg of competency averages)</td>
-              <td style="text-align: right; font-weight: 600;">${(evaluation.score_calculation.final_score / 2 + 1.7).toFixed(2)}</td>
+              <td style="text-align: right; font-weight: 600;">${(evaluation.score_calculation.raw_score ?? 0).toFixed(2)}</td>
             </tr>
             <tr style="background: #00205B; color: white;">
-              <td style="font-weight: 600;">Final Score = (Raw " 1) × 2</td>
+              <td style="font-weight: 600;">Final Score = (Raw − 1) × ${String(evaluation.guide_version || '').startsWith('Nov 2025') ? '2.5' : '2'}</td>
               <td style="text-align: right; font-weight: 600;">${(evaluation.score_calculation.final_score ?? 0).toFixed(2)}</td>
             </tr>
           </tbody>
