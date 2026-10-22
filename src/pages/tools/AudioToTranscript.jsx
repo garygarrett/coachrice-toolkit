@@ -55,16 +55,18 @@ function buildTurns(result) {
     for (const u of utterances) {
       const text = (u.transcript || '').trim()
       if (!text) continue
+      const dur = Math.max(0, (u.end || 0) - (u.start || 0))
       const last = turns[turns.length - 1]
       if (last && last.speaker === (u.speaker ?? 0)) {
         last.text += ' ' + text
+        last.dur += dur
       } else {
-        turns.push({ speaker: u.speaker ?? 0, start: u.start || 0, text })
+        turns.push({ speaker: u.speaker ?? 0, start: u.start || 0, dur, text })
       }
     }
   } else {
     const text = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim()
-    if (text) turns = [{ speaker: 0, start: 0, text }]
+    if (text) turns = [{ speaker: 0, start: 0, dur: result?.metadata?.duration ?? null, text }]
   }
   return turns.map((t, i) => ({ ...t, id: i + 1 }))
 }
@@ -174,7 +176,7 @@ export default function AudioToTranscript() {
     edit(() => setTurns((ts) => {
       const i = ts.findIndex((t) => t.id === id)
       if (i <= 0) return ts
-      const merged = { ...ts[i - 1], text: `${ts[i - 1].text} ${ts[i].text}`.trim() }
+      const merged = { ...ts[i - 1], text: `${ts[i - 1].text} ${ts[i].text}`.trim(), dur: (ts[i - 1].dur ?? 0) + (ts[i].dur ?? 0) }
       return [...ts.slice(0, i - 1), merged, ...ts.slice(i + 1)]
     }))
   }
@@ -184,6 +186,29 @@ export default function AudioToTranscript() {
     edit(() => {
       setNames((n) => ({ ...n, [a]: n[b], [b]: n[a] }))
     })
+  }
+
+  // Speaking time and word counts per speaker. Percentages are shares of all
+  // speaking time (silence is left out) and of all words.
+  function breakdown() {
+    const hasTime = turns.length > 0 && turns.every((t) => typeof t.dur === 'number')
+    const rows = speakerIds.map((id) => {
+      const mine = turns.filter((t) => t.speaker === id)
+      const seconds = mine.reduce((n, t) => n + (t.dur || 0), 0)
+      const words = mine.reduce((n, t) => n + (t.text.trim() ? t.text.trim().split(/\s+/).length : 0), 0)
+      return { id, seconds, words, turns: mine.length }
+    })
+    const totalSec = rows.reduce((n, r) => n + r.seconds, 0)
+    const totalWords = rows.reduce((n, r) => n + r.words, 0)
+    return {
+      hasTime,
+      totalSec,
+      rows: rows.map((r) => ({
+        ...r,
+        timePct: totalSec ? (r.seconds / totalSec) * 100 : 0,
+        wordPct: totalWords ? (r.words / totalWords) * 100 : 0,
+      })),
+    }
   }
 
   function fullText() {
@@ -216,7 +241,7 @@ export default function AudioToTranscript() {
         body: JSON.stringify({
           title: title || 'Untitled transcript',
           transcriptText: fullText(),
-          turns: turns.map(({ speaker, start, text }) => ({ speaker, start, text })),
+          turns: turns.map(({ speaker, start, dur, text }) => ({ speaker, start, dur, text })),
           speakerNames: names,
           durationSeconds: duration,
         }),
@@ -276,6 +301,8 @@ export default function AudioToTranscript() {
     setStage('input'); setFile(null); setConsent(false); setTurns([]); setTitle(''); setError('')
     if (fileRef.current) fileRef.current.value = ''
   }
+
+  const bd = breakdown()
 
   return (
     <Layout active="audio" pageTitle="Audio to Transcript">
@@ -388,6 +415,32 @@ export default function AudioToTranscript() {
                 <button style={{ ...btn(false), borderColor: C.orange, color: C.orange }} onClick={sendToScorer}>Send to Transcript Reviewer</button>
                 <button style={{ ...btn(false), borderColor: C.gray, color: C.gray }} onClick={startOver}>Start over</button>
               </div>
+            </div>
+
+            <div style={card}>
+              <h2 style={{ fontSize: 15, color: C.navy, margin: '0 0 4px' }}>Who did the talking</h2>
+              <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>
+                {bd.hasTime
+                  ? `Share of speaking time${duration ? ` (recording length ${stamp(duration)}; pauses are not counted)` : ''}. Word counts update as you edit.`
+                  : 'Timing was not saved for this transcript, so this shows word counts only.'}
+              </div>
+              {bd.rows.map((r, i) => {
+                const pct = bd.hasTime ? r.timePct : r.wordPct
+                return (
+                  <div key={r.id} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4, gap: 12, flexWrap: 'wrap' }}>
+                      <strong>{nameOf(r.id)}</strong>
+                      <span style={{ color: C.gray }}>
+                        {bd.hasTime ? `${stamp(r.seconds)} · ${r.timePct.toFixed(0)}% of time · ` : ''}
+                        {r.words.toLocaleString()} words ({r.wordPct.toFixed(0)}%) · {r.turns} {r.turns === 1 ? 'turn' : 'turns'}
+                      </span>
+                    </div>
+                    <div style={{ height: 10, background: C.soft, borderRadius: 5, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: [C.navy, C.sky, C.orange, C.green][i % 4] }} />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
             <div style={card}>
