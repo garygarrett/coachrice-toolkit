@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { authFetch } from '../lib/authFetch'
 import Layout from '../components/Layout'
 import { getDefaultClientPrompt } from '../lib/prompts'
 
@@ -633,7 +634,7 @@ export default function AdminPanel() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      const res = await fetch('/api/invite-user', {
+      const res = await authFetch('/api/invite-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -685,7 +686,7 @@ export default function AdminPanel() {
 
     try {
       // Update user through API (uses service role key for privileged operations)
-      const res = await fetch('/api/user-actions?action=profile', {
+      const res = await authFetch('/api/user-actions?action=profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -714,7 +715,7 @@ export default function AdminPanel() {
   }
 
   async function handleResendInvite(user) {
-    const res = await fetch('/api/invite-user', {
+    const res = await authFetch('/api/invite-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email, full_name: user.full_name, role: user.role }),
@@ -728,7 +729,7 @@ export default function AdminPanel() {
   }
 
   async function handleResetPassword(user) {
-    const res = await fetch('/api/reset-password', {
+    const res = await authFetch('/api/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email }),
@@ -743,7 +744,7 @@ export default function AdminPanel() {
 
   async function handleDeleteUser(user) {
     if (!window.confirm(`Remove ${user.full_name}? This cannot be undone.`)) return
-    const res = await fetch('/api/delete-user', {
+    const res = await authFetch('/api/delete-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),
