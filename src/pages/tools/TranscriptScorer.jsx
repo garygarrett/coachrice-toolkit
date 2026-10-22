@@ -1,4 +1,5 @@
 import { authFetch } from '../../lib/authFetch'
+import { aiFetch } from '../../lib/ai'
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -257,7 +258,6 @@ export default function TranscriptScorer() {
   const [filename, setFilename] = useState("");
   const [evaluation, setEvaluation] = useState(null);
   const [error, setError] = useState("");
-  const [apiKey, setApiKey] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState(null);
   const [downloadName, setDownloadName] = useState("");
   const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
@@ -281,15 +281,14 @@ export default function TranscriptScorer() {
         setContentLoaded(true);
       });
 
-    // Fetch API key and prompt from config table
+    // Fetch the system prompt from the config table (the API key stays on the server)
     supabase
       .from("config")
       .select("key, value")
-      .in("key", ["api_key_transcript", "transcript_reviewer_prompt"])
+      .in("key", ["transcript_reviewer_prompt"])
       .then(({ data }) => {
         const map = {};
         if (data) data.forEach(row => { map[row.key] = row.value });
-        if (map.api_key_transcript) setApiKey(map.api_key_transcript);
         setSystemPrompt(map.transcript_reviewer_prompt || SYSTEM_PROMPT_DEFAULT);
       });
   }, []);
@@ -353,29 +352,18 @@ export default function TranscriptScorer() {
 
   const runEvaluation = async () => {
     if (!transcript.trim()) { setError("Please provide a transcript."); return; }
-    if (!apiKey) { setError("API configuration not found. Please contact support."); return; }
     if (!systemPrompt) { setError("System prompt not found. Please contact support."); return; }
 
     setError("");
     setStage("running");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 6000,
-          system: systemPrompt,
-          messages: [{
-            role: "user",
-            content: `Evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`
-          }]
-        })
+      // The server holds the API key and chooses the model (see api/ai.js)
+      const res = await aiFetch("transcript", {
+        system: systemPrompt,
+        messages: [{
+          role: "user",
+          content: `Evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`
+        }]
       });
 
       if (!res.ok) throw new Error(`API error: ${res.status}`);

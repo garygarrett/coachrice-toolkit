@@ -27,11 +27,12 @@ export default async function handler(req, res) {
       if (error || !data) return res.status(200).json({ valid: false })
       if (!data.active) return res.status(200).json({ valid: false, reason: 'inactive' })
 
-      // Fetch the transcript reviewer config so the guest client doesn't need a Supabase session
+      // Fetch the transcript reviewer prompt so the guest client doesn't need a Supabase session.
+      // The API key is intentionally NOT returned: guests call /api/ai with their access code instead.
       const { data: configRows } = await supabase
         .from('config')
         .select('key, value')
-        .in('key', ['api_key_transcript', 'transcript_reviewer_prompt'])
+        .in('key', ['transcript_reviewer_prompt'])
 
       const configMap = {}
       if (configRows) configRows.forEach(r => { configMap[r.key] = r.value })
@@ -39,7 +40,6 @@ export default async function handler(req, res) {
       return res.status(200).json({
         valid: true,
         label: data.label,
-        apiKey: configMap.api_key_transcript || null,
         systemPrompt: configMap.transcript_reviewer_prompt || null,
       })
     }

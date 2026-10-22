@@ -1,4 +1,5 @@
 import { authFetch } from '../../lib/authFetch'
+import { aiFetch } from '../../lib/ai'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -86,9 +87,7 @@ export default function AIClient() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [apiKey, setApiKey] = useState(null)
   const [systemPrompt, setSystemPrompt] = useState(null)
-  const [feedbackApiKey, setFeedbackApiKey] = useState(null)
   const [feedbackPrompt, setFeedbackPrompt] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [sessionStartTime, setSessionStartTime] = useState(null)
@@ -119,18 +118,16 @@ export default function AIClient() {
         setContentLoaded(true)
       })
 
-    // Fetch API keys and prompts from config table
+    // Fetch prompts from config table (the API keys stay on the server)
     supabase
       .from('config')
       .select('key, value')
-      .in('key', ['api_key_chatbot', 'ai_client_chatbot_prompt', 'api_key_feedback', 'ai_client_feedback_prompt'])
+      .in('key', ['ai_client_chatbot_prompt', 'ai_client_feedback_prompt'])
       .then(({ data }) => {
         if (data) {
           const map = {}
           data.forEach(row => { map[row.key] = row.value })
-          if (map.api_key_chatbot) setApiKey(map.api_key_chatbot)
           if (map.ai_client_chatbot_prompt) setSystemPrompt(map.ai_client_chatbot_prompt)
-          if (map.api_key_feedback) setFeedbackApiKey(map.api_key_feedback)
           if (map.ai_client_feedback_prompt) setFeedbackPrompt(map.ai_client_feedback_prompt)
         }
       })
@@ -165,7 +162,7 @@ export default function AIClient() {
   }
 
   const sendMessage = async () => {
-    if (!input.trim() || loading || !apiKey) return
+    if (!input.trim() || loading) return
     const userMsg = { role: 'coach', content: input.trim() }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
@@ -193,24 +190,14 @@ export default function AIClient() {
     }
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 400,
-          system: systemPrompt || buildClientPrompt(cfg),
-          messages: newMessages.map(m => ({ role: m.role === 'coach' ? 'user' : 'assistant', content: m.content })),
-        }),
+      // The server holds the API key and chooses the model (see api/ai.js)
+      const res = await aiFetch('client-chat', {
+        system: systemPrompt || buildClientPrompt(cfg),
+        messages: newMessages.map(m => ({ role: m.role === 'coach' ? 'user' : 'assistant', content: m.content })),
       })
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
-        throw new Error(`API error ${res.status}: ${errData.error?.message || 'Unknown error'}`)
+        throw new Error(`API error ${res.status}: ${errData.error?.message || errData.error || 'Unknown error'}`)
       }
       const data = await res.json()
       const reply = data.content?.[0]?.text || ''
@@ -244,31 +231,20 @@ export default function AIClient() {
   }
 
   const getFeedback = async () => {
-    if (!feedbackApiKey || !feedbackPrompt) return
+    if (!feedbackPrompt) return
     setLoading(true)
     try {
       const conversationText = messages.map(m => `${m.role === 'coach' ? 'Coach' : 'Client'}: ${m.content}`).join('\n')
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': feedbackApiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2000,
-          system: feedbackPrompt,
-          messages: [{
-            role: 'user',
-            content: `Please provide feedback on this coaching session:\n\n${conversationText}\n\nClient persona: ${cfg.clientName}, topic: ${cfg.topic}`,
-          }],
-        }),
+      const res = await aiFetch('client-feedback', {
+        system: feedbackPrompt,
+        messages: [{
+          role: 'user',
+          content: `Please provide feedback on this coaching session:\n\n${conversationText}\n\nClient persona: ${cfg.clientName}, topic: ${cfg.topic}`,
+        }],
       })
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
-        throw new Error(`API error ${res.status}: ${errData.error?.message || 'Unknown error'}`)
+        throw new Error(`API error ${res.status}: ${errData.error?.message || errData.error || 'Unknown error'}`)
       }
       const data = await res.json()
       const feedbackText = data.content?.[0]?.text || 'No feedback generated'
@@ -491,12 +467,6 @@ export default function AIClient() {
                 </div>
               </div>
 
-              {!apiKey && (
-                <div style={s.warningCard}>
-                  ⚠️ API key not configured. Please contact your administrator.
-                </div>
-              )}
-
               {/* Acknowledgments */}
               <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '12px', fontWeight: 700, color: COLORS.navy, marginBottom: '14px', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Acknowledgments</h3>
@@ -533,8 +503,8 @@ export default function AIClient() {
 
               <button
                 onClick={startSession}
-                disabled={!coachName.trim() || !apiKey || !allAcknowledged}
-                style={{ ...s.startBtn, opacity: (!coachName.trim() || !apiKey || !allAcknowledged) ? 0.5 : 1 }}
+                disabled={!coachName.trim() || !allAcknowledged}
+                style={{ ...s.startBtn, opacity: (!coachName.trim() || !allAcknowledged) ? 0.5 : 1 }}
               >
                 <div style={s.startBtnTitle}>Start session with {cfg.clientName}</div>
                 <ToolIcon id="arrow" size={18} color="#fff" />
@@ -585,7 +555,7 @@ export default function AIClient() {
               <ToolIcon id="transcript" size={11} color={COLORS.navy} />
               Transcript
             </button>
-            <button onClick={getFeedback} disabled={loading || !feedbackApiKey} style={{ ...s.feedbackBtn, opacity: (loading || !feedbackApiKey) ? 0.5 : 1 }}>
+            <button onClick={getFeedback} disabled={loading || !feedbackPrompt} style={{ ...s.feedbackBtn, opacity: (loading || !feedbackPrompt) ? 0.5 : 1 }}>
               {loading ? (
                 <>
                   <span style={{ display: 'inline-block', marginRight: '4px', animation: 'spin 1.5s linear infinite' }}>⊙</span>

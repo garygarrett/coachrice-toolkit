@@ -21,7 +21,8 @@ export default function AccessCodeEntry() {
       if (data.valid) {
         sessionStorage.setItem('coachrice_access', 'granted')
         sessionStorage.setItem('coachrice_access_label', data.label || 'Guest')
-        if (data.apiKey) sessionStorage.setItem('coachrice_api_key', data.apiKey)
+        // Keep the code (not an API key) so the server can re-check it on each AI request
+        sessionStorage.setItem('coachrice_access_code', code.trim())
         if (data.systemPrompt) sessionStorage.setItem('coachrice_system_prompt', data.systemPrompt)
         navigate('/access/transcript', { replace: true })
       } else {

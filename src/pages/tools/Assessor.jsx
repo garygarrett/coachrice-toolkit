@@ -1,4 +1,5 @@
 import { authFetch } from '../../lib/authFetch'
+import { aiFetch } from '../../lib/ai'
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
@@ -260,9 +261,7 @@ export default function Assessor() {
   const [evaluation, setEvaluation] = useState(null);
   const [customDownloadFilename, setCustomDownloadFilename] = useState("");
   const [error, setError] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [usageLog, setUsageLog] = useState([]);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
   const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
@@ -312,21 +311,6 @@ export default function Assessor() {
     link.rel = "stylesheet";
     link.href = "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap";
     document.head.appendChild(link);
-  }, []);
-
-  // Load API key from Supabase
-  useEffect(() => {
-    async function loadApiKey() {
-      const { data } = await supabase.from('config').select('key, value')
-      if (data) {
-        const map = {}
-        data.forEach(row => { map[row.key] = row.value })
-        if (map.api_key_assessor) {
-          setApiKey(map.api_key_assessor)
-        }
-      }
-    }
-    loadApiKey()
   }, []);
 
   // Load system prompt from Supabase
@@ -413,33 +397,20 @@ export default function Assessor() {
     }
   }, [evaluation]);
 
-  const assessTranscriptText = async (transcriptText, apiKeyParam) => {
+  const assessTranscriptText = async (transcriptText) => {
     if (!transcriptText.trim()) {
       throw new Error("Transcript cannot be empty");
     }
-    if (!apiKeyParam.trim()) {
-      throw new Error("API key not available");
-    }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKeyParam.trim(),
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-opus-4-7",
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcriptText}`,
-          },
-        ],
-      }),
+    // The server holds the API key and chooses the model (see api/ai.js)
+    const response = await aiFetch("assessor-2021", {
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcriptText}`,
+        },
+      ],
     });
 
     if (!response.ok) {
@@ -493,15 +464,11 @@ export default function Assessor() {
       setError("Please provide a transcript before running the evaluation.");
       return;
     }
-    if (!apiKey.trim()) {
-      setError("API key not loaded. Please check admin settings and ensure the API key is configured.");
-      return;
-    }
     setError("");
     setStage("running");
 
     try {
-      const computed = await assessTranscriptText(transcript, apiKey);
+      const computed = await assessTranscriptText(transcript);
       setEvaluation(computed);
       const safeName = filename
         ? filename.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, "_")
@@ -515,14 +482,10 @@ export default function Assessor() {
   };
 
   const runBulkEvaluation = async () => {
-    console.log("runBulkEvaluation called, bulkQueue.length:", bulkQueue.length, "apiKey:", apiKey ? "loaded" : "missing");
+    console.log("runBulkEvaluation called, bulkQueue.length:", bulkQueue.length);
 
     if (!bulkQueue.length) {
       setError("No files in queue");
-      return;
-    }
-    if (!apiKey.trim()) {
-      setError("API key not loaded");
       return;
     }
 
@@ -538,7 +501,7 @@ export default function Assessor() {
       console.log(`Processing file ${i + 1}/${bulkQueue.length}: ${fname}`);
 
       try {
-        const computed = await assessTranscriptText(text, apiKey);
+        const computed = await assessTranscriptText(text);
         const fileBaseName = fname.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, "_");
         results.push({
           filename: fname,

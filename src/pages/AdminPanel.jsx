@@ -265,7 +265,9 @@ export default function AdminPanel() {
 
   // ── Tool content/settings state ──
   const [contentValues, setContentValues] = useState({})
-  const [apiKeys, setApiKeys] = useState({ chatbot: '', feedback: '', assessor: '', assessor2025: '' })
+  // API keys are write-only: the browser never receives a saved key, only whether one is saved.
+  const [apiKeyInputs, setApiKeyInputs] = useState({})
+  const [apiKeyStatus, setApiKeyStatus] = useState({})
   const [prompts, setPrompts] = useState({ aiClientChatbot: '', aiClientFeedback: '', assessor: '', assessor2025: '' })
   const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true, assessor: true, assessor2025: true })
   const [tileColors, setTileColors] = useState({})
@@ -340,11 +342,15 @@ export default function AdminPanel() {
       if (configRes.data) {
         configRes.data.forEach(row => { configMap[row.key] = row.value })
       }
-      setApiKeys({
-        chatbot: configMap.api_key_chatbot ?? '',
-        feedback: configMap.api_key_feedback ?? '',
-        assessor: configMap.api_key_assessor ?? '',
-      })
+      try {
+        const statusRes = await authFetch('/api/user-actions?action=api-key-status', { method: 'POST' })
+        if (statusRes.ok) {
+          const statusData = await statusRes.json()
+          setApiKeyStatus(statusData.set || {})
+        }
+      } catch {
+        // Status badges are cosmetic; ignore failures.
+      }
       setPrompts({
         aiClientChatbot: configMap.ai_client_chatbot_prompt ?? getDefaultClientPrompt(),
         aiClientFeedback: configMap.ai_client_feedback_prompt ?? '',
@@ -430,18 +436,41 @@ export default function AdminPanel() {
     setToolError(null)
     setToolSuccess(null)
 
-    const updates = [
-      { key: 'api_key_chatbot', value: apiKeys.chatbot },
-      { key: 'api_key_feedback', value: apiKeys.feedback },
-      { key: 'api_key_assessor', value: apiKeys.assessor },
-    ]
+    const tool = TOOLS.find(t => t.id === toolId)
+    // Save only the keys the admin typed in. Blank boxes leave the saved key alone.
+    const toSave = (tool.apiKeyKeys || []).filter(k => (apiKeyInputs[k] || '').trim())
 
-    const { error } = await supabase.from('config').upsert(updates, { onConflict: 'key' })
+    if (toSave.length === 0) {
+      setToolError('Type a new key into at least one box to save.')
+      setToolLoading(false)
+      return
+    }
 
-    if (error) {
-      setToolError(error.message)
-    } else {
+    try {
+      for (const key of toSave) {
+        const res = await authFetch('/api/user-actions?action=api-key-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value: apiKeyInputs[key] }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Could not save API key')
+        }
+      }
+      setApiKeyInputs(v => {
+        const next = { ...v }
+        toSave.forEach(k => { delete next[k] })
+        return next
+      })
+      setApiKeyStatus(v => {
+        const next = { ...v }
+        toSave.forEach(k => { next[k] = true })
+        return next
+      })
       setToolSuccess('API keys saved.')
+    } catch (e) {
+      setToolError(e.message)
     }
     setToolLoading(false)
   }
@@ -1223,16 +1252,14 @@ export default function AdminPanel() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {tool.apiKeyKeys.map((key, i) => (
               <label key={key} style={s.label}>
-                {tool.apiKeyLabels[i]}
+                {tool.apiKeyLabels[i]} {apiKeyStatus[key] ? '(saved ✓)' : '(not set)'}
                 <input
                   type="password"
-                  value={apiKeys[key === 'api_key_chatbot' ? 'chatbot' : key === 'api_key_feedback' ? 'feedback' : 'assessor'] || ''}
-                  onChange={e => {
-                    const field = key === 'api_key_chatbot' ? 'chatbot' : key === 'api_key_feedback' ? 'feedback' : 'assessor'
-                    setApiKeys(v => ({ ...v, [field]: e.target.value }))
-                  }}
+                  autoComplete="new-password"
+                  value={apiKeyInputs[key] || ''}
+                  onChange={e => setApiKeyInputs(v => ({ ...v, [key]: e.target.value }))}
                   style={s.input}
-                  placeholder="sk-..."
+                  placeholder={apiKeyStatus[key] ? 'Saved. Type a new key here to replace it.' : 'sk-...'}
                 />
               </label>
             ))}

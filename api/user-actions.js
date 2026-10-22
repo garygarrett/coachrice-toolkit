@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin, requireUser } from '../server/auth.js'
 
+const API_KEY_NAMES = [
+  'api_key_chatbot',
+  'api_key_feedback',
+  'api_key_assessor',
+  'api_key_assessor_2025',
+  'api_key_transcript',
+  'api_key_audio',
+]
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -150,6 +159,37 @@ export default async function handler(req, res) {
       console.error('Last accessed update error:', error)
       return res.status(500).json({ error: error.message })
     }
+  }
+
+  // API KEY STATUS - Which AI keys are saved? Returns true/false only, never the key itself (admin only)
+  if (action === 'api-key-status') {
+    if (!(await requireAdmin(req, res, supabase))) return
+    const { data, error } = await supabase
+      .from('config')
+      .select('key, value')
+      .in('key', API_KEY_NAMES)
+    if (error) return res.status(500).json({ error: error.message })
+    const set = {}
+    API_KEY_NAMES.forEach(k => { set[k] = false })
+    ;(data || []).forEach(r => { set[r.key] = !!(r.value && String(r.value).trim()) })
+    return res.status(200).json({ set })
+  }
+
+  // API KEY SAVE - Write one AI key to the config table (admin only, write-only)
+  if (action === 'api-key-save') {
+    if (!(await requireAdmin(req, res, supabase))) return
+    const { key, value } = req.body || {}
+    if (!API_KEY_NAMES.includes(key)) {
+      return res.status(400).json({ error: 'Unknown key name' })
+    }
+    if (typeof value !== 'string' || !value.trim()) {
+      return res.status(400).json({ error: 'value is required' })
+    }
+    const { error } = await supabase
+      .from('config')
+      .upsert({ key, value: value.trim() }, { onConflict: 'key' })
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
   }
 
   return res.status(400).json({ error: 'Invalid action' })
