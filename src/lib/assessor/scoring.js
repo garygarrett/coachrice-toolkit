@@ -22,6 +22,9 @@ export function validateEvaluation(versionId, raw) {
   const version = VERSIONS[versionId]
   if (!Array.isArray(raw.behavioral_statements)) return 'it has no behavioral_statements list'
   if (!raw.ethical_practice || typeof raw.ethical_practice !== 'object') return 'it has no ethical_practice section'
+  for (const q of version.qualifiers) {
+    if (!['Observed', 'Not Observed'].includes(raw.ethical_practice[q])) return `qualifier "${q}" is not Observed or Not Observed`
+  }
 
   const found = new Map()
   for (const s of raw.behavioral_statements) {
@@ -66,10 +69,10 @@ export function recomputeScores(versionId, rawEval) {
   const round2 = (x) => Math.round(x * 100) / 100
 
   const ethics = rawEval.ethical_practice || {}
+  // Every ethical practice qualifier for this version must be Observed to pass
   const passes =
     finalScore >= PASS_THRESHOLD &&
-    ethics.icf_code_alignment === 'Observed' &&
-    ethics.coach_role_alignment === 'Observed'
+    version.qualifiers.every((q) => ethics[q] === 'Observed')
 
   return {
     ...rawEval,

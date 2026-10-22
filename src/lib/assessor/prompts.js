@@ -406,7 +406,21 @@ When a transcript is submitted, follow this procedure in order. Do not skip step
 
 1. Read the full transcript end to end before rating anything. Form a holistic view first.
 2. Identify candidate evidence for each behavioral statement.
-3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the two qualifiers as Observed or Not Observed. Default expectation: both are Observed. If a possible Code of Ethics breach is suspected, indicate the specific section of the Code that may apply.
+3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the THREE qualifiers below as exactly "Observed" or "Not Observed" (never empty). Default expectation: all three are Observed. If a possible Code of Ethics breach is suspected, indicate the specific section of the Code that may apply.
+
+   **Qualifier 1:** Coach demonstrates a strong understanding and alignment with the ICF Code of Ethics.
+   - Observed: No ethical breaches — the coach respects client autonomy, avoids unsolicited advice, maintains appropriate boundaries, and conducts the session in a manner consistent with ICF ethical standards.
+   - Not Observed: There is evidence of an ethical breach — e.g., unsolicited advice, boundary violation, or behavior inconsistent with the ICF Code of Ethics.
+
+   **Qualifier 2:** Coach consistently stays in the role of the coach, demonstrating knowledge of how to structure a coaching conversation and stays focused on future and present issues.
+   - Observed: The coach maintains a coaching stance throughout — does not shift into consulting, mentoring, or therapy; the conversation is structured around the client's topic and is forward-focused.
+   - Not Observed: The coach loses the coaching structure — gives directives, dwells unproductively on the past, or shifts into a non-coaching role for significant portions of the session.
+
+   **Qualifier 3:** Coach uses key coaching skills such as trust, presence, active listening, and evoking awareness to facilitate the client's own insights.
+   - Observed: The session demonstrates at least three of these: (1) trust — coach creates a safe, non-judgmental space; (2) presence — coach tracks and responds to what the client offers moment to moment; (3) active listening — coach reflects, paraphrases, or builds on what the client says; (4) evoking awareness — coach uses questions or observations that help the client see something new. Rate Observed if the overall session is recognizably skill-based coaching.
+   - Not Observed: The session lacks clear evidence of skill-based coaching — the conversation is directionless, advice-giving, or the client shows no new awareness or insight as a result of the coaching.
+
+
 4. Note Competency 2 (Embodies a Coaching Mindset): Per the Nov 2025 BARS Guide, Competency 2 is evaluated via the ICF ACC Exam, NOT via BARS in this performance assessment. Do not assign a BARS rating to Competency 2.
 5. Evaluate each behavioral statement A3.1 through A8.3 (20 statements total). For each: state the rating, provide 2–4 specific timestamps from the transcript, and include a brief direct quote (under 15 words) for each timestamp. Accept whatever timestamp format the transcript uses — common formats include MM:SS, H:MM:SS, HH:MM:SS, with or without surrounding parentheses or brackets (e.g., "12:34", "(0:12 - 0:23)", "[1:05:42]", "00:08:15"). Preserve the format as it appears in the transcript when citing it. If a coach turn spans multiple seconds, you may use a range like "11:20-11:22". If the transcript has no timestamps at all, cite the speaker turn instead (e.g., "Coach turn 14").
 6. Compile Evidence and Contra-Evidence. List supporting evidence by behavioral statement code. List contra-evidence ONLY for skills where it affected the rating.
@@ -480,7 +494,9 @@ CRITICAL: You MUST respond with a single valid JSON object only. No prose before
     "icf_code_alignment": "Observed" | "Not Observed",
     "icf_code_alignment_note": "string (only if Not Observed; otherwise empty string. Cite specific Code of Ethics section if applicable.)",
     "coach_role_alignment": "Observed" | "Not Observed",
-    "coach_role_alignment_note": "string (only if Not Observed; otherwise empty string)"
+    "coach_role_alignment_note": "string (only if Not Observed; otherwise empty string)",
+    "coaching_skills_alignment": "Observed" | "Not Observed",
+    "coaching_skills_alignment_note": "string (only if Not Observed; otherwise empty string)"
   },
   "behavioral_statements": [
     {

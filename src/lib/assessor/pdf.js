@@ -35,8 +35,10 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
   // Competency 1: the two qualifiers stay Observed / Not Observed (they decide pass or fail)
   observed.q1 = ep.icf_code_alignment || ''
   observed.q2 = ep.coach_role_alignment || ''
+  observed.q3 = ep.coaching_skills_alignment || ''
   if (ep.icf_code_alignment_note) contraEvidenceNotes.q1 = ep.icf_code_alignment_note
   if (ep.coach_role_alignment_note) contraEvidenceNotes.q2 = ep.coach_role_alignment_note
+  if (ep.coaching_skills_alignment_note) contraEvidenceNotes.q3 = ep.coaching_skills_alignment_note
 
   const sections = SECTIONS.map((section) => {
     const n = parseInt(section.number, 10)
@@ -47,6 +49,10 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
         items: [
           { id: 'q1', text: '1. Coach demonstrates alignment with the ICF Code of Ethics.' },
           { id: 'q2', text: '2. Coach demonstrates consistent alignment with the role of “coach.”' },
+          // The 2025 rubric has a third qualifier
+          ...(version.qualifiers.length === 3
+            ? [{ id: 'q3', text: '3. Coach uses key coaching skills such as trust, presence, active listening, and evoking awareness to facilitate the client’s own insights.' }]
+            : []),
         ],
       }
     }
@@ -115,7 +121,7 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
       rawScore: fmt(sc.raw_score),
       rubric: `${version.id} version: ${version.label}`,
       // The PDF font has no minus or multiplication sign, so spell the formula with plain characters
-      note: `${version.formula.replace('−', '-').replace('×', 'x')}. Pass threshold ${PASS_THRESHOLD.toFixed(2)}, and both ethical practice qualifiers must be Observed.`,
+      note: `${version.formula.replace('−', '-').replace('×', 'x')}. Pass threshold ${PASS_THRESHOLD.toFixed(2)}, and ${version.qualifiers.length === 3 ? 'all three' : 'both'} ethical practice qualifiers must be Observed.`,
     },
     observed,
     evidenceNotes,

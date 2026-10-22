@@ -176,6 +176,14 @@ export function AssessmentReportDisplay({ assessment }) {
                   {evaluation.ethical_practice?.coach_role_alignment}
                 </td>
               </tr>
+              {assessment.assessor_type === '2025' && (
+                <tr style={{ backgroundColor: colors.white, borderTop: `1px solid ${colors.border}` }}>
+                  <td style={{ padding: '12px 16px' }}>3. Coach uses key coaching skills such as trust, presence, active listening, and evoking awareness to facilitate the client's own insights.</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: evaluation.ethical_practice?.coaching_skills_alignment === 'Observed' ? '#16A34A' : '#DC2626' }}>
+                    {evaluation.ethical_practice?.coaching_skills_alignment}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -199,6 +207,17 @@ export function AssessmentReportDisplay({ assessment }) {
             </div>
             <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
               {evaluation.ethical_practice.coach_role_alignment_note}
+            </div>
+          </div>
+        )}
+
+        {(evaluation.ethical_practice?.coaching_skills_alignment === 'Not Observed' && evaluation.ethical_practice?.coaching_skills_alignment_note) && (
+          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
+              Rationale: Use of Key Coaching Skills
+            </div>
+            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
+              {evaluation.ethical_practice.coaching_skills_alignment_note}
             </div>
           </div>
         )}

@@ -23,6 +23,8 @@ export const VERSIONS = {
     promptConfigKey: 'ai_assessor_prompt',
     defaultPrompt: PROMPT_2021,
     codePrefix: '',
+    // The 2021 rubric has two ethical practice qualifiers: ICF Code of Ethics, and role of the coach
+    qualifiers: ['icf_code_alignment', 'coach_role_alignment'],
     statements: statementsFrom(PROMPT_2021),
     // Rating label -> score. N/A counts as 1 in this version.
     ratings: {
@@ -45,6 +47,8 @@ export const VERSIONS = {
     promptConfigKey: 'ai_assessor_2025_prompt',
     defaultPrompt: PROMPT_2025,
     codePrefix: 'A',
+    // The 2025 rubric adds a third: using key coaching skills
+    qualifiers: ['icf_code_alignment', 'coach_role_alignment', 'coaching_skills_alignment'],
     statements: statementsFrom(PROMPT_2025),
     // Rating label -> score. N/A is left out of the averages.
     ratings: {
@@ -74,6 +78,7 @@ export function pickPrompt(versionId, savedPrompt) {
     saved.includes('"behavioral_statements"') &&
     saved.includes('"score_calculation"') &&
     saved.includes('"ethical_practice"') &&
+    version.qualifiers.every((q) => saved.includes(`"${q}"`)) &&
     version.statements.every((s) => saved.includes(s.code))
   if (!looksRight) {
     if (saved) console.warn(`[assessor] The saved ${versionId} prompt does not match the expected answer format, so the built-in prompt is being used.`)
