@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
 import { authFetch } from '../../lib/authFetch'
-import { aiFetch } from '../../lib/ai'
+import { aiFetch, aiJson } from '../../lib/ai'
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
 import LoadingBar from "../../components/LoadingBar";
@@ -483,61 +483,43 @@ export default function Assessor2025() {
 
     try {
       // The server holds the API key and chooses the model (see api/ai.js)
-      const response = await aiFetch("assessor-2025", {
+      const parsed = await aiJson(
+      "assessor-2025",
+      {
         system: systemPrompt,
         messages: [
           {
             role: "user",
-            content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`,
+            content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after. Inside JSON strings, escape any double quote marks with a backslash.\n\n--- TRANSCRIPT ---\n\n${transcript}`,
           },
         ],
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`API error: ${response.status} — ${errText.slice(0, 200)}`);
+      },
+      {
+        onUsage: (usage) => {
+          // Cost tracking (Opus 4.7: $5/MTok in, $25/MTok out). Retries count too.
+          const inputTokens = usage.input_tokens || 0;
+          const outputTokens = usage.output_tokens || 0;
+          const cacheReadTokens = usage.cache_read_input_tokens || 0;
+          const cacheCreateTokens = usage.cache_creation_input_tokens || 0;
+          const cost =
+            (inputTokens * 5 / 1_000_000) +
+            (outputTokens * 25 / 1_000_000) +
+            (cacheReadTokens * 0.5 / 1_000_000) +
+            (cacheCreateTokens * 6.25 / 1_000_000);
+          setUsageLog((prev) => [
+            ...prev,
+            {
+              date: new Date().toLocaleString(),
+              inputTokens,
+              outputTokens,
+              cost: cost.toFixed(4),
+            },
+          ]);
+        },
       }
+    );
 
-      const data = await response.json();
-
-      // Capture usage for cost tracking. Opus 4.7 pricing: $5/MTok input, $25/MTok output.
-      // Cached input reads are billed at $0.50/MTok and cache writes at $6.25/MTok if those fields appear.
-      if (data.usage) {
-        const inputTokens = data.usage.input_tokens || 0;
-        const outputTokens = data.usage.output_tokens || 0;
-        const cacheReadTokens = data.usage.cache_read_input_tokens || 0;
-        const cacheCreateTokens = data.usage.cache_creation_input_tokens || 0;
-        const cost =
-          (inputTokens * 5 / 1_000_000) +
-          (outputTokens * 25 / 1_000_000) +
-          (cacheReadTokens * 0.5 / 1_000_000) +
-          (cacheCreateTokens * 6.25 / 1_000_000);
-        setUsageLog((prev) => [
-          ...prev,
-          {
-            date: new Date().toLocaleString(),
-            inputTokens,
-            outputTokens,
-            cost: cost.toFixed(4),
-          },
-        ]);
-      }
-
-      const rawText = data.content?.[0]?.text || "";
-
-      // Extract JSON (defensive — strip any accidental code fences)
-      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*$/g, "").trim();
-      let parsed;
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch (parseErr) {
-        // Try to find a JSON object within the text
-        const match = cleaned.match(/\{[\s\S]*\}/);
-        if (match) parsed = JSON.parse(match[0]);
-        else throw new Error("Could not parse evaluation response. Try again.");
-      }
-
-      const computed = recomputeScores(parsed);
+    const computed = recomputeScores(parsed);
       setEvaluation(computed);
       const safeName = (computed.coach_identifier || "Coach").replace(/[^a-z0-9]/gi, "_");
       setCustomDownloadFilename(`ACC_Evaluation_2025_${safeName}`);
