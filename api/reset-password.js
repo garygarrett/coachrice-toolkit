@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -12,12 +13,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server misconfiguration: missing Supabase env vars' })
   }
 
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  // Only a signed-in admin may trigger password resets for other users
+  if (!(await requireAdmin(req, res, supabase))) return
+
   const { email } = req.body
   if (!email) {
     return res.status(400).json({ error: 'email is required' })
   }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
   const siteUrl = process.env.SITE_URL ?? 'https://coachrice-toolkit.vercel.app'
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

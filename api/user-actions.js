@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin, requireUser } from '../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,8 +20,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'action is required' })
   }
 
-  // UPDATE PROFILE - Update user profile fields
+  // UPDATE PROFILE - Update user profile fields (admin only)
   if (action === 'profile') {
+    if (!(await requireAdmin(req, res, supabase))) return
     try {
       const { userId, full_name, email, role, cohort_id, mentor_coach_id, is_active } = req.body
 
@@ -83,8 +85,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // UPDATE ROLE - Update user role
+  // UPDATE ROLE - Update user role (admin only)
   if (action === 'role') {
+    if (!(await requireAdmin(req, res, supabase))) return
     try {
       const { userId, role } = req.body
 
@@ -118,12 +121,19 @@ export default async function handler(req, res) {
   }
 
   // UPDATE LAST ACCESSED - Update last_accessed_at timestamp
+  // Any signed-in user may call this, but only for their own account.
   if (action === 'last-accessed') {
+    const auth = await requireUser(req, res, supabase)
+    if (!auth) return
     try {
       const { userId } = req.body
 
       if (!userId) {
         return res.status(400).json({ error: 'userId is required' })
+      }
+
+      if (userId !== auth.user.id) {
+        return res.status(403).json({ error: 'You can only update your own record' })
       }
 
       const { error } = await supabase

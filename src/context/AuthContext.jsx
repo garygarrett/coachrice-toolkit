@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { authFetch } from '../lib/authFetch'
 
 const AuthContext = createContext(null)
 
@@ -44,7 +45,7 @@ export function AuthProvider({ children }) {
         } else {
           setProfile(data ?? null)
           if (data) {
-            fetch('/api/user-actions?action=last-accessed', {
+            authFetch('/api/user-actions?action=last-accessed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: user.id }),

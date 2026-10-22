@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,6 +14,10 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  // Only a signed-in admin may resend invites
+  if (!(await requireAdmin(req, res, supabase))) return
+
   const { email, full_name, role } = req.body
 
   if (!email) {
