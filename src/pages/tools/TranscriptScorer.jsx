@@ -293,6 +293,19 @@ export default function TranscriptScorer() {
       });
   }, []);
 
+  // Pick up a transcript handed over from the Audio to Transcript tool
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem("pendingTranscript");
+      if (pending) {
+        setTranscript(pending);
+        setFilename(sessionStorage.getItem("pendingTranscriptName") || "Audio transcript");
+        sessionStorage.removeItem("pendingTranscript");
+        sessionStorage.removeItem("pendingTranscriptName");
+      }
+    } catch { /* sessionStorage can be unavailable; the user can paste instead */ }
+  }, []);
+
   // Load PDF.js library
   useEffect(() => {
     if (window.pdfjsLib) { setPdfLibLoaded(true); return; }

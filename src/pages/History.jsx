@@ -21,17 +21,14 @@ export default function History() {
   const [examAttempts, setExamAttempts] = useState([])
   const [transcriptAnalyses, setTranscriptAnalyses] = useState([])
   const [chatSessions, setChatSessions] = useState([])
-  const [audioTranscripts, setAudioTranscripts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedExam, setExpandedExam] = useState(null)
   const [expandedTranscript, setExpandedTranscript] = useState(null)
   const [expandedChat, setExpandedChat] = useState(null)
-  const [expandedAudio, setExpandedAudio] = useState(null)
   const [examDetails, setExamDetails] = useState({})
   const [chatDetails, setChatDetails] = useState({})
   const [transcriptDetails, setTranscriptDetails] = useState({})
-  const [audioDetails, setAudioDetails] = useState({})
 
   useEffect(() => {
     loadHistory()
@@ -156,37 +153,6 @@ export default function History() {
       }
     } catch (err) {
       console.error('Error deleting session:', err)
-    }
-  }
-
-  async function loadAudioDetails(sessionId) {
-    try {
-      const res = await fetch(`/api/audio?action=history&userId=${user.id}&sessionId=${sessionId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setAudioDetails(prev => ({ ...prev, [sessionId]: data }))
-      }
-    } catch (err) {
-      console.error('Error loading audio details:', err)
-    }
-  }
-
-  async function deleteAudio(sessionId) {
-    if (!window.confirm('Delete this audio transcript?')) return
-    try {
-      const res = await fetch('/api/audio?action=delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, userId: user.id }),
-      })
-      if (res.ok) {
-        setAudioTranscripts(prev => prev.filter(a => a.id !== sessionId))
-        setExpandedAudio(null)
-      } else {
-        alert('Failed to delete transcript')
-      }
-    } catch (err) {
-      console.error('Error deleting transcript:', err)
     }
   }
 
