@@ -18,6 +18,7 @@ import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
 import InternalAssessor from './pages/tools/InternalAssessor'
+import AudioToTranscript from './pages/tools/AudioToTranscript'
 import AssessorTest from './pages/tools/AssessorTest'
 
 /**
@@ -118,6 +119,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <InternalAssessor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/audio"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AudioToTranscript />
             </ProtectedRoute>
           }
         />

@@ -77,7 +77,7 @@ The `competency_scores` table is the source of truth for all charts and analytic
 |---|---|---|---|
 | 1 | ACC Practice Exam | `/tools/exam` | ✓ Working |
 | 2 | Transcript Scorer | `/tools/transcript` | ✓ Working |
-| 3 | Audio Transcriber | `/tools/audio-to-transcript` | ✓ Working |
+| 3 | Audio Transcriber | `/tools/audio` | ✓ Working (admin only for now; Deepgram) |
 | 4 | Coaching Bot | `/tools/ai-client` | ✓ Working |
 
 All tools that produce scores must parse Claude's response and write rows to `competency_scores`. Prompt engineering must produce consistently structured output for this to work reliably.
@@ -224,10 +224,9 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - `src/pages/AdminHistory.jsx` — admin analytics: view user history or tool-wide stats
 - `src/pages/tools/Exam.jsx` — practice exam tool
 - `src/pages/tools/TranscriptScorer.jsx` — transcript scoring tool
-- `src/pages/tools/AudioToTranscript.jsx` — audio transcriber
 - `src/pages/tools/AIClient.jsx` — coaching bot
-- `src/pages/tools/Assessor.jsx` — internal assessor 2021
-- `src/pages/tools/Assessor2025.jsx` — internal assessor 2025 (Nov 2025 BARS)
+- `src/pages/tools/InternalAssessor.jsx` — combined internal assessor (2021 + 2025), route `/tools/assessor`, admin only; logic in `src/lib/assessor/`
+- `src/pages/tools/AudioToTranscript.jsx` — audio transcriber (Deepgram), route `/tools/audio`, admin only
 
 **Components:**
 - `src/components/Layout.jsx` — page wrapper with nav
@@ -250,3 +249,12 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 ## Build Phases (reference)
 
 Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individual tools | Phase 9 = Coach Dashboard | Phase 10 = Admin Dashboard | Phase 11 = Polish/branding
+
+## Audio to Transcript (Deepgram)
+
+- Admin-only at first. The Deepgram key is stored in `config` as `api_key_audio` (set in Admin > Audio to Transcript; write-only, hidden from browsers by RLS).
+- `POST /api/user-actions?action=audio-token` (admin) trades that key for a 1-hour Deepgram token. The browser uploads audio **straight to Deepgram** with that token, so audio never touches our server (Vercel Hobby caps bodies at 4.5MB) and is never stored.
+- Request uses `model=nova-3`, `diarize`, `utterances`, `smart_format`, and `mip_opt_out=true` (Deepgram may not train on the audio).
+- Only transcript text is saved, in `audio_transcripts` (`migrations/add_audio_transcripts.sql`) via actions `audio-save|list|get|delete`.
+- "Send to Transcript Reviewer" hands the text over through `sessionStorage` (`pendingTranscript`, `pendingTranscriptName`), read on mount by `TranscriptScorer.jsx`.
+- AI calls go through the server proxy `/api/ai` (browser holds no Anthropic key); admin helpers live in `server/`.
