@@ -86,6 +86,7 @@ export default function AudioToTranscript() {
   const [turns, setTurns] = useState([])
   const [names, setNames] = useState({}) // { speakerId: 'Coach' }
   const [duration, setDuration] = useState(null)
+  const [estimatedTiming, setEstimatedTiming] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
@@ -155,6 +156,7 @@ export default function AudioToTranscript() {
       setTurns(t)
       setNames(initial)
       setDuration(result?.metadata?.duration ?? null)
+      setEstimatedTiming(false)
       setSaved(false)
       setStage('edit')
     } catch (err) {
@@ -278,6 +280,17 @@ export default function AudioToTranscript() {
       if (!res.ok) throw new Error(row.error || 'Could not open that transcript')
       let t = Array.isArray(row.turns) ? row.turns.map((x, i) => ({ ...x, id: i + 1 })) : []
       if (!t.length) t = [{ id: 1, speaker: 0, start: 0, text: row.transcript_text }]
+      // Transcripts saved before timing was kept: estimate each turn's length
+      // from when the next turn starts (this includes short pauses).
+      let estimated = false
+      if (Array.isArray(row.turns) && row.turns.length && t.some((x) => typeof x.dur !== 'number') && t.every((x) => typeof x.start === 'number')) {
+        t = t.map((x, i) => {
+          const end = i < t.length - 1 ? t[i + 1].start : row.duration_seconds
+          return typeof end === 'number' ? { ...x, dur: Math.max(0, end - x.start) } : x
+        })
+        estimated = t.every((x) => typeof x.dur === 'number')
+      }
+      setEstimatedTiming(estimated)
       setTurns(t)
       setNames(row.speaker_names || { 0: 'Speaker' })
       setTitle(row.title)
@@ -421,7 +434,7 @@ export default function AudioToTranscript() {
               <h2 style={{ fontSize: 15, color: C.navy, margin: '0 0 4px' }}>Who did the talking</h2>
               <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>
                 {bd.hasTime
-                  ? `Share of speaking time${duration ? ` (recording length ${stamp(duration)}; pauses are not counted)` : ''}. Word counts update as you edit.`
+                  ? `${estimatedTiming ? 'Estimated share of time (this transcript was saved before exact timing was kept, so pauses between turns are included)' : 'Share of speaking time'}${duration ? ` (recording length ${stamp(duration)}${estimatedTiming ? ')' : '; pauses are not counted)'}` : ''}. Word counts update as you edit.`
                   : 'Timing was not saved for this transcript, so this shows word counts only.'}
               </div>
               {bd.rows.map((r, i) => {
