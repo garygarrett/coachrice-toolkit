@@ -30,7 +30,13 @@ export async function requireUser(req, res, supabase) {
 
   const { data, error } = await supabase.auth.getUser(token)
   if (error || !data?.user) {
-    res.status(401).json({ error: 'Invalid or expired session' })
+    // Log why Supabase refused the token (never the token itself) so we can
+    // tell an expired session from a server setup problem.
+    console.error(`[auth] getUser failed: status=${error?.status ?? 'none'} code=${error?.code ?? 'none'} message=${error?.message ?? 'no user returned'}`)
+    res.status(401).json({
+      error: 'Invalid or expired session',
+      reason: error?.code || error?.message || 'no user returned',
+    })
     return null
   }
 
