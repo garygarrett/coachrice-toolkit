@@ -4,6 +4,7 @@ import { aiFetch } from '../../lib/ai'
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
 import LoadingBar from "../../components/LoadingBar";
+import { competencyNumber } from '../../lib/competency'
 
 // ============================================================================
 // SYSTEM PROMPT — NOV 2025 BARS GUIDE (rev. 11.18.2025)
@@ -585,7 +586,7 @@ export default function Assessor2025() {
 
     const grouped = {};
     (evaluation.behavioral_statements || []).forEach((s) => {
-      const c = parseInt(s.code.split(".")[0], 10);
+      const c = competencyNumber(s.code);
       if (!grouped[c]) grouped[c] = [];
       grouped[c].push(s);
     });
@@ -673,7 +674,7 @@ export default function Assessor2025() {
     out.push("");
     out.push(SUB);
     out.push(`  Total Raw Score (avg of competency averages):     ${sc.raw_score !== undefined ? sc.raw_score.toFixed(2) : "—"}`);
-    out.push(`  Final Score = (Raw - 1) x 2:                      ${sc.final_score !== undefined ? sc.final_score.toFixed(2) : "—"}`);
+    out.push(`  Final Score = (Raw - 1) x 2.5:                    ${sc.final_score !== undefined ? sc.final_score.toFixed(2) : "—"}`);
     out.push(`  Result:                                           ${sc.result || "—"}`);
     out.push("");
 
@@ -1021,7 +1022,7 @@ export default function Assessor2025() {
 
       const grouped = {};
       (evaluation.behavioral_statements || []).forEach((s) => {
-        const c = parseInt(s.code.split(".")[0], 10);
+        const c = competencyNumber(s.code);
         if (!grouped[c]) grouped[c] = [];
         grouped[c].push(s);
       });
@@ -1163,7 +1164,7 @@ export default function Assessor2025() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
-      doc.text("Final Score = (Raw − 1) × 2", MARGIN_X + 10, y + 17);
+      doc.text("Final Score = (Raw − 1) × 2.5", MARGIN_X + 10, y + 17);
       doc.setFontSize(13);
       doc.text(sc.final_score !== undefined ? sc.final_score.toFixed(2) : "—", PAGE_W - MARGIN_X - 10, y + 18, { align: "right" });
       y += 32;
@@ -1408,16 +1409,14 @@ export default function Assessor2025() {
   const recomputeScores = (rawEval) => {
     if (!rawEval || !Array.isArray(rawEval.behavioral_statements)) return rawEval;
 
-    // Score values per Doerr Institute Level 1 ACC Scoring Algorithm
+    // Score values per Doerr Institute Level 1 ACC Scoring Algorithm (Nov 2025 BARS).
+    // N/A is left out so it does not count in the average.
     const scoreFor = (rating) => {
       const map = {
-        "Exemplary": 6,
-        "Extremely Proficient": 5,
-        "Proficient": 4,
-        "Sufficient": 3,
-        "Not quite sufficient": 2,
-        "Insufficient": 1,
-        "N/A": 1,
+        "Exceeds the Standard": 5,
+        "Meets the Standard": 4,
+        "Below the Standard": 2,
+        "Does Not Meet Standard": 1,
       };
       return map[rating] ?? null;
     };
@@ -1425,28 +1424,32 @@ export default function Assessor2025() {
     // Group behavioral statements by competency number
     const byComp = { 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] };
     rawEval.behavioral_statements.forEach((s) => {
-      const compNum = parseInt(s.code.split(".")[0], 10);
+      const compNum = competencyNumber(s.code);
       const score = scoreFor(s.rating);
       if (compNum in byComp && score !== null) {
         byComp[compNum].push(score);
       }
     });
 
-    // Compute competency averages
+    // Compute competency averages (a competency with no rated statements shows 0
+    // and is left out of the total)
     const compAverages = {};
+    const ratedAverages = [];
     [3, 4, 5, 6, 7, 8].forEach((n) => {
       const scores = byComp[n];
       compAverages[n] = scores.length > 0
         ? scores.reduce((a, b) => a + b, 0) / scores.length
         : 0;
+      if (scores.length > 0) ratedAverages.push(compAverages[n]);
     });
 
     // Total raw score = average of competency averages
-    const compAvgValues = Object.values(compAverages);
-    const rawScore = compAvgValues.reduce((a, b) => a + b, 0) / compAvgValues.length;
+    const rawScore = ratedAverages.length > 0
+      ? ratedAverages.reduce((a, b) => a + b, 0) / ratedAverages.length
+      : 1;
 
-    // Final score = (raw - 1) * 2
-    const finalScore = (rawScore - 1) * 2;
+    // Final score = (raw - 1) * 2.5  (1-5 scale converted to 0-10)
+    const finalScore = (rawScore - 1) * 2.5;
 
     // Round to 2 decimal places
     const round2 = (n) => Math.round(n * 100) / 100;
@@ -1462,7 +1465,7 @@ export default function Assessor2025() {
         competency_8_average: round2(compAverages[8]),
         raw_score: round2(rawScore),
         final_score: round2(finalScore),
-        result: (finalScore >= 3.4 && evaluation.ethical_practice?.icf_code_alignment === 'Observed' && evaluation.ethical_practice?.coach_role_alignment === 'Observed') ? "Pass" : "Below Passing Standard",
+        result: (finalScore >= 3.4 && rawEval.ethical_practice?.icf_code_alignment === 'Observed' && rawEval.ethical_practice?.coach_role_alignment === 'Observed') ? "Pass" : "Below Passing Standard",
       },
     };
   };
@@ -1827,7 +1830,7 @@ export default function Assessor2025() {
 
     const groupedStatements = {};
     evaluation.behavioral_statements?.forEach((s) => {
-      const compNum = s.code.split(".")[0];
+      const compNum = competencyNumber(s.code);
       if (!groupedStatements[compNum]) groupedStatements[compNum] = [];
       groupedStatements[compNum].push(s);
     });
@@ -2129,7 +2132,7 @@ export default function Assessor2025() {
                     </td>
                   </tr>
                   <tr style={{ backgroundColor: colors.navy, color: colors.white }}>
-                    <td style={{ padding: "14px 16px", fontWeight: 700, fontSize: "14px" }}>Final Score = (Raw − 1) × 2</td>
+                    <td style={{ padding: "14px 16px", fontWeight: 700, fontSize: "14px" }}>Final Score = (Raw − 1) × 2.5</td>
                     <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, fontSize: "16px" }}>
                       {evaluation.score_calculation?.final_score?.toFixed(2)}
                     </td>

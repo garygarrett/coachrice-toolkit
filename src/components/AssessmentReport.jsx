@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import { competencyNumber } from '../lib/competency'
 
 const COLORS = {
   navy: '#00205B',
@@ -65,7 +66,7 @@ export function AssessmentReportDisplay({ assessment }) {
   const groupedStatements = {}
 
   ;(evaluation.behavioral_statements || []).forEach((s) => {
-    const c = parseInt(s.code.split('.')[0], 10)
+    const c = competencyNumber(s.code)
     if (!groupedStatements[c]) groupedStatements[c] = []
     groupedStatements[c].push(s)
   })
@@ -308,7 +309,7 @@ export function AssessmentReportDisplay({ assessment }) {
                 </td>
               </tr>
               <tr style={{ backgroundColor: colors.navy, color: colors.white }}>
-                <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '14px' }}>Final Score = (Raw − 1) × 2</td>
+                <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '14px' }}>Final Score = (Raw − 1) × {String(evaluation.guide_version || '').startsWith('Nov 2025') ? '2.5' : '2'}</td>
                 <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, fontSize: '16px' }}>
                   {evaluation.score_calculation?.final_score?.toFixed(2)}
                 </td>
@@ -622,7 +623,7 @@ export function generateAssessmentPDF(assessment) {
   const drawBehavioralStatements = () => {
     const grouped = {}
     ;(evaluation.behavioral_statements || []).forEach((s) => {
-      const c = parseInt(s.code.split('.')[0], 10)
+      const c = competencyNumber(s.code)
       if (!grouped[c]) grouped[c] = []
       grouped[c].push(s)
     })
@@ -747,7 +748,7 @@ export function generateAssessmentPDF(assessment) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10)
     doc.setTextColor(255, 255, 255)
-    doc.text('Final Score = (Raw − 1) × 2', MARGIN_X + 10, y + 17)
+    doc.text(`Final Score = (Raw − 1) × ${String(evaluation.guide_version || '').startsWith('Nov 2025') ? '2.5' : '2'}`, MARGIN_X + 10, y + 17)
     doc.setFontSize(13)
     doc.text(sc.final_score !== undefined ? sc.final_score.toFixed(2) : '—', PAGE_W - MARGIN_X - 10, y + 18, { align: 'right' })
     y += 32
