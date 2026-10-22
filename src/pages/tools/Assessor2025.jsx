@@ -1,5 +1,6 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
 import { authFetch } from '../../lib/authFetch'
+import { aiFetch } from '../../lib/ai'
 import Layout from "../../components/Layout";
 import { supabase } from "../../lib/supabase";
 import LoadingBar from "../../components/LoadingBar";
@@ -332,9 +333,7 @@ export default function Assessor2025() {
   const [evaluation, setEvaluation] = useState(null);
   const [customDownloadFilename, setCustomDownloadFilename] = useState("");
   const [error, setError] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [usageLog, setUsageLog] = useState([]);
   const [pdfLibLoaded, setPdfLibLoaded] = useState(false);
   const [jsPdfLoaded, setJsPdfLoaded] = useState(false);
@@ -377,16 +376,13 @@ export default function Assessor2025() {
     document.head.appendChild(link);
   }, []);
 
-  // Load API key and prompt from Supabase config
+  // Load the system prompt from Supabase config (the API key stays on the server)
   useEffect(() => {
     async function loadConfig() {
-      const { data } = await supabase.from('config').select('key, value')
+      const { data } = await supabase.from('config').select('key, value').eq('key', 'ai_assessor_2025_prompt')
       if (data) {
         const map = {}
         data.forEach(row => { map[row.key] = row.value })
-        if (map.api_key_assessor_2025) {
-          setApiKey(map.api_key_assessor_2025)
-        }
         if (map.ai_assessor_2025_prompt) {
           setSystemPrompt(map.ai_assessor_2025_prompt)
         } else {
@@ -478,10 +474,6 @@ export default function Assessor2025() {
       setError("Please provide a transcript before running the evaluation.");
       return;
     }
-    if (!apiKey.trim()) {
-      setError("API key not loaded. Please check admin settings and ensure the API key is configured.");
-      return;
-    }
     if (!systemPrompt.trim()) {
       setError("System prompt not loaded. Please check admin settings and ensure the 2025 assessor prompt is configured.");
       return;
@@ -490,25 +482,15 @@ export default function Assessor2025() {
     setStage("running");
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey.trim(),
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-opus-4-7",
-          max_tokens: 8000,
-          system: systemPrompt,
-          messages: [
-            {
-              role: "user",
-              content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`,
-            },
-          ],
-        }),
+      // The server holds the API key and chooses the model (see api/ai.js)
+      const response = await aiFetch("assessor-2025", {
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: `Please evaluate the following coaching session transcript. Respond with the JSON object only, no prose before or after.\n\n--- TRANSCRIPT ---\n\n${transcript}`,
+          },
+        ],
       });
 
       if (!response.ok) {
