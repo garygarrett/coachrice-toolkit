@@ -156,7 +156,7 @@ function generateACCObservationReportPDF(data) {
     doc.text('CoachRICE: Level 1', margin, y + 12);
     doc.setFont('Montserrat', 'bold');
     doc.setFontSize(12);
-    doc.text('Associate Certified Coach (ACC) Observation Form', margin, y + 28);
+    doc.text(data.formTitle || 'Associate Certified Coach (ACC) Observation Form', margin, y + 28);
     doc.setDrawColor(...GRAY);
     doc.setLineWidth(0.5);
     doc.line(margin, y + 38, pageWidth - margin, y + 38);
@@ -178,6 +178,13 @@ function generateACCObservationReportPDF(data) {
     doc.setFont('Montserrat', 'normal');
     doc.setFontSize(9);
     doc.text(descLines, margin + 8, y + 30);
+    // Optional note on the right of the bar (the assessor tool shows the competency average here)
+    const barNote = data.sectionNotes && data.sectionNotes[section.id];
+    if (barNote) {
+      doc.setFont('Montserrat', 'bold');
+      doc.setFontSize(9);
+      doc.text(barNote, pageWidth - margin - 8, y + 15, { align: 'right' });
+    }
     y += barHeight; // no gap -- the table's head row sits flush against this bar
   }
 
@@ -201,7 +208,7 @@ function generateACCObservationReportPDF(data) {
     doc.autoTable({
       startY: y,
       margin: { left: margin, right: margin },
-      head: [[section.colHead, 'Observed/Not Observed']],
+      head: [[section.colHead, (section.ratingHead || data.ratingHead || 'Observed/Not Observed')]],
       body,
       styles: {
         font: 'Montserrat',
@@ -243,6 +250,29 @@ function generateACCObservationReportPDF(data) {
     y += h + 8;
   }
 
+  function drawScoreSummary(sum) {
+    ensureRoom(70);
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Final Score', 'Result', 'Raw Score', 'Rubric']],
+      body: [[sum.finalScore, sum.result, sum.rawScore, sum.rubric]],
+      styles: { font: 'Montserrat', fontSize: 10, cellPadding: 7, valign: 'middle', textColor: [20, 20, 20], lineColor: [0, 0, 0], lineWidth: 0.5 },
+      headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold' },
+      columnStyles: { 0: { fontStyle: 'bold' }, 1: { fontStyle: 'bold' } },
+    });
+    y = doc.lastAutoTable.finalY + 6;
+    if (sum.note) {
+      const lines = doc.splitTextToSize(sum.note, pageWidth - margin * 2);
+      doc.setFont('Montserrat', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...GRAY);
+      doc.text(lines, margin, y + 8);
+      y += lines.length * 10 + 8;
+    }
+    y += 6;
+  }
+
   // --- Header ---
   drawLetterhead();
   const rowH = 26;
@@ -275,7 +305,10 @@ function generateACCObservationReportPDF(data) {
   y += rowH + 14;
 
   // --- Sections 1, 3-8 ---
-  for (const section of SECTIONS) {
+  // Score summary (assessor tool only)
+  if (data.scoreSummary) drawScoreSummary(data.scoreSummary);
+
+  for (const section of (data.sections || SECTIONS)) {
     drawSectionHeader(section);
     if (section.items) drawItemsTable(section);
     if (section.staticNote) drawStaticNote(section);
@@ -296,6 +329,7 @@ function generateACCObservationReportPDF(data) {
     body: [
       ['Coaching Competency Strengths', data.summaryStrengths || ''],
       ['Suggestions for Competency Development', data.summarySuggestions || ''],
+      ...(data.extraSummaryRows || []),
     ],
     styles: {
       font: 'Montserrat', fontSize: 9, cellPadding: 8, valign: 'top',
@@ -318,4 +352,4 @@ function generateACCObservationReportPDF(data) {
 // If this file is used as an ES module (e.g. with a bundler), uncomment:
 // export { generateACCObservationReportPDF, SECTIONS };
 
-export { generateACCObservationReportPDF };
+export { generateACCObservationReportPDF, SECTIONS };
