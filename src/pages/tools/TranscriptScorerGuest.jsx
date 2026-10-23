@@ -580,8 +580,10 @@ export default function TranscriptScorerGuest() {
     if (quals.length === 3) {
       ['item1','item2','item3'].forEach((id, i) => {
         observed[id] = quals[i].result || '';
-        evidenceNotes[id] = quals[i].timestamps || '';
-        if (quals[i].note) contraEvidenceNotes[id] = quals[i].note;
+        // A note on an Observed qualifier supports it, so it is evidence. Only a Not Observed note is contra-evidence.
+        const notObserved = quals[i].result === 'Not Observed';
+        evidenceNotes[id] = [quals[i].timestamps, !notObserved && quals[i].note].filter(Boolean).join('\n');
+        if (notObserved && quals[i].note) contraEvidenceNotes[id] = quals[i].note;
       });
     } else {
       observed.item1 = ep.icf_code_alignment || '';

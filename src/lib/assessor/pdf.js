@@ -36,9 +36,12 @@ export function buildAssessorPdf({ versionId, evaluation, sourceName }) {
   observed.q1 = ep.icf_code_alignment || ''
   observed.q2 = ep.coach_role_alignment || ''
   observed.q3 = ep.coaching_skills_alignment || ''
-  if (ep.icf_code_alignment_note) contraEvidenceNotes.q1 = ep.icf_code_alignment_note
-  if (ep.coach_role_alignment_note) contraEvidenceNotes.q2 = ep.coach_role_alignment_note
-  if (ep.coaching_skills_alignment_note) contraEvidenceNotes.q3 = ep.coaching_skills_alignment_note
+  // Supporting evidence (timestamp + quote) and contra-evidence (the note) for each qualifier
+  ;[['q1', 'icf_code_alignment'], ['q2', 'coach_role_alignment'], ['q3', 'coaching_skills_alignment']].forEach(([id, key]) => {
+    const evText = evidenceText({ evidence: ep[`${key}_evidence`] })
+    if (evText) evidenceNotes[id] = evText
+    if (ep[`${key}_note`]) contraEvidenceNotes[id] = ep[`${key}_note`]
+  })
 
   const sections = SECTIONS.map((section) => {
     const n = parseInt(section.number, 10)

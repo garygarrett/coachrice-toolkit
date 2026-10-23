@@ -188,39 +188,32 @@ export function AssessmentReportDisplay({ assessment }) {
           </table>
         </div>
 
-        {/* Ethical Practice Notes */}
-        {(evaluation.ethical_practice?.icf_code_alignment === 'Not Observed' && evaluation.ethical_practice?.icf_code_alignment_note) && (
-          <div style={{ marginTop: '16px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
-              Rationale: ICF Code of Ethics Alignment
+        {/* Ethical Practice evidence and contra-evidence, one box per qualifier */}
+        {[
+          ['ICF Code of Ethics Alignment', 'icf_code_alignment'],
+          ['Coach Role Alignment', 'coach_role_alignment'],
+          ...(assessment.assessor_type === '2025' ? [['Use of Key Coaching Skills', 'coaching_skills_alignment']] : []),
+        ].map(([label, key]) => {
+          const ep = evaluation.ethical_practice || {}
+          const ev = (ep[`${key}_evidence`] || []).filter((e) => e && (e.timestamp || e.quote))
+          const note = ep[`${key}_note`]
+          if (!ev.length && !note) return null
+          return (
+            <div key={key} style={{ marginTop: '12px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>{label}</div>
+              {ev.length > 0 && (
+                <div style={{ fontSize: '12px', color: colors['text-muted'], lineHeight: 1.5 }}>
+                  <strong>Evidence:</strong> {ev.map((e) => `${e.timestamp ? e.timestamp + ': ' : ''}"${e.quote || ''}"`).join(' · ')}
+                </div>
+              )}
+              {note && (
+                <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5, marginTop: ev.length ? '6px' : 0 }}>
+                  <strong>Contra:</strong> {note}
+                </div>
+              )}
             </div>
-            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
-              {evaluation.ethical_practice.icf_code_alignment_note}
-            </div>
-          </div>
-        )}
-
-        {(evaluation.ethical_practice?.coach_role_alignment === 'Not Observed' && evaluation.ethical_practice?.coach_role_alignment_note) && (
-          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
-              Rationale: Coach Role Alignment
-            </div>
-            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
-              {evaluation.ethical_practice.coach_role_alignment_note}
-            </div>
-          </div>
-        )}
-
-        {(evaluation.ethical_practice?.coaching_skills_alignment === 'Not Observed' && evaluation.ethical_practice?.coaching_skills_alignment_note) && (
-          <div style={{ marginTop: '12px', padding: '12px', backgroundColor: colors.lightBg, borderLeft: `4px solid ${colors.orange}`, borderRadius: '4px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: colors.navy, marginBottom: '6px' }}>
-              Rationale: Use of Key Coaching Skills
-            </div>
-            <div style={{ fontSize: '12px', color: colors['text-muted'], fontStyle: 'italic', lineHeight: 1.5 }}>
-              {evaluation.ethical_practice.coaching_skills_alignment_note}
-            </div>
-          </div>
-        )}
+          )
+        })}
       </Section>
 
       {/* Competency 2 — informational */}

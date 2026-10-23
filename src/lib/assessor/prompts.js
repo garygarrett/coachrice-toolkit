@@ -107,7 +107,7 @@ When a transcript is submitted, follow this procedure in order. Do not skip step
 
 1. Read the full transcript end to end before rating anything. Form a holistic view first.
 2. Identify candidate evidence for each behavioral statement.
-3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the two qualifiers as Observed or Not Observed. Default expectation: both are Observed.
+3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the two qualifiers as Observed or Not Observed. Default expectation: both are Observed. For EACH qualifier, also give the evidence behind your answer: 1–3 items in the "_evidence" field, each a timestamp (use the transcript's own format, or "Coach turn N" if there are none) plus a brief quote under 15 words. Put contra-evidence in the "_note" field: any moment that limited, weakened, or contradicted the qualifier (for Not Observed, the specific breach or lapse). Evidence goes ONLY in "_evidence" and contra-evidence ONLY in "_note". Leave "_note" as an empty string only if there is genuinely nothing to flag.
 4. Evaluate each behavioral statement 3.1 through 8.3. For each: state the rating, provide 2–4 specific timestamps from the transcript, and include a brief direct quote (under 15 words) for each timestamp. Accept whatever timestamp format the transcript uses — common formats include MM:SS, H:MM:SS, HH:MM:SS, with or without surrounding parentheses or brackets (e.g., "12:34", "(0:12 - 0:23)", "[1:05:42]", "00:08:15"). Preserve the format as it appears in the transcript when citing it. If a coach turn spans multiple seconds, you may use a range like "11:20-11:22". If the transcript has no timestamps at all, cite the speaker turn instead (e.g., "Coach turn 14").
 5. Compile Evidence and Contra-Evidence. List supporting evidence by behavioral statement code. List contra-evidence ONLY for skills where it affected the rating.
 6. Calculate the Score. Score values: Exemplary=6, Extremely Proficient=5, Proficient=4, Sufficient=3, Not quite sufficient=2, Insufficient=1, N/A=1. Average within each competency. Average the six competency scores for Total Raw Score. Final Score = (Raw − 1) × 2. Pass if ≥ 3.4.
@@ -171,9 +171,11 @@ CRITICAL: You MUST respond with a single valid JSON object only. No prose before
   "coach_identifier": "string (from transcript or 'Submitted Coach')",
   "ethical_practice": {
     "icf_code_alignment": "Observed" | "Not Observed",
-    "icf_code_alignment_note": "string (only if Not Observed; otherwise empty string)",
+    "icf_code_alignment_evidence": [ { "timestamp": "string", "quote": "brief quote under 15 words" } ],
+    "icf_code_alignment_note": "string (contra-evidence: moments that limited or contradicted this qualifier; required if Not Observed; otherwise empty string)",
     "coach_role_alignment": "Observed" | "Not Observed",
-    "coach_role_alignment_note": "string (only if Not Observed; otherwise empty string)"
+    "coach_role_alignment_evidence": [ { "timestamp": "string", "quote": "brief quote under 15 words" } ],
+    "coach_role_alignment_note": "string (contra-evidence: moments that limited or contradicted this qualifier; required if Not Observed; otherwise empty string)"
   },
   "behavioral_statements": [
     {
@@ -406,7 +408,7 @@ When a transcript is submitted, follow this procedure in order. Do not skip step
 
 1. Read the full transcript end to end before rating anything. Form a holistic view first.
 2. Identify candidate evidence for each behavioral statement.
-3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the THREE qualifiers below as exactly "Observed" or "Not Observed" (never empty). Default expectation: all three are Observed. If a possible Code of Ethics breach is suspected, indicate the specific section of the Code that may apply.
+3. Evaluate Competency 1 (Demonstrates Ethical Practice). Mark each of the THREE qualifiers below as exactly "Observed" or "Not Observed" (never empty). Default expectation: all three are Observed. If a possible Code of Ethics breach is suspected, indicate the specific section of the Code that may apply. For EACH qualifier, also give the evidence behind your answer: 1–3 items in the "_evidence" field, each a timestamp (use the transcript's own format, or "Coach turn N" if there are none) plus a brief quote under 15 words. Put contra-evidence in the "_note" field: any moment that limited, weakened, or contradicted the qualifier (for Not Observed, the specific breach or lapse). Evidence goes ONLY in "_evidence" and contra-evidence ONLY in "_note". Leave "_note" as an empty string only if there is genuinely nothing to flag.
 
    **Qualifier 1:** Coach demonstrates a strong understanding and alignment with the ICF Code of Ethics.
    - Observed: No ethical breaches — the coach respects client autonomy, avoids unsolicited advice, maintains appropriate boundaries, and conducts the session in a manner consistent with ICF ethical standards.
@@ -492,11 +494,14 @@ CRITICAL: You MUST respond with a single valid JSON object only. No prose before
   "guide_version": "Nov 2025 (rev. 11.18.2025)",
   "ethical_practice": {
     "icf_code_alignment": "Observed" | "Not Observed",
-    "icf_code_alignment_note": "string (only if Not Observed; otherwise empty string. Cite specific Code of Ethics section if applicable.)",
+    "icf_code_alignment_evidence": [ { "timestamp": "string", "quote": "brief quote under 15 words" } ],
+    "icf_code_alignment_note": "string (contra-evidence: moments that limited or contradicted this qualifier; required if Not Observed, and cite the specific Code of Ethics section if applicable; otherwise empty string)",
     "coach_role_alignment": "Observed" | "Not Observed",
-    "coach_role_alignment_note": "string (only if Not Observed; otherwise empty string)",
+    "coach_role_alignment_evidence": [ { "timestamp": "string", "quote": "brief quote under 15 words" } ],
+    "coach_role_alignment_note": "string (contra-evidence: moments that limited or contradicted this qualifier; required if Not Observed; otherwise empty string)",
     "coaching_skills_alignment": "Observed" | "Not Observed",
-    "coaching_skills_alignment_note": "string (only if Not Observed; otherwise empty string)"
+    "coaching_skills_alignment_evidence": [ { "timestamp": "string", "quote": "brief quote under 15 words" } ],
+    "coaching_skills_alignment_note": "string (contra-evidence: moments that limited or contradicted this qualifier; required if Not Observed; otherwise empty string)"
   },
   "behavioral_statements": [
     {
