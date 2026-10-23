@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { authFetch } from '../../lib/authFetch'
+import logoWhite from '../../CoachRICE_White.png'
+import { buildTranscriptPdf } from '../../lib/audioTranscriptPdf'
 
 const C = {
   navy: '#00205B',
@@ -37,6 +39,33 @@ const btn = (primary, disabled) => ({
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
 })
 const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = src
+    el.onload = resolve
+    el.onerror = () => reject(new Error('Could not load the PDF tools. Check your internet connection.'))
+    document.head.appendChild(el)
+  })
+}
+
+async function ensurePdfLibs() {
+  if (!window.jspdf) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  if (!window.jspdf.jsPDF.prototype.autoTable) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')
+}
+
+async function urlToDataUrl(url) {
+  const blob = await (await fetch(url)).blob()
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.onerror = reject
+    r.readAsDataURL(blob)
+  })
+}
+
+const SPEAKER_COLORS = [[0, 32, 91], [46, 117, 182], [230, 110, 0], [120, 130, 10]]
 
 function stamp(seconds) {
   const s = Math.max(0, Math.floor(seconds || 0))
@@ -98,6 +127,7 @@ export default function AudioToTranscript() {
   const [duration, setDuration] = useState(null)
   const [estimatedTiming, setEstimatedTiming] = useState(false)
   const [markPauses, setMarkPauses] = useState(false)
+  const [makingPdf, setMakingPdf] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
@@ -318,6 +348,44 @@ export default function AudioToTranscript() {
     URL.revokeObjectURL(a.href)
   }
 
+  async function downloadPdf() {
+    setError('')
+    setMakingPdf(true)
+    try {
+      await ensurePdfLibs()
+      let logoDataUrl = null
+      try { logoDataUrl = await urlToDataUrl(logoWhite) } catch { /* the PDF still works without the logo */ }
+      const colorOf = (id) => SPEAKER_COLORS[Math.max(0, speakerIds.indexOf(id)) % SPEAKER_COLORS.length]
+      const doc = buildTranscriptPdf({
+        title: title || 'Untitled transcript',
+        dateText: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        durationText: duration ? stamp(duration) : '',
+        logoDataUrl,
+        showTime: bd.hasTime,
+        speakers: bd.rows.map((r) => ({
+          name: nameOf(r.id), color: colorOf(r.id),
+          timeText: stamp(r.seconds), timePct: r.timePct, words: r.words, wordPct: r.wordPct, turns: r.turns,
+        })),
+        silence: sil ? {
+          totalText: stamp(sil.total),
+          pctText: sil.pct !== null ? `${sil.pct.toFixed(0)}%` : '',
+          longestText: `${sil.longest.toFixed(1)} sec at ${stamp(sil.longestAt)}`,
+        } : null,
+        rows: turns.map((t, i) => ({
+          time: stamp(t.start),
+          speaker: nameOf(t.speaker),
+          color: colorOf(t.speaker),
+          text: t.text.trim(),
+          pauseText: markPauses && i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= LONG_PAUSE ? `pause ${Math.round(t.pauseBefore)} sec` : '',
+        })),
+      })
+      doc.save(`${(title || 'transcript').replace(/[^\w\- ]+/g, '').trim() || 'transcript'}.pdf`)
+    } catch (err) {
+      setError(err.message || 'The PDF could not be made.')
+    }
+    setMakingPdf(false)
+  }
+
   async function copy() {
     try { await navigator.clipboard.writeText(fullText()); flash('Copied to your clipboard.') }
     catch { flash('Could not copy. Use Download instead.') }
@@ -517,6 +585,7 @@ export default function AudioToTranscript() {
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
                 <button style={btn(true, saving)} disabled={saving} onClick={save}>{saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save to my transcripts'}</button>
+                <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={downloadPdf}>{makingPdf ? 'Making PDF…' : 'Download PDF'}</button>
                 <button style={btn(false)} onClick={download}>Download .txt</button>
                 <button style={btn(false)} onClick={copy}>Copy</button>
                 <button style={{ ...btn(false), borderColor: C.orange, color: C.orange }} onClick={sendToScorer}>Send to Transcript Reviewer</button>
