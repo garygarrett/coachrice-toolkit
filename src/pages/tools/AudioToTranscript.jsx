@@ -84,6 +84,7 @@ export default function AudioToTranscript() {
   const navigate = useNavigate()
   const fileRef = useRef(null)
   const xhrRef = useRef(null)
+  const caretRef = useRef({}) // where the cursor last was in each passage's text box
 
   const [stage, setStage] = useState('input') // input | working | edit
   const [file, setFile] = useState(null)
@@ -183,12 +184,63 @@ export default function AudioToTranscript() {
   function edit(fn) { fn(); setSaved(false) }
 
   function updateTurn(id, patch) { edit(() => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch } : t)))) }
+  // ---- Pauses ----
+  const keepOriginal = (t) => t._p || { pauseBefore: t.pauseBefore, quiet: t.quiet, quietMax: t.quietMax, quietAt: t.quietAt }
+  function removePauseBefore(id) {
+    edit(() => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, _p: keepOriginal(t), pauseBefore: 0 } : t))))
+  }
+  function removeAllPauses() {
+    edit(() => setTurns((ts) => ts.map((t) => ({ ...t, _p: keepOriginal(t), pauseBefore: 0, quiet: 0, quietMax: 0, quietAt: 0 }))))
+  }
+  function restorePauses() {
+    edit(() => setTurns((ts) => ts.map((t) => {
+      if (!t._p) return t
+      const { _p, ...rest } = t
+      return { ...rest, ..._p }
+    })))
+  }
+
+  // ---- Splitting one passage in two (for an interjection) ----
+  function splitTurn(id) {
+    const t = turns.find((x) => x.id === id)
+    const pos = caretRef.current[id]
+    if (!t || typeof pos !== 'number' || pos <= 0 || pos >= t.text.length) {
+      flash('First click in the text where the speaker changes, then press Split.')
+      return
+    }
+    const before = t.text.slice(0, pos).trim()
+    const after = t.text.slice(pos).trim()
+    if (!before || !after) { flash('First click in the text where the speaker changes, then press Split.'); return }
+    const wb = before.split(/\s+/).length
+    const wa = after.split(/\s+/).length
+    const share = wb / (wb + wa)
+    const hasTime = typeof t.dur === 'number'
+    const quiet = t.quiet || 0
+    const others = speakerIds.filter((x) => x !== t.speaker)
+    const newSpeaker = others.length ? others[0] : t.speaker
+    const nextId = Math.max(...turns.map((x) => x.id)) + 1
+    const first = {
+      ...t, text: before,
+      ...(hasTime ? { dur: t.dur * share, quiet: quiet * share, quietMax: Math.min(t.quietMax || 0, quiet * share) } : {}),
+      est: true, _p: undefined,
+    }
+    const second = {
+      ...t, id: nextId, speaker: newSpeaker, text: after,
+      start: hasTime ? t.start + (t.dur + quiet) * share : t.start,
+      pauseBefore: 0,
+      ...(hasTime ? { dur: t.dur * (1 - share), quiet: quiet * (1 - share), quietMax: Math.min(t.quietMax || 0, quiet * (1 - share)) } : {}),
+      est: true, _p: undefined,
+    }
+    edit(() => setTurns((ts) => ts.flatMap((x) => (x.id === id ? [first, second] : [x]))))
+    caretRef.current[id] = null
+  }
+
   function removeTurn(id) { edit(() => setTurns((ts) => ts.filter((t) => t.id !== id))) }
   function mergeUp(id) {
     edit(() => setTurns((ts) => {
       const i = ts.findIndex((t) => t.id === id)
       if (i <= 0) return ts
-      const merged = { ...ts[i - 1], text: `${ts[i - 1].text} ${ts[i].text}`.trim(), dur: (ts[i - 1].dur ?? 0) + (ts[i].dur ?? 0),
+      const merged = { ...ts[i - 1], _p: undefined, est: ts[i - 1].est || ts[i].est, text: `${ts[i - 1].text} ${ts[i].text}`.trim(), dur: (ts[i - 1].dur ?? 0) + (ts[i].dur ?? 0),
         quiet: (ts[i - 1].quiet ?? 0) + (ts[i].quiet ?? 0) + (ts[i].pauseBefore ?? 0),
         ...(Math.max(ts[i - 1].quietMax ?? 0, ts[i].quietMax ?? 0) >= (ts[i].pauseBefore ?? 0)
           ? ((ts[i - 1].quietMax ?? 0) >= (ts[i].quietMax ?? 0)
@@ -283,8 +335,8 @@ export default function AudioToTranscript() {
         body: JSON.stringify({
           title: title || 'Untitled transcript',
           transcriptText: fullText(),
-          turns: turns.map(({ speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt }) =>
-            estimatedTiming ? { speaker, start, text } : { speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt }),
+          turns: turns.map(({ speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt, est }) =>
+            estimatedTiming ? { speaker, start, text } : { speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt, est }),
           speakerNames: names,
           durationSeconds: duration,
         }),
@@ -479,6 +531,11 @@ export default function AudioToTranscript() {
                   ? `${estimatedTiming ? 'Estimated share of time (this transcript was saved before exact timing was kept, so pauses between turns are included)' : 'Share of speaking time'}${duration ? ` (recording length ${stamp(duration)}${estimatedTiming ? ')' : '; pauses are not counted)'}` : ''}. Word counts update as you edit.`
                   : 'Timing was not saved for this transcript, so this shows word counts only.'}
               </div>
+              {turns.some((t) => t.est) && (
+                <div style={{ fontSize: 12, color: C.orange, marginBottom: 12 }}>
+                  Passages you split are timed by their share of the words, so those numbers are estimates.
+                </div>
+              )}
               {bd.rows.map((r, i) => {
                 const pct = bd.hasTime ? r.timePct : r.wordPct
                 return (
@@ -506,6 +563,12 @@ export default function AudioToTranscript() {
                   <div><div style={{ color: C.gray, fontSize: 12 }}>Longest pause</div><strong style={{ fontSize: 18, color: C.navy }}>{sil.longest.toFixed(1)} sec</strong><span style={{ color: C.gray }}> at {stamp(sil.longestAt)}</span></div>
                   <div><div style={{ color: C.gray, fontSize: 12 }}>Pauses of {LONG_PAUSE}+ seconds</div><strong style={{ fontSize: 18, color: C.navy }}>{sil.count}</strong></div>
                 </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+                  <button style={{ ...btn(false), padding: '6px 12px' }} onClick={removeAllPauses}>Remove all pauses</button>
+                  {turns.some((t) => t._p) && (
+                    <button style={{ ...btn(false), padding: '6px 12px', borderColor: C.gray, color: C.gray }} onClick={restorePauses}>Restore removed pauses</button>
+                  )}
+                </div>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 16, fontSize: 12 }}>
                   <input type="checkbox" checked={markPauses} onChange={(e) => setMarkPauses(e.target.checked)} />
                   Mark pauses of {LONG_PAUSE}+ seconds in the downloaded, copied, saved, and sent text (like [pause 8 sec])
@@ -522,7 +585,10 @@ export default function AudioToTranscript() {
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: C.gray, minWidth: 48 }}>{stamp(t.start)}</span>
                     {i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= 2 && (
-                      <span style={{ fontSize: 11, color: C.orange, fontWeight: 700 }}>{Math.round(t.pauseBefore)} sec pause before</span>
+                      <span style={{ fontSize: 11, color: C.orange, fontWeight: 700 }}>
+                        {Math.round(t.pauseBefore)} sec pause before{' '}
+                        <button onClick={() => removePauseBefore(t.id)} style={{ ...linkBtn(C.orange), fontSize: 11, textDecoration: 'underline' }}>remove</button>
+                      </span>
                     )}
                     <select
                       value={t.speaker}
@@ -532,12 +598,15 @@ export default function AudioToTranscript() {
                       {speakerIds.map((id) => <option key={id} value={id}>{nameOf(id)}</option>)}
                     </select>
                     <span style={{ flex: 1 }} />
+                    <button onClick={() => splitTurn(t.id)} style={linkBtn(C.blue)}>Split at cursor</button>
                     {i > 0 && <button onClick={() => mergeUp(t.id)} style={linkBtn(C.blue)}>Join with above</button>}
                     <button onClick={() => removeTurn(t.id)} style={linkBtn(C.orange)}>Remove</button>
                   </div>
                   <textarea
                     value={t.text}
                     onChange={(e) => updateTurn(t.id, { text: e.target.value })}
+                    onSelect={(e) => { caretRef.current[t.id] = e.target.selectionStart }}
+                    onBlur={(e) => { caretRef.current[t.id] = e.target.selectionStart }}
                     rows={Math.max(2, Math.ceil(t.text.length / 110))}
                     style={{ width: '100%', boxSizing: 'border-box', padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, fontFamily: font, fontSize: 13, lineHeight: 1.6, resize: 'vertical' }}
                   />
