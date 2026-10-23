@@ -352,4 +352,4 @@ function generateACCObservationReportPDF(data) {
 // If this file is used as an ES module (e.g. with a bundler), uncomment:
 // export { generateACCObservationReportPDF, SECTIONS };
 
-export { generateACCObservationReportPDF, SECTIONS };
+export { generateACCObservationReportPDF, SECTIONS, MONTSERRAT_REGULAR_B64, MONTSERRAT_BOLD_B64 };
