@@ -15,6 +15,7 @@ const C = {
   soft: '#f0f2f5',
 }
 const font = "'Montserrat', sans-serif"
+const LONG_PAUSE = 3 // seconds; pauses at least this long are counted and can be marked
 const MAX_BYTES = 500 * 1024 * 1024 // 500 MB
 
 const DEEPGRAM_URL =
@@ -51,18 +52,26 @@ function stamp(seconds) {
 function buildTurns(result) {
   const utterances = result?.results?.utterances
   let turns = []
+  let lastEnd = null
   if (Array.isArray(utterances) && utterances.length) {
     for (const u of utterances) {
       const text = (u.transcript || '').trim()
       if (!text) continue
       const dur = Math.max(0, (u.end || 0) - (u.start || 0))
+      const prev = lastEnd === null ? null : Math.max(0, (u.start || 0) - lastEnd)
       const last = turns[turns.length - 1]
       if (last && last.speaker === (u.speaker ?? 0)) {
         last.text += ' ' + text
         last.dur += dur
+        // A pause inside one speaker's turn
+        if (prev) {
+          last.quiet += prev
+          if (prev > last.quietMax) { last.quietMax = prev; last.quietAt = lastEnd }
+        }
       } else {
-        turns.push({ speaker: u.speaker ?? 0, start: u.start || 0, dur, text })
+        turns.push({ speaker: u.speaker ?? 0, start: u.start || 0, dur, text, pauseBefore: prev ?? (u.start || 0), quiet: 0, quietMax: 0, quietAt: 0 })
       }
+      lastEnd = Math.max(lastEnd ?? 0, u.end || 0)
     }
   } else {
     const text = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim()
@@ -87,6 +96,7 @@ export default function AudioToTranscript() {
   const [names, setNames] = useState({}) // { speakerId: 'Coach' }
   const [duration, setDuration] = useState(null)
   const [estimatedTiming, setEstimatedTiming] = useState(false)
+  const [markPauses, setMarkPauses] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
@@ -178,7 +188,13 @@ export default function AudioToTranscript() {
     edit(() => setTurns((ts) => {
       const i = ts.findIndex((t) => t.id === id)
       if (i <= 0) return ts
-      const merged = { ...ts[i - 1], text: `${ts[i - 1].text} ${ts[i].text}`.trim(), dur: (ts[i - 1].dur ?? 0) + (ts[i].dur ?? 0) }
+      const merged = { ...ts[i - 1], text: `${ts[i - 1].text} ${ts[i].text}`.trim(), dur: (ts[i - 1].dur ?? 0) + (ts[i].dur ?? 0),
+        quiet: (ts[i - 1].quiet ?? 0) + (ts[i].quiet ?? 0) + (ts[i].pauseBefore ?? 0),
+        ...(Math.max(ts[i - 1].quietMax ?? 0, ts[i].quietMax ?? 0) >= (ts[i].pauseBefore ?? 0)
+          ? ((ts[i - 1].quietMax ?? 0) >= (ts[i].quietMax ?? 0)
+            ? { quietMax: ts[i - 1].quietMax ?? 0, quietAt: ts[i - 1].quietAt ?? 0 }
+            : { quietMax: ts[i].quietMax ?? 0, quietAt: ts[i].quietAt ?? 0 })
+          : { quietMax: ts[i].pauseBefore ?? 0, quietAt: ts[i].start - (ts[i].pauseBefore ?? 0) }) }
       return [...ts.slice(0, i - 1), merged, ...ts.slice(i + 1)]
     }))
   }
@@ -213,8 +229,32 @@ export default function AudioToTranscript() {
     }
   }
 
+  // Silence: gaps between and inside turns, recorded when Deepgram answered.
+  // Not available for older saves, which never kept pause data.
+  function silenceStats() {
+    if (estimatedTiming || !turns.length || !turns.every((t) => typeof t.pauseBefore === 'number')) return null
+    let total = 0, longest = 0, longestAt = 0, count = 0
+    for (let i = 0; i < turns.length; i++) {
+      const t = turns[i]
+      const before = i === 0 ? 0 : t.pauseBefore // quiet before the first word is not a pause
+      total += before + (t.quiet || 0)
+      if (before > longest) { longest = before; longestAt = t.start - before }
+      if ((t.quietMax || 0) > longest) { longest = t.quietMax; longestAt = t.quietAt || t.start }
+      if (before >= LONG_PAUSE) count++
+      if ((t.quietMax || 0) >= LONG_PAUSE) count++
+    }
+    return { total, longest, longestAt, count, pct: duration ? Math.min(100, (total / duration) * 100) : null }
+  }
+
   function fullText() {
-    return turns.map((t) => `[${stamp(t.start)}] ${nameOf(t.speaker)}: ${t.text.trim()}`).join('\n\n')
+    const lines = []
+    turns.forEach((t, i) => {
+      if (markPauses && i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= LONG_PAUSE) {
+        lines.push(`[pause ${Math.round(t.pauseBefore)} sec]`)
+      }
+      lines.push(`[${stamp(t.start)}] ${nameOf(t.speaker)}: ${t.text.trim()}`)
+    })
+    return lines.join('\n\n')
   }
 
   function download() {
@@ -243,7 +283,8 @@ export default function AudioToTranscript() {
         body: JSON.stringify({
           title: title || 'Untitled transcript',
           transcriptText: fullText(),
-          turns: turns.map(({ speaker, start, dur, text }) => ({ speaker, start, dur, text })),
+          turns: turns.map(({ speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt }) =>
+            estimatedTiming ? { speaker, start, text } : { speaker, start, dur, text, pauseBefore, quiet, quietMax, quietAt }),
           speakerNames: names,
           durationSeconds: duration,
         }),
@@ -316,6 +357,7 @@ export default function AudioToTranscript() {
   }
 
   const bd = breakdown()
+  const sil = silenceStats()
 
   return (
     <Layout active="audio" pageTitle="Audio to Transcript">
@@ -456,6 +498,21 @@ export default function AudioToTranscript() {
               })}
             </div>
 
+            {sil && (
+              <div style={card}>
+                <h2 style={{ fontSize: 15, color: C.navy, margin: '0 0 12px' }}>Silence</h2>
+                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', fontSize: 13 }}>
+                  <div><div style={{ color: C.gray, fontSize: 12 }}>Total silence</div><strong style={{ fontSize: 18, color: C.navy }}>{stamp(sil.total)}</strong>{sil.pct !== null && <span style={{ color: C.gray }}> ({sil.pct.toFixed(0)}% of recording)</span>}</div>
+                  <div><div style={{ color: C.gray, fontSize: 12 }}>Longest pause</div><strong style={{ fontSize: 18, color: C.navy }}>{sil.longest.toFixed(1)} sec</strong><span style={{ color: C.gray }}> at {stamp(sil.longestAt)}</span></div>
+                  <div><div style={{ color: C.gray, fontSize: 12 }}>Pauses of {LONG_PAUSE}+ seconds</div><strong style={{ fontSize: 18, color: C.navy }}>{sil.count}</strong></div>
+                </div>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 16, fontSize: 12 }}>
+                  <input type="checkbox" checked={markPauses} onChange={(e) => setMarkPauses(e.target.checked)} />
+                  Mark pauses of {LONG_PAUSE}+ seconds in the downloaded, copied, saved, and sent text (like [pause 8 sec])
+                </label>
+              </div>
+            )}
+
             <div style={card}>
               <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>
                 Edit any text directly. Change who spoke a passage with the menu, or remove or join passages.
@@ -464,6 +521,9 @@ export default function AudioToTranscript() {
                 <div key={t.id} style={{ borderTop: i ? `1px solid ${C.border}` : 'none', padding: '12px 0' }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: C.gray, minWidth: 48 }}>{stamp(t.start)}</span>
+                    {i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= 2 && (
+                      <span style={{ fontSize: 11, color: C.orange, fontWeight: 700 }}>{Math.round(t.pauseBefore)} sec pause before</span>
+                    )}
                     <select
                       value={t.speaker}
                       onChange={(e) => updateTurn(t.id, { speaker: Number(e.target.value) })}
