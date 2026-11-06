@@ -15,6 +15,8 @@ const C = {
 }
 const font = "'Montserrat', sans-serif"
 const MAX_BYTES = 500 * 1024 * 1024
+// Recordings are turned off for now: coaches add transcripts only. Set to true to bring them back.
+const RECORDINGS_ENABLED = false
 const TEMPLATE_URL = '/templates/icf-session-observation-form-acc.docx'
 
 const btn = (primary, disabled) => ({
@@ -442,14 +444,17 @@ export default function SessionObservation() {
           <div style={card}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
-              Add the participant&rsquo;s coaching session as a recording or a transcript. The tool finds evidence for each ICF behavior
+              Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.
             </p>
-            <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
-              {[['transcript', 'I have a transcript'], ['audio', 'I have a recording']].map(([id, text]) => (
-                <button key={id} style={btn(mode === id)} onClick={() => { setMode(id); setFile(null); setError('') }}>{text}</button>
-              ))}
-            </div>
+            {RECORDINGS_ENABLED && (
+              <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
+                {[['transcript', 'I have a transcript'], ['audio', 'I have a recording']].map(([id, text]) => (
+                  <button key={id} style={btn(mode === id)} onClick={() => { setMode(id); setFile(null); setError('') }}>{text}</button>
+                ))}
+              </div>
+            )}
+            <div style={{ height: RECORDINGS_ENABLED ? 0 : 14 }} />
 
             <div
               onClick={() => fileRef.current?.click()}
@@ -468,14 +473,18 @@ export default function SessionObservation() {
 
             {mode === 'transcript' && (
               <>
-                <div style={{ ...small, margin: '14px 0 6px' }}>Or paste the transcript:</div>
+                <div style={{ ...small, margin: '14px 0 6px' }}>Paste the transcript here, or choose a file above:</div>
                 <textarea style={{ ...input, minHeight: 130, resize: 'vertical' }} value={pasted} onChange={(e) => setPasted(e.target.value)}
                   placeholder={'[00:05] Coach: What would you like to focus on today?\n[00:11] Client: ...'} />
-                <div style={{ ...small, margin: '14px 0 6px' }}>
-                  Optional: add the recording so you can listen as you review. It plays only on your computer and is not uploaded.
-                </div>
-                <button style={btn(false)} onClick={() => audioFileRef.current?.click()}>{playFile ? playFile.name : 'Choose recording to play'}</button>
-                <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => pickPlayFile(e.target.files?.[0])} />
+                {RECORDINGS_ENABLED && (
+                  <>
+                    <div style={{ ...small, margin: '14px 0 6px' }}>
+                      Optional: add the recording so you can listen as you review. It plays only on your computer and is not uploaded.
+                    </div>
+                    <button style={btn(false)} onClick={() => audioFileRef.current?.click()}>{playFile ? playFile.name : 'Choose recording to play'}</button>
+                    <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => pickPlayFile(e.target.files?.[0])} />
+                  </>
+                )}
               </>
             )}
 
@@ -565,17 +574,26 @@ export default function SessionObservation() {
 
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-      <div style={{ fontFamily: font, display: 'grid', gridTemplateColumns: 'minmax(320px, 5fr) minmax(380px, 7fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ fontFamily: font }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+        <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
+        <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
+        <span style={{ fontSize: 12, color: dirty ? C.orange : C.gray, fontWeight: 600 }}>
+          {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Not saved yet') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
+        </span>
+        {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 5fr) minmax(380px, 7fr)', gap: 18, alignItems: 'start' }}>
 
         {/* Transcript */}
-        <div style={{ ...card, padding: 0, position: 'sticky', top: 12, maxHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
+        <div style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
           <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Transcript</div>
             <div style={{ ...small, marginTop: 4 }}>
               Evidence for <strong style={{ color: C.navy }}>{activeBehavior.id}</strong> is highlighted. Use <strong>+</strong> to add a whole turn, or select words and press the button below.
             </div>
             {audioUrl && <audio ref={audioEl} src={audioUrl} controls style={{ width: '100%', marginTop: 10, height: 36 }} />}
-            {!audioUrl && (
+            {RECORDINGS_ENABLED && !audioUrl && (
               <div style={{ marginTop: 10 }}>
                 <button style={{ ...btn(false), padding: '6px 10px', fontSize: 12 }} onClick={() => audioFileRef.current?.click()}>Add recording to listen</button>
                 <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => attachRecording(e.target.files?.[0])} />
@@ -629,15 +647,6 @@ export default function SessionObservation() {
             <div style={{ fontWeight: 800, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
               Evidence below comes from the transcript. Edit it freely. The AI offers suggestions only: you choose every rating and every box.
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
-              <button style={{ ...btn(false, savingDraft), background: C.white }} disabled={savingDraft} onClick={() => saveDraft(false)}>
-                {savingDraft ? 'Saving…' : 'Save progress'}
-              </button>
-              <span style={{ fontSize: 12, opacity: 0.9 }}>
-                {dirty ? 'Unsaved changes' : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Find it under “Continue a saved observation”.` : ''}
-                {draftId && dirty ? ' (saves itself every 30 seconds)' : ''}
-              </span>
             </div>
           </div>
 
@@ -805,6 +814,7 @@ export default function SessionObservation() {
             <div style={{ ...small, marginTop: 10 }}>Save progress keeps your work in CoachRICE so you can come back later. Download form gives you the completed ICF Word file. Recordings are never stored; add the recording again when you reopen to listen.</div>
           </div>
         </div>
+      </div>
       </div>
     </Layout>
   )
