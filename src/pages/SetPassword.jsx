@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { homeFor } from '../lib/roles'
 import logoImage from '../CoachRICE_White.png'
 
 export default function SetPassword() {
@@ -32,8 +33,16 @@ export default function SetPassword() {
       return
     }
 
-    // The agreements screen is turned off for now; go straight to the dashboard.
-    navigate('/dashboard', { replace: true })
+    // The agreements screen is turned off for now. Send each kind of account to its own home.
+    let home = '/dashboard'
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: row } = await supabase.from('users').select('role').eq('id', user.id).single()
+        home = homeFor(row?.role)
+      }
+    } catch { /* fall back to the dashboard */ }
+    navigate(home, { replace: true })
   }
 
   return (

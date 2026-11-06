@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { homeFor } from '../lib/roles'
 import logoImage from '../CoachRICE_White.png'
 
 export default function Login() {
@@ -23,7 +24,7 @@ export default function Login() {
     if (!loading && user && profile) {
       // The agreements screen is turned off for now: everyone goes straight to the dashboard.
       // Past acceptances stay saved in the database, and the /agreements page still exists.
-      navigate('/dashboard', { replace: true })
+      navigate(homeFor(profile.role), { replace: true })
     }
   }, [user, profile, loading, navigate])
 
@@ -51,7 +52,7 @@ export default function Login() {
       return
     }
 
-    navigate('/dashboard', { replace: true })
+    // The effect above sends the person to the right home once their profile loads.
   }
 
   async function handleForgotPassword(e) {

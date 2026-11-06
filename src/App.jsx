@@ -5,7 +5,9 @@ import { VisibilityProvider } from './context/VisibilityContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
 import Login from './pages/Login'
+import LoginHome from './pages/LoginHome'
 import AccessCodeEntry from './pages/AccessCodeEntry'
+import AccountSignIn from './pages/AccountSignIn'
 import TranscriptScorerGuest from './pages/tools/TranscriptScorerGuest'
 import SetPassword from './pages/SetPassword'
 import Agreements from './pages/Agreements'
@@ -47,11 +49,11 @@ export default function App() {
         <Routes>
         <Route path="/" element={<Navigate to="/access" replace />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/access" element={<AccessCodeEntry />} />
+        <Route path="/access" element={<LoginHome />} />
+        <Route path="/access/student" element={<AccessCodeEntry />} />
+        <Route path="/access/mentor" element={<AccountSignIn kind="mentor" />} />
+        <Route path="/access/admin" element={<AccountSignIn kind="admin" />} />
         <Route path="/access/transcript" element={<GuestRoute><TranscriptScorerGuest /></GuestRoute>} />
-        <Route path="/access/session-observation" element={<GuestRoute roles={['mentor', 'admin']}><SessionObservation /></GuestRoute>} />
-        <Route path="/access/assessor" element={<GuestRoute roles={['admin']}><InternalAssessor /></GuestRoute>} />
-        <Route path="/access/audio" element={<GuestRoute roles={['admin']}><AudioToTranscript /></GuestRoute>} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/agreements" element={<Agreements />} />
         <Route
@@ -121,7 +123,7 @@ export default function App() {
         <Route
           path="/tools/assessor"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'admin_tools']}>
               <InternalAssessor />
             </ProtectedRoute>
           }
@@ -129,7 +131,7 @@ export default function App() {
         <Route
           path="/tools/audio"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'admin_tools']}>
               <AudioToTranscript />
             </ProtectedRoute>
           }
@@ -137,7 +139,7 @@ export default function App() {
         <Route
           path="/tools/session-observation"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'admin_tools', 'mentor']}>
               <SessionObservation />
             </ProtectedRoute>
           }

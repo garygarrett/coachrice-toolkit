@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
 import logoWhite from '../../CoachRICE_White.png'
 import { buildTranscriptPdf } from '../../lib/audioTranscriptPdf'
@@ -110,6 +111,7 @@ function buildTurns(result) {
 }
 
 export default function AudioToTranscript() {
+  const { profile } = useAuth()
   const navigate = useNavigate()
   const fileRef = useRef(null)
   const xhrRef = useRef(null)
@@ -588,7 +590,7 @@ export default function AudioToTranscript() {
                 <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={downloadPdf}>{makingPdf ? 'Making PDF…' : 'Download PDF'}</button>
                 <button style={btn(false)} onClick={download}>Download .txt</button>
                 <button style={btn(false)} onClick={copy}>Copy</button>
-                {!sessionStorage.getItem('coachrice_access_role') && (
+                {profile?.role === 'admin' && (
                   <button style={{ ...btn(false), borderColor: C.orange, color: C.orange }} onClick={sendToScorer}>Send to Transcript Reviewer</button>
                 )}
                 <button style={{ ...btn(false), borderColor: C.gray, color: C.gray }} onClick={startOver}>Start over</button>

@@ -25,6 +25,8 @@ export default async function handler(req, res) {
         .single()
 
       if (error || !data) return res.status(200).json({ valid: false })
+      // Mentor-coach and admin codes only create accounts. They never open a tool directly.
+      if (data.role === 'mentor' || data.role === 'admin') return res.status(200).json({ valid: false, reason: 'signup' })
       if (!data.active) return res.status(200).json({ valid: false, reason: 'inactive' })
       if (data.expires_at && new Date(data.expires_at) < new Date()) return res.status(200).json({ valid: false, reason: 'expired' })
 
@@ -70,7 +72,18 @@ export default async function handler(req, res) {
         else if (e.tool === 'transcript-guest') u.reviews += 1
         if (!u.last_used || e.created_at > u.last_used) u.last_used = e.created_at
       }
-      const codes = (data || []).map((c) => ({ ...c, usage: usage[c.id] || { observations: 0, assessments: 0, transcriptions: 0, reviews: 0, last_used: null } }))
+      // Who used each sign-up code (their email), so the page can show it.
+      const userIds = (data || []).map((c) => c.used_by).filter(Boolean)
+      const emails = {}
+      if (userIds.length) {
+        const { data: people } = await supabase.from('users').select('id, email').in('id', userIds)
+        for (const p of people || []) emails[p.id] = p.email
+      }
+      const codes = (data || []).map((c) => ({
+        ...c,
+        used_by_email: c.used_by ? emails[c.used_by] || null : null,
+        usage: usage[c.id] || { observations: 0, assessments: 0, transcriptions: 0, reviews: 0, last_used: null },
+      }))
       return res.status(200).json({ codes })
     }
 

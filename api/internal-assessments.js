@@ -89,27 +89,8 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { userId, assessorType, transcriptFilename, assessmentData, competencyScores } = req.body
 
-    // Admin access codes save under the code (no personal account).
-    if (!req.headers?.authorization && !req.headers?.Authorization) {
-      const caller = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
-      if (!caller) return
-      if (!assessorType || !assessmentData) {
-        return res.status(400).json({ error: 'assessorType and assessmentData are required' })
-      }
-      const { data, error } = await supabase
-        .from('internal_assessments')
-        .insert({
-          access_code_id: caller.owner.value,
-          assessor_type: assessorType,
-          transcript_filename: transcriptFilename || null,
-          assessment_data: assessmentData,
-          competency_scores: competencyScores || null,
-        })
-        .select('id')
-        .single()
-      if (error) return res.status(500).json({ error: error.message })
-      return res.status(200).json({ success: true, assessmentId: data.id })
-    }
+    // Tool-only admin accounts save through the same signed-in path as full admins.
+    if (!(await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] }))) return
 
     if (!(await requireSelf(req, res, supabase, userId))) return
 

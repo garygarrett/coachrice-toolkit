@@ -886,7 +886,7 @@ export default function AdminPanel() {
         <h1 style={s.heading}>Access Codes</h1>
       </div>
       <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '24px', lineHeight: '1.6' }}>
-        Access codes let people use tools without a personal account. Share the link <strong>/access</strong> and a code.
+        Student codes open the Transcript Reviewer with no account. Mentor coach and Admin codes work once: the person uses the code to create an account (email and password), then signs in with those from then on. Share the link <strong>/access</strong> and a code.
         <strong> Student</strong> codes open the Transcript Reviewer (anonymous, no history is saved).
         <strong> Mentor coach</strong> codes open the Session Observation Form only.
         <strong> Admin</strong> codes open the Internal Assessor, Audio to Transcript, and the Session Observation Form, with no access to history, users, or analytics.
@@ -930,8 +930,8 @@ export default function AdminPanel() {
               style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 8px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', background: '#fff' }}
             >
               <option value="student">Student</option>
-              <option value="mentor">Mentor coach</option>
-              <option value="admin">Admin</option>
+              <option value="mentor">Mentor coach (one-time sign-up)</option>
+              <option value="admin">Admin, tools only (one-time sign-up)</option>
             </select>
           </div>
           <div style={{ minWidth: '150px' }}>
@@ -978,17 +978,23 @@ export default function AdminPanel() {
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: COLORS.navy, fontFamily: 'monospace', fontSize: '13px' }}>{ac.code}</td>
                 <td style={{ padding: '12px 16px', color: COLORS['text-main'] }}>{ac.label}</td>
                 <td style={{ padding: '12px 16px', fontSize: '12px', color: COLORS['text-main'] }}>
-                  {{ student: 'Student', mentor: 'Mentor coach', admin: 'Admin' }[ac.role || 'student']}
+                  {{ student: 'Student', mentor: 'Mentor coach (one-time)', admin: 'Admin (one-time)' }[ac.role || 'student']}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   {(() => {
                     const expired = ac.expires_at && new Date(ac.expires_at) < new Date()
-                    const on = ac.active && !expired
+                    const on = ac.active && !expired && !ac.used_at
                     return (
                       <>
                         <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: on ? '#dcfce7' : '#f3f4f6', color: on ? '#16a34a' : '#6b7a99' }}>
-                          {expired ? 'Expired' : ac.active ? 'Active' : 'Inactive'}
+                          {ac.used_at ? 'Used' : expired ? 'Expired' : ac.active ? 'Active' : 'Inactive'}
                         </span>
+                        {ac.used_at && (
+                          <div style={{ fontSize: '10px', color: COLORS['text-muted'], marginTop: '3px' }}>
+                            used {new Date(ac.used_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {ac.used_by_email ? ` by ${ac.used_by_email}` : ''}
+                          </div>
+                        )}
                         {ac.expires_at && !expired && (
                           <div style={{ fontSize: '10px', color: COLORS['text-muted'], marginTop: '3px' }}>
                             until {new Date(ac.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1562,7 +1568,9 @@ export default function AdminPanel() {
               <label style={s.label}>Role
                 <select name="role" value={editUserForm.role} onChange={handleEditUserChange} style={s.input}>
                   <option value="coach">Participant</option>
-                  <option value="admin">Admin</option>
+                  <option value="admin">Admin (full dashboard)</option>
+                  <option value="admin_tools">Admin (tools only)</option>
+                  <option value="mentor">Mentor coach</option>
                 </select>
               </label>
               <label style={s.label}>Cohort
@@ -1635,8 +1643,8 @@ export default function AdminPanel() {
               <td style={s.td}>{u.email}</td>
               <td style={s.td}>
                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={u.role === 'admin' ? s.badgeAdmin : s.badgeCoach}>
-                    {u.role === 'admin' ? 'Admin' : 'Participant'}
+                  <span style={u.role === 'coach' ? s.badgeCoach : s.badgeAdmin}>
+                    {{ admin: 'Admin', admin_tools: 'Admin (tools)', mentor: 'Mentor coach', coach: 'Participant' }[u.role] || 'Participant'}
                   </span>
                   {u.is_active === false && <span style={s.badgePaused}>Paused</span>}
                 </div>
