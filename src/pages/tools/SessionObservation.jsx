@@ -92,6 +92,7 @@ export default function SessionObservation() {
   const [drafts, setDrafts] = useState([])
   const [savingDraft, setSavingDraft] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
   useEffect(() => {
@@ -112,6 +113,15 @@ export default function SessionObservation() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
+
+  // Save a first copy as soon as the form opens, so nothing is lost even if the coach never presses Save.
+  useEffect(() => {
+    if (stage === 'form' && !draftId && !autoCreated.current) {
+      autoCreated.current = true
+      saveDraft(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, draftId])
 
   // Once an observation has been saved, keep it up to date while the coach works.
   useEffect(() => {
@@ -372,7 +382,7 @@ export default function SessionObservation() {
     if (!window.confirm(draftId ? 'Close this observation and start a new one? Your saved progress stays in your list.' : 'Start over? Everything on this form will be cleared.')) return
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
     setPasted(''); setConsent(false); setNotice(''); setError('')
-    setDraftId(null); setSavedAt(null); lastSaved.current = ''
+    setDraftId(null); setSavedAt(null); lastSaved.current = ''; autoCreated.current = false
   }
 
   // ---------- Pieces ----------
@@ -579,7 +589,7 @@ export default function SessionObservation() {
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
         <span style={{ fontSize: 12, color: dirty ? C.orange : C.gray, fontWeight: 600 }}>
-          {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Not saved yet') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
+          {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Saving soon…') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
         </span>
         {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
       </div>
