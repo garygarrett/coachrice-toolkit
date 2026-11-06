@@ -28,7 +28,7 @@ export default function AccountSignIn({ kind }) {
   const navigate = useNavigate()
   const { user, profile, loading } = useAuth()
 
-  const [mode, setMode] = useState('choose') // choose | code | account | returning | forgot
+  const [mode, setMode] = useState('returning') // returning (default) | forgot | code | account
   const [code, setCode] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -63,7 +63,7 @@ export default function AccountSignIn({ kind }) {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error === 'That access code has already been used'
-          ? 'That access code has already been used. Choose "I have signed in before" to sign in with your email and password.'
+          ? 'That access code has already been used. Use the "Sign in" tab at the top with your email and password.'
           : 'That access code is not valid. Check it and try again, or ask for a new one.')
       } else if (data.role !== copy.codeKind) {
         setError(`That code is for the ${copy.other} sign-in. Go back and choose ${copy.other}.`)
@@ -134,6 +134,7 @@ export default function AccountSignIn({ kind }) {
     else setResetSent(true)
   }
 
+  const onReturning = mode === 'returning' || mode === 'forgot'
   const input = (props) => <input {...props} style={s.input} />
 
   return (
@@ -148,13 +149,10 @@ export default function AccountSignIn({ kind }) {
           <div style={s.eyebrow}>Doerr Institute for New Leaders</div>
           <h1 style={s.title}>{copy.title} sign-in</h1>
 
-          {mode === 'choose' && (
-            <>
-              <p style={s.subtitle}>You will have access to {copy.tools}.</p>
-              <button type="button" style={s.btn} onClick={() => go('code')}>First time signing in</button>
-              <button type="button" style={s.btnAlt} onClick={() => go('returning')}>I have signed in before</button>
-            </>
-          )}
+          <div style={s.tabs}>
+            <button type="button" onClick={() => go('returning')} style={{ ...s.tab, ...(onReturning ? s.tabOn : {}) }}>Sign in</button>
+            <button type="button" onClick={() => go('code')} style={{ ...s.tab, ...(!onReturning ? s.tabOn : {}) }}>First time signing in</button>
+          </div>
 
           {mode === 'code' && (
             <form onSubmit={checkCode}>
@@ -219,9 +217,7 @@ export default function AccountSignIn({ kind }) {
             <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
           </p>
           <div style={s.footerRow}>
-            {mode === 'choose'
-              ? <button type="button" style={s.linkBtn} onClick={() => navigate('/access')}>← Back to sign-in options</button>
-              : <button type="button" style={s.linkBtn} onClick={() => go('choose')}>← Back</button>}
+            <button type="button" style={s.linkBtn} onClick={() => navigate('/access')}>← Back to sign-in options</button>
           </div>
         </div>
       </div>
@@ -244,6 +240,9 @@ const s = {
   errorBox: { background: '#fff3e6', border: '1px solid #ffe0b2', borderRadius: '6px', padding: '10px 14px', fontSize: '11px', color: '#00205B', marginBottom: '14px', lineHeight: 1.5 },
   btn: { width: '100%', height: '46px', borderRadius: '8px', background: '#00205B', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', marginBottom: '12px' },
   btnAlt: { width: '100%', height: '46px', borderRadius: '8px', background: '#fff', color: '#00205B', border: '2px solid #00205B', fontSize: '13px', fontWeight: 700, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', marginBottom: '12px' },
+  tabs: { display: 'flex', gap: '6px', background: '#f0f2f5', borderRadius: '10px', padding: '4px', margin: '4px 0 22px' },
+  tab: { flex: 1, height: '38px', borderRadius: '7px', border: 'none', background: 'transparent', color: '#6b7a99', fontSize: '12px', fontWeight: 700, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer' },
+  tabOn: { background: '#fff', color: '#00205B', boxShadow: '0 1px 4px rgba(0,32,91,0.12)' },
   linkRow: { textAlign: 'center' },
   linkBtn: { background: 'none', border: 'none', color: '#6b7a99', fontSize: '11px', fontWeight: 600, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', padding: 0 },
   footerRow: { textAlign: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f2f5' },
