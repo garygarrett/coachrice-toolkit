@@ -128,7 +128,7 @@ export default function AudioToTranscript() {
   const [names, setNames] = useState({}) // { speakerId: 'Coach' }
   const [duration, setDuration] = useState(null)
   const [estimatedTiming, setEstimatedTiming] = useState(false)
-  const [markPauses, setMarkPauses] = useState(false)
+  const [markPauses, setMarkPauses] = useState(true)
   const [makingPdf, setMakingPdf] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)

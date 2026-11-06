@@ -422,7 +422,7 @@ export default function SessionObservation() {
     const ready = file || pasted.trim().length > 20
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 820 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           {drafts.length > 0 && (
             <div style={card}>
               <h2 style={h2}>Continue a saved observation</h2>
@@ -495,7 +495,7 @@ export default function SessionObservation() {
   if (stage === 'analyzing') {
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 640 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           <div style={{ ...card, textAlign: 'center', padding: 40 }}>
             <div style={{ fontWeight: 700, color: C.navy, marginBottom: 14 }}>{progress.label}</div>
             <div style={{ height: 8, background: C.soft, borderRadius: 4, overflow: 'hidden' }}>
@@ -514,7 +514,7 @@ export default function SessionObservation() {
     const speakerIds = [...new Set(turns.map((t) => t.speaker))]
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 820 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           <div style={card}>
             <h2 style={h2}>Who is who?</h2>
             <p style={small}>Tell the tool which speaker is the coach (the participant you are evaluating) and which is the client.</p>
@@ -556,7 +556,7 @@ export default function SessionObservation() {
 
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-      <div style={{ fontFamily: font }}>
+      <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>

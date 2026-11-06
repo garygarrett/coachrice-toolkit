@@ -20,6 +20,7 @@ export function timeToSeconds(t) {
 }
 
 const TIME = '\\[?\\(?(\\d{1,2}:\\d{2}(?::\\d{2})?)\\)?\\]?'
+const RE_PAUSE = /^\[\s*pause\s+(\d+(?:\.\d+)?)\s*(?:sec|secs|seconds|s)?\s*\]$/i // "[pause 8 sec]" from the audio tool
 const RE_HEADER = new RegExp(`^(.{1,40}?)\\s+${TIME}\\s*$`) // "Speaker 1  00:05"
 const RE_TIME_FIRST = new RegExp(`^${TIME}\\s*[-–]?\\s*(.*)$`) // "[00:05] Coach: ..."
 const RE_SPEAKER = /^([^:\n]{1,40}):\s+(.+)$/ // "Coach: text"
@@ -30,13 +31,16 @@ export function parseTranscriptText(raw) {
   const lines = String(raw || '').replace(/\r/g, '').split('\n').map((l) => l.trim()).filter(Boolean)
   const turns = []
   let open = null // a turn that may still receive continuation lines
+  let pendingPause = 0 // seconds from a [pause N sec] line, applied to the next turn
   const push = (label, time, text) => {
-    const t = { label: label || '', time: time || '', text: (text || '').trim() }
+    const t = { label: label || '', time: time || '', text: (text || '').trim(), pause: pendingPause }
+    pendingPause = 0
     turns.push(t)
     open = t
   }
   for (const line of lines) {
     let m
+    if ((m = line.match(RE_PAUSE))) { pendingPause = Number(m[1]); open = null; continue }
     if ((m = line.match(RE_NAME_TIME_TEXT))) { push(m[1].trim(), m[2], m[3]); continue }
     if ((m = line.match(RE_TIME_FIRST))) {
       const rest = m[2]
@@ -57,7 +61,7 @@ export function parseTranscriptText(raw) {
     .map((t, i) => {
       const key = t.label || 'Speaker'
       if (!(key in ids)) ids[key] = Object.keys(ids).length
-      return { id: i + 1, speaker: ids[key], label: key, time: t.time, start: timeToSeconds(t.time), text: t.text, pauseBefore: 0 }
+      return { id: i + 1, speaker: ids[key], label: key, time: t.time, start: timeToSeconds(t.time), text: t.text, pauseBefore: t.pause || 0 }
     })
 }
 

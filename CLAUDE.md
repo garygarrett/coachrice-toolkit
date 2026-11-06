@@ -286,3 +286,9 @@ Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Sess
 - Only transcript text is saved, in `audio_transcripts` (`migrations/add_audio_transcripts.sql`) via actions `audio-save|list|get|delete`.
 - "Send to Transcript Reviewer" hands the text over through `sessionStorage` (`pendingTranscript`, `pendingTranscriptName`), read on mount by `TranscriptScorer.jsx`.
 - AI calls go through the server proxy `/api/ai` (browser holds no Anthropic key); admin helpers live in `server/`.
+
+## Pauses and page layout (Nov 2026)
+
+- Audio to Transcript marks pauses of 3+ seconds as `[pause N sec]` lines in the downloaded, copied, saved, and sent text. The "Mark pauses" box is now ticked by default.
+- The Session Observation Form reads those lines (`RE_PAUSE` in `src/lib/sof/transcript.js`): the pause is stored as `pauseBefore` on the next turn, not as speech. The AI evidence step sees it as `(pause before: Ns)` and uses it for A5.4 (silence); the transcript panel shows it in orange.
+- All Session Observation Form screens are centered (960px wide; the two-column form stage is 1400px).
