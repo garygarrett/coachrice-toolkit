@@ -68,6 +68,10 @@ async function urlToDataUrl(url) {
 
 const SPEAKER_COLORS = [[0, 32, 91], [46, 117, 182], [230, 110, 0], [120, 130, 10]]
 
+// Pauses written inside a passage's text, like [pause 8 sec]
+const INLINE_PAUSE = /\s*\[pause \d+ sec\]\s*/g
+const withoutInlinePauses = (text) => String(text || '').replace(INLINE_PAUSE, ' ').replace(/\s+/g, ' ').trim()
+
 function stamp(seconds) {
   const s = Math.max(0, Math.floor(seconds || 0))
   const h = Math.floor(s / 3600)
@@ -91,7 +95,8 @@ function buildTurns(result) {
       const prev = lastEnd === null ? null : Math.max(0, (u.start || 0) - lastEnd)
       const last = turns[turns.length - 1]
       if (last && last.speaker === (u.speaker ?? 0)) {
-        last.text += ' ' + text
+        // A long pause inside one speaker's turn is written into the text as [pause N sec]
+        last.text += (prev && prev >= LONG_PAUSE ? ` [pause ${Math.round(prev)} sec] ` : ' ') + text
         last.dur += dur
         // A pause inside one speaker's turn
         if (prev) {
@@ -222,7 +227,7 @@ export default function AudioToTranscript() {
     edit(() => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, _p: keepOriginal(t), pauseBefore: 0 } : t))))
   }
   function removeAllPauses() {
-    edit(() => setTurns((ts) => ts.map((t) => ({ ...t, _p: keepOriginal(t), pauseBefore: 0, quiet: 0, quietMax: 0, quietAt: 0 }))))
+    edit(() => setTurns((ts) => ts.map((t) => ({ ...t, text: withoutInlinePauses(t.text), _p: keepOriginal(t), pauseBefore: 0, quiet: 0, quietMax: 0, quietAt: 0 }))))
   }
   function restorePauses() {
     edit(() => setTurns((ts) => ts.map((t) => {
@@ -297,7 +302,7 @@ export default function AudioToTranscript() {
     const rows = speakerIds.map((id) => {
       const mine = turns.filter((t) => t.speaker === id)
       const seconds = mine.reduce((n, t) => n + (t.dur || 0), 0)
-      const words = mine.reduce((n, t) => n + (t.text.trim() ? t.text.trim().split(/\s+/).length : 0), 0)
+      const words = mine.reduce((n, t) => { const w = withoutInlinePauses(t.text); return n + (w ? w.split(/\s+/).length : 0) }, 0)
       return { id, seconds, words, turns: mine.length }
     })
     const totalSec = rows.reduce((n, r) => n + r.seconds, 0)
@@ -336,7 +341,7 @@ export default function AudioToTranscript() {
       if (markPauses && i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= LONG_PAUSE) {
         lines.push(`[pause ${Math.round(t.pauseBefore)} sec]`)
       }
-      lines.push(`[${stamp(t.start)}] ${nameOf(t.speaker)}: ${t.text.trim()}`)
+      lines.push(`[${stamp(t.start)}] ${nameOf(t.speaker)}: ${markPauses ? t.text.trim() : withoutInlinePauses(t.text)}`)
     })
     return lines.join('\n\n')
   }
@@ -378,7 +383,7 @@ export default function AudioToTranscript() {
           time: stamp(t.start),
           speaker: nameOf(t.speaker),
           color: colorOf(t.speaker),
-          text: t.text.trim(),
+          text: markPauses ? t.text.trim() : withoutInlinePauses(t.text),
           pauseText: markPauses && i > 0 && typeof t.pauseBefore === 'number' && t.pauseBefore >= LONG_PAUSE ? `pause ${Math.round(t.pauseBefore)} sec` : '',
         })),
       })
