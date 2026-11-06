@@ -124,6 +124,8 @@ The 8 ICF Core Competencies tracked per session:
 
 Coaches **cannot self-register**. An admin creates their account via the admin panel → Supabase sends an email invite → coach sets password → gains immediate access.
 
+The Agreements/Terms screen (`/agreements`) is turned off for now: `Login.jsx` and `SetPassword.jsx` send users straight to the dashboard. The page, the route, and the `agreements_accepted` / `agreements_accepted_at` columns remain, so past acceptances stay saved and the screen can be turned back on by restoring the redirect.
+
 ## Flagging Rule
 
 A coach is auto-flagged when any single competency scores `Developing` in **two or more consecutive scored sessions**. Admins see flags as badges in the user list and in a dedicated Flags tab.

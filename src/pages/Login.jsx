@@ -21,11 +21,9 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user && profile) {
-      if (!profile.agreements_accepted) {
-        navigate('/agreements', { replace: true })
-      } else {
-        navigate('/dashboard', { replace: true })
-      }
+      // The agreements screen is turned off for now: everyone goes straight to the dashboard.
+      // Past acceptances stay saved in the database, and the /agreements page still exists.
+      navigate('/dashboard', { replace: true })
     }
   }, [user, profile, loading, navigate])
 
