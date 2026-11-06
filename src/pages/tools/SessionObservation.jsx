@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Layout from '../../components/Layout'
+import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
 import { parseTranscriptText, transcribeAudio, stamp } from '../../lib/sof/transcript'
 import { EVIDENCE_SYSTEM, buildEvidenceInput, validateEvidence } from '../../lib/sof/evidencePrompt'
@@ -85,6 +86,11 @@ export default function SessionObservation() {
   const [selection, setSelection] = useState(null) // { turnId, text }
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
+  const [draftId, setDraftId] = useState(null)
+  const [drafts, setDrafts] = useState([])
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [savedAt, setSavedAt] = useState(null)
+  const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
   useEffect(() => {
     const link = document.createElement('link')
@@ -94,12 +100,24 @@ export default function SessionObservation() {
   }, [])
   useEffect(() => () => { xhrRef.current?.abort() }, [])
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
+  useEffect(() => { loadDrafts() }, [])
+
+  const snapshot = useMemo(() => JSON.stringify({ form, roles, active }), [form, roles, active])
+  const dirty = stage === 'form' && snapshot !== lastSaved.current
   useEffect(() => {
-    if (stage !== 'form') return undefined
+    if (!dirty) return undefined
     const warn = (e) => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [stage])
+  }, [dirty])
+
+  // Once an observation has been saved, keep it up to date while the coach works.
+  useEffect(() => {
+    if (!dirty || !draftId) return undefined
+    const t = setTimeout(() => { saveDraft(true) }, 30000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot, draftId])
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }))
   const setAdmin = (k, v) => setForm((f) => ({ ...f, admin: { ...f.admin, [k]: v } }))
@@ -242,6 +260,88 @@ export default function SessionObservation() {
     if (audioEl.current && turn.start != null) { audioEl.current.currentTime = turn.start; audioEl.current.play().catch(() => {}) }
   }
 
+  // ---------- Save progress and come back later ----------
+  async function loadDrafts() {
+    try {
+      const res = await authFetch('/api/user-actions?action=obs-list', { method: 'POST' })
+      if (res.ok) setDrafts((await res.json()).data || [])
+    } catch { /* the list is a convenience; ignore */ }
+  }
+
+  function draftTitle() {
+    const a = form.admin
+    return [a.clientName.trim() || 'Untitled observation', a.clientSession.trim()].filter(Boolean).join(' – ')
+  }
+
+  async function saveDraft(quiet = false) {
+    setSavingDraft(true)
+    if (!quiet) setNotice('')
+    const sent = snapshot
+    try {
+      const res = await authFetch('/api/user-actions?action=obs-save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form, turns, roles, ai, active } }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || `status ${res.status}`)
+      setDraftId(body.id)
+      lastSaved.current = sent
+      setSavedAt(new Date())
+      loadDrafts()
+    } catch (e) {
+      setNotice(`Could not save your progress: ${e.message}. Your work is still on this page. Use "Download form" to keep a copy.`)
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  async function openDraft(id) {
+    setError('')
+    try {
+      const res = await authFetch('/api/user-actions?action=obs-get', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+      })
+      const row = await res.json()
+      if (!res.ok) throw new Error(row.error || 'Could not open that observation')
+      const d = row.data || {}
+      const f = { ...emptyForm(), ...d.form }
+      setTurns(d.turns || [])
+      setRoles(d.roles || {})
+      setAi(d.ai || null)
+      setForm(f)
+      setActive(d.active || 'A3.1')
+      setDraftId(row.id)
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+      setAudioUrl('')
+      lastSaved.current = JSON.stringify({ form: f, roles: d.roles || {}, active: d.active || 'A3.1' })
+      setSavedAt(new Date(row.updated_at))
+      setNotice('')
+      setStage('form')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function deleteDraft(id, title) {
+    if (!window.confirm(`Delete the saved observation "${title}"? This cannot be undone.`)) return
+    try {
+      const res = await authFetch('/api/user-actions?action=obs-delete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+      })
+      if (!res.ok) throw new Error('Could not delete it')
+      if (id === draftId) setDraftId(null)
+      loadDrafts()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  function attachRecording(f) {
+    if (!f) return
+    if (audioUrl) URL.revokeObjectURL(audioUrl)
+    setAudioUrl(URL.createObjectURL(f))
+  }
+
   // ---------- Save ----------
   async function save() {
     setSaving(true)
@@ -267,9 +367,10 @@ export default function SessionObservation() {
   }
 
   function startOver() {
-    if (!window.confirm('Start over? Everything on this form will be cleared.')) return
+    if (!window.confirm(draftId ? 'Close this observation and start a new one? Your saved progress stays in your list.' : 'Start over? Everything on this form will be cleared.')) return
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
     setPasted(''); setConsent(false); setNotice(''); setError('')
+    setDraftId(null); setSavedAt(null); lastSaved.current = ''
   }
 
   // ---------- Pieces ----------
@@ -322,6 +423,22 @@ export default function SessionObservation() {
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 820 }}>
+          {drafts.length > 0 && (
+            <div style={card}>
+              <h2 style={h2}>Continue a saved observation</h2>
+              {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
+              {drafts.map((d) => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ flex: 1, fontSize: 13 }}>
+                    <div style={{ fontWeight: 700, color: C.navy }}>{d.title}</div>
+                    <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
+                  </div>
+                  <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
+                  <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={card}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
@@ -372,7 +489,7 @@ export default function SessionObservation() {
               </label>
             )}
             <p style={{ ...small, marginTop: 14 }}>
-              The transcript text is sent to Claude (Anthropic) to find evidence. Nothing is stored in CoachRICE. Your work lives on this page until you save the form.
+              The transcript text is sent to Claude (Anthropic) to find evidence. Recordings are never stored. If you press Save progress, CoachRICE keeps the transcript text and your answers so you can finish later.
             </p>
             {error && <div style={{ color: '#b42318', fontSize: 13, margin: '12px 0' }}>{error}</div>}
             <div style={{ marginTop: 16 }}>
@@ -458,6 +575,12 @@ export default function SessionObservation() {
               Evidence for <strong style={{ color: C.navy }}>{activeBehavior.id}</strong> is highlighted. Use <strong>+</strong> to add a whole turn, or select words and press the button below.
             </div>
             {audioUrl && <audio ref={audioEl} src={audioUrl} controls style={{ width: '100%', marginTop: 10, height: 36 }} />}
+            {!audioUrl && (
+              <div style={{ marginTop: 10 }}>
+                <button style={{ ...btn(false), padding: '6px 10px', fontSize: 12 }} onClick={() => audioFileRef.current?.click()}>Add recording to listen</button>
+                <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => attachRecording(e.target.files?.[0])} />
+              </div>
+            )}
             <button style={{ ...btn(true, !selection), marginTop: 10, padding: '8px 12px', fontSize: 12 }} disabled={!selection} onClick={addSelection}>
               Add selected words to {activeBehavior.id}
             </button>
@@ -506,6 +629,15 @@ export default function SessionObservation() {
             <div style={{ fontWeight: 800, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
               Evidence below comes from the transcript. Edit it freely. The AI offers suggestions only: you choose every rating and every box.
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+              <button style={{ ...btn(false, savingDraft), background: C.white }} disabled={savingDraft} onClick={() => saveDraft(false)}>
+                {savingDraft ? 'Saving…' : 'Save progress'}
+              </button>
+              <span style={{ fontSize: 12, opacity: 0.9 }}>
+                {dirty ? 'Unsaved changes' : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Find it under “Continue a saved observation”.` : ''}
+                {draftId && dirty ? ' (saves itself every 30 seconds)' : ''}
+              </span>
             </div>
           </div>
 
@@ -665,11 +797,12 @@ export default function SessionObservation() {
               <div style={{ fontSize: 13, marginBottom: 12, color: '#2f6b1f', fontWeight: 700 }}>Everything on the form is complete.</div>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={btn(true, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Save and download form (.docx)'}</button>
+              <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
+              <button style={btn(true, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
               <button style={btn(false)} onClick={startOver}>Start over</button>
             </div>
             {notice && <div style={{ ...small, marginTop: 12, color: C.navy, fontWeight: 600 }}>{notice}</div>}
-            <div style={{ ...small, marginTop: 10 }}>Nothing is stored in CoachRICE. Save the file before you leave this page.</div>
+            <div style={{ ...small, marginTop: 10 }}>Save progress keeps your work in CoachRICE so you can come back later. Download form gives you the completed ICF Word file. Recordings are never stored; add the recording again when you reopen to listen.</div>
           </div>
         </div>
       </div>

@@ -255,7 +255,7 @@ Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individua
 - Admin-only tool at `/tools/session-observation` (`src/pages/tools/SessionObservation.jsx`; logic in `src/lib/sof/`). Mentor coaches add a recording (Deepgram, same flow as Audio to Transcript) or a transcript (.txt, .pdf, or pasted), name the coach and client speakers, and the AI (`observation-evidence` tool in `server/aiTools.js`, uses the transcript API key) finds evidence for each of the 20 ICF ACC behaviors plus the Competency 1 qualifiers.
 - The coach edits all evidence (click `+` on a transcript turn, or select words), picks every rating, and completes every field of the ICF form. The AI only suggests; nothing is pre-selected.
 - Save fills the ORIGINAL ICF Word form (`public/templates/icf-session-observation-form-acc.docx`) in the browser with JSZip (`src/lib/sof/fillDocx.js`). It maps the template's 151 content controls by document order and checks the count (151) before filling. A4.3's five rating symbols are plain text in ICF's file (not checkboxes), and the code handles that. If ICF releases a new template version, re-map the control order in `fillDocx.js`.
-- Nothing is stored in the database; the saved .docx is the record. Mentor coach profiles are not built yet.
+- "Save progress" stores a draft (transcript text, speaker roles, evidence, answers, AI suggestions; never audio) in `observation_drafts` (`migrations/add_observation_drafts.sql`) via actions `obs-save|list|get|delete` in `api/user-actions.js` (admin only, per user, soft delete). Saved drafts autosave every 30 seconds. "Download form" produces the .docx. Mentor coach profiles are not built yet.
 
 ## Audio to Transcript (Deepgram)
 
