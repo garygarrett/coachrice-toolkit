@@ -20,12 +20,13 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase
         .from('access_codes')
-        .select('id, label, active')
+        .select('id, label, active, role, expires_at')
         .eq('code', code.trim())
         .single()
 
       if (error || !data) return res.status(200).json({ valid: false })
       if (!data.active) return res.status(200).json({ valid: false, reason: 'inactive' })
+      if (data.expires_at && new Date(data.expires_at) < new Date()) return res.status(200).json({ valid: false, reason: 'expired' })
 
       // Fetch the transcript reviewer prompt so the guest client doesn't need a Supabase session.
       // The API key is intentionally NOT returned: guests call /api/ai with their access code instead.
@@ -40,6 +41,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         valid: true,
         label: data.label,
+        role: data.role || 'student',
         systemPrompt: configMap.transcript_reviewer_prompt || null,
       })
     }
@@ -53,7 +55,23 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false })
 
       if (error) return res.status(500).json({ error: error.message })
-      return res.status(200).json({ codes: data })
+
+      // Usage totals per code (from the counting log; this does not touch anyone's saved work)
+      const usage = {}
+      const { data: events } = await supabase
+        .from('access_code_events')
+        .select('access_code_id, tool, created_at')
+        .limit(100000)
+      for (const e of events || []) {
+        const u = usage[e.access_code_id] || (usage[e.access_code_id] = { observations: 0, assessments: 0, transcriptions: 0, reviews: 0, last_used: null })
+        if (e.tool === 'observation-evidence') u.observations += 1
+        else if (e.tool === 'assessor-2021' || e.tool === 'assessor-2025') u.assessments += 1
+        else if (e.tool === 'audio') u.transcriptions += 1
+        else if (e.tool === 'transcript-guest') u.reviews += 1
+        if (!u.last_used || e.created_at > u.last_used) u.last_used = e.created_at
+      }
+      const codes = (data || []).map((c) => ({ ...c, usage: usage[c.id] || { observations: 0, assessments: 0, transcriptions: 0, reviews: 0, last_used: null } }))
+      return res.status(200).json({ codes })
     }
 
     // ── Admin: list guest analyses ────────────────────────────────────────────
@@ -92,12 +110,19 @@ export default async function handler(req, res) {
 
     // Create a new access code (admin only)
     if (!(await requireAdmin(req, res, supabase))) return
-    const { code, label } = req.body
+    const { code, label, role, expiresAt } = req.body
     if (!code || !label) return res.status(400).json({ error: 'code and label are required' })
+    const codeRole = ['student', 'mentor', 'admin'].includes(role) ? role : 'student'
+    let expires = null
+    if (expiresAt) {
+      const d = new Date(expiresAt)
+      if (Number.isNaN(d.getTime())) return res.status(400).json({ error: 'expiresAt is not a valid date' })
+      expires = d.toISOString()
+    }
 
     const { data, error } = await supabase
       .from('access_codes')
-      .insert({ code: code.trim(), label: label.trim() })
+      .insert({ code: code.trim(), label: label.trim(), role: codeRole, expires_at: expires })
       .select()
       .single()
 

@@ -341,7 +341,7 @@ export default function SessionObservation() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
       })
       if (!res.ok) throw new Error('Could not delete it')
-      if (id === draftId) setDraftId(null)
+      if (id === draftId) resetAll()
       loadDrafts()
     } catch (e) {
       setError(e.message)
@@ -380,6 +380,10 @@ export default function SessionObservation() {
 
   function startOver() {
     if (!window.confirm(draftId ? 'Close this observation and start a new one? Your saved progress stays in your list.' : 'Start over? Everything on this form will be cleared.')) return
+    resetAll()
+  }
+
+  function resetAll() {
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
     setPasted(''); setConsent(false); setNotice(''); setError('')
     setDraftId(null); setSavedAt(null); lastSaved.current = ''; autoCreated.current = false
@@ -818,10 +822,15 @@ export default function SessionObservation() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
               <button style={btn(true, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
-              <button style={btn(false)} onClick={startOver}>Start over</button>
+              <button style={btn(false)} onClick={startOver}>{draftId ? 'Close' : 'Start over'}</button>
+              {draftId && (
+                <button style={{ ...btn(false), borderColor: '#b42318', color: '#b42318', marginLeft: 'auto' }} onClick={() => deleteDraft(draftId, draftTitle())}>
+                  Delete this observation
+                </button>
+              )}
             </div>
             {notice && <div style={{ ...small, marginTop: 12, color: C.navy, fontWeight: 600 }}>{notice}</div>}
-            <div style={{ ...small, marginTop: 10 }}>Save progress keeps your work in CoachRICE so you can come back later. Download form gives you the completed ICF Word file. Recordings are never stored; add the recording again when you reopen to listen.</div>
+            <div style={{ ...small, marginTop: 10 }}>Save progress keeps your work in CoachRICE so you can come back later. Delete removes the saved copy, including the transcript, for good. Download form gives you the completed ICF Word file. Recordings are never stored; add the recording again when you reopen to listen.</div>
           </div>
         </div>
       </div>

@@ -10,6 +10,15 @@ import { supabase } from './supabase'
  * Calling supabase.auth.getSession() there can deadlock (see CLAUDE.md).
  */
 export async function authFetch(url, options = {}) {
+  // Mentor-coach and admin access codes have no login. The code itself proves who is calling.
+  try {
+    const role = sessionStorage.getItem('coachrice_access_role')
+    const code = sessionStorage.getItem('coachrice_access_code')
+    if ((role === 'mentor' || role === 'admin') && code) {
+      return fetch(url, { ...options, headers: { ...(options.headers || {}), 'x-access-code': code } })
+    }
+  } catch { /* sessionStorage unavailable: fall through to a normal login */ }
+
   const { data } = await supabase.auth.getSession()
   const token = data?.session?.access_token
 

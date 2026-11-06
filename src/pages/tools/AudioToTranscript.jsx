@@ -588,7 +588,9 @@ export default function AudioToTranscript() {
                 <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={downloadPdf}>{makingPdf ? 'Making PDF…' : 'Download PDF'}</button>
                 <button style={btn(false)} onClick={download}>Download .txt</button>
                 <button style={btn(false)} onClick={copy}>Copy</button>
-                <button style={{ ...btn(false), borderColor: C.orange, color: C.orange }} onClick={sendToScorer}>Send to Transcript Reviewer</button>
+                {!sessionStorage.getItem('coachrice_access_role') && (
+                  <button style={{ ...btn(false), borderColor: C.orange, color: C.orange }} onClick={sendToScorer}>Send to Transcript Reviewer</button>
+                )}
                 <button style={{ ...btn(false), borderColor: C.gray, color: C.gray }} onClick={startOver}>Start over</button>
               </div>
             </div>

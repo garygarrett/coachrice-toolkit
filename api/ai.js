@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { requireUser, requireAdmin } from '../server/auth.js'
+import { requireUser, requireCaller, lookupCode } from '../server/auth.js'
 import { TOOLS, validateAiPayload } from '../server/aiTools.js'
 
 // One function that sits between the browser and Anthropic.
@@ -47,23 +47,19 @@ export default async function handler(req, res) {
   }
 
   // 1. Who is asking? Each tool says what it needs.
-  if (tool.access === 'admin') {
-    if (!(await requireAdmin(req, res, supabase))) return
+  let usageCodeId = null // set when an access code made this request, so we can count its use
+  if (tool.access === 'admin' || tool.access === 'mentor') {
+    // Admin accounts, or an access code with the right role.
+    const codeRoles = tool.access === 'admin' ? ['admin'] : ['mentor', 'admin']
+    const caller = await requireCaller(req, res, supabase, { codeRoles })
+    if (!caller) return
+    if (caller.kind === 'code') usageCodeId = caller.code.id
   } else if (tool.access === 'user') {
     if (!(await requireUser(req, res, supabase))) return
   } else if (tool.access === 'guest') {
-    const code = typeof body.accessCode === 'string' ? body.accessCode.trim() : ''
-    if (!code) return fail(res, 401, 'An access code is required')
-
-    const { data: codeRow } = await supabase
-      .from('access_codes')
-      .select('id, active')
-      .eq('code', code)
-      .single()
-
-    if (!codeRow || !codeRow.active) {
-      return fail(res, 403, 'That access code is not valid')
-    }
+    const found = await lookupCode(supabase, body.accessCode)
+    if (found.error) return fail(res, found.status, found.error)
+    usageCodeId = found.code.id
   } else {
     return fail(res, 500, 'Tool is misconfigured')
   }
@@ -118,6 +114,11 @@ export default async function handler(req, res) {
     }
     if (!upstream.ok) {
       console.error(`[ai] Anthropic returned status ${upstream.status} for tool "${body.tool}"`)
+    }
+
+    // Count this use for the access code (a number only: no transcript or result is kept here).
+    if (upstream.ok && usageCodeId) {
+      try { await supabase.from('access_code_events').insert({ access_code_id: usageCodeId, tool: body.tool }) } catch { /* counting must never block the answer */ }
     }
 
     res.setHeader('Cache-Control', 'no-store')

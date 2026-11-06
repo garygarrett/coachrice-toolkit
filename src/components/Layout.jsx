@@ -80,7 +80,27 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     { id: 'ai', label: 'AI Client', path: '/tools/ai' },
   ]
   const isAdmin = profile?.role === 'admin'
-  const toolItems = isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
+
+  // Mentor-coach and admin access codes have no account. They see only the tools their code includes.
+  let codeRole = null
+  let codeLabel = ''
+  try {
+    if (!profile) {
+      codeRole = sessionStorage.getItem('coachrice_access_role')
+      codeLabel = sessionStorage.getItem('coachrice_access_label') || ''
+    }
+  } catch { /* sessionStorage unavailable */ }
+  const isCode = codeRole === 'mentor' || codeRole === 'admin'
+  const codeTools = [
+    ...(codeRole === 'admin' ? [{ id: 'assessor', label: 'Internal Assessor', path: '/access/assessor' }] : []),
+    ...(codeRole === 'admin' ? [{ id: 'audio', label: 'Audio to Transcript', path: '/access/audio' }] : []),
+    { id: 'observation', label: 'Session Observation Form', path: '/access/session-observation' },
+  ]
+  function codeSignOut() {
+    ;['coachrice_access', 'coachrice_access_role', 'coachrice_access_label', 'coachrice_access_code', 'coachrice_system_prompt'].forEach((k) => sessionStorage.removeItem(k))
+    navigate('/access', { replace: true })
+  }
+  const toolItems = isCode ? codeTools : isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
   return (
     <div style={styles.container}>
@@ -89,15 +109,15 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
           <img src={logo} alt="CoachRICE" style={{ height: 36, width: 'auto', maxWidth: 140, objectFit: 'contain' }} />
         </div>
         <div style={styles.nav}>
-          <div style={styles.navLabel}>General</div>
-          {navItems.map(n => (
+          {!isCode && <div style={styles.navLabel}>General</div>}
+          {!isCode && navItems.map(n => (
             <div key={n.id} style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate(n.id === 'dashboard' ? '/dashboard' : '/history')}>
               <ToolIcon id={n.id} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
               <span>{n.label}</span>
             </div>
           ))}
-          <div style={styles.navDivider}></div>
-          <div style={styles.navLabel}>Toolkit</div>
+          {!isCode && <div style={styles.navDivider}></div>}
+          <div style={styles.navLabel}>{isCode ? (codeRole === 'admin' ? 'Admin tools' : 'Mentor coach tools') : 'Toolkit'}</div>
           {toolItems.map(n => (
             <div
               key={n.id}
@@ -144,9 +164,9 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
         <div style={styles.avatarRow}>
           <div style={styles.avatar}>{profile?.full_name?.[0] || 'C'}</div>
           <div>
-            <div style={styles.avatarName}>{profile?.full_name?.split(' ')[0] || 'Coach'}</div>
+            <div style={styles.avatarName}>{isCode ? (codeLabel || 'Access code') : (profile?.full_name?.split(' ')[0] || 'Coach')}</div>
             <div style={styles.avatarRole}>
-              <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 9, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif' }}>
+              <button onClick={isCode ? codeSignOut : signOut} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 9, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif' }}>
                 Sign Out
               </button>
             </div>

@@ -37,9 +37,9 @@ export const TOOLS = {
     maxTokens: 6000,
   },
 
-  // Admins only (these pages are admin-only routes in the app)
+  // Admins only: admin accounts and admin access codes (mentor codes may use only tools marked 'mentor')
   'observation-evidence': {
-    access: 'admin',
+    access: 'mentor', // admins and mentor-coach/admin access codes
     keyName: 'api_key_transcript',
     model: 'claude-sonnet-4-6',
     maxTokens: 8000,

@@ -32,6 +32,9 @@ export default function Login() {
     setError(null)
     setSubmitting(true)
 
+    // Signing in with an account replaces any access-code session in this tab.
+    ;['coachrice_access', 'coachrice_access_role', 'coachrice_access_label', 'coachrice_access_code'].forEach((k) => sessionStorage.removeItem(k))
+
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
