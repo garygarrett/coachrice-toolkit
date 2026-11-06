@@ -49,6 +49,9 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/access" element={<AccessCodeEntry />} />
         <Route path="/access/transcript" element={<GuestRoute><TranscriptScorerGuest /></GuestRoute>} />
+        <Route path="/access/session-observation" element={<GuestRoute roles={['mentor', 'admin']}><SessionObservation /></GuestRoute>} />
+        <Route path="/access/assessor" element={<GuestRoute roles={['admin']}><InternalAssessor /></GuestRoute>} />
+        <Route path="/access/audio" element={<GuestRoute roles={['admin']}><AudioToTranscript /></GuestRoute>} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/agreements" element={<Agreements />} />
         <Route

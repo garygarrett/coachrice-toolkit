@@ -91,3 +91,52 @@ export async function requireAdmin(req, res, supabase) {
 
   return auth
 }
+
+/**
+ * Checks an access code. Returns { code } when it is valid (active, not expired,
+ * and, if `roles` is given, one of those roles), or { status, error } when not.
+ */
+export async function lookupCode(supabase, rawCode, roles) {
+  const code = typeof rawCode === 'string' ? rawCode.trim() : ''
+  if (!code) return { status: 401, error: 'An access code is required' }
+
+  const { data } = await supabase
+    .from('access_codes')
+    .select('id, label, active, role, expires_at')
+    .eq('code', code)
+    .maybeSingle()
+
+  if (!data || !data.active) return { status: 403, error: 'That access code is not valid' }
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    return { status: 403, error: 'That access code has expired' }
+  }
+  if (roles && !roles.includes(data.role)) {
+    return { status: 403, error: 'That access code does not include this tool' }
+  }
+  return { code: data }
+}
+
+/**
+ * For tools that an admin account OR an access code may use.
+ *   - A signed-in request must be an admin (same check as requireAdmin).
+ *   - Otherwise the request must carry an access code (header x-access-code, or
+ *     accessCode in the body) whose role is in `codeRoles`.
+ * Returns { kind, owner } where owner = { column, value } says who owns any work
+ * saved by this request (a user, or an access code). On failure it sends the
+ * response and returns null.
+ */
+export async function requireCaller(req, res, supabase, { codeRoles = [] } = {}) {
+  if (getBearerToken(req)) {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return null
+    return { kind: 'user', user: auth.user, owner: { column: 'user_id', value: auth.user.id } }
+  }
+
+  const raw = req.headers?.['x-access-code'] || req.body?.accessCode
+  const found = await lookupCode(supabase, raw, codeRoles)
+  if (found.error) {
+    res.status(found.status).json({ error: found.error })
+    return null
+  }
+  return { kind: 'code', code: found.code, owner: { column: 'access_code_id', value: found.code.id } }
+}
