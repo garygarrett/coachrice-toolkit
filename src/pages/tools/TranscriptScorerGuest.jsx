@@ -346,15 +346,12 @@ export default function TranscriptScorerGuest() {
         setContentLoaded(true)
       })
 
-    supabase
-      .from('config')
-      .select('key, value')
-      .in('key', ['transcript_reviewer_prompt'])
-      .then(({ data }) => {
-        const map = {}
-        if (data) data.forEach(row => { map[row.key] = row.value })
-        setSystemPrompt(map.transcript_reviewer_prompt || SYSTEM_PROMPT_DEFAULT)
-      })
+    // Access-code users have no login, so the server hands them the saved prompt.
+    const code = sessionStorage.getItem('coachrice_access_code')
+    fetch('/api/user-actions?action=code-prompts', { method: 'POST', headers: { 'x-access-code': code || '' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setSystemPrompt(d?.prompts?.transcript_reviewer_prompt || SYSTEM_PROMPT_DEFAULT))
+      .catch(() => setSystemPrompt(SYSTEM_PROMPT_DEFAULT))
   }, [])
 
   useEffect(() => {

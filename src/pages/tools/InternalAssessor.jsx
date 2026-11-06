@@ -78,6 +78,15 @@ export default function InternalAssessor() {
 
   // Saved prompts from the admin panel (used only if they still match the expected format)
   useEffect(() => {
+    const code = sessionStorage.getItem('coachrice_access_code')
+    // Access-code users have no login, so the server hands them the saved prompts.
+    if (code) {
+      authFetch('/api/user-actions?action=code-prompts', { method: 'POST', headers: { 'x-access-code': code } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d?.prompts) setSavedPrompts(d.prompts) })
+        .catch(() => { /* the built-in prompt is used */ })
+      return
+    }
     supabase
       .from('config')
       .select('key, value')

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { requireAdmin, requireUser, requireCaller } from '../server/auth.js'
+import { requireAdmin, requireUser, requireCaller, lookupCode } from '../server/auth.js'
 
 const API_KEY_NAMES = [
   'api_key_chatbot',
@@ -9,6 +9,9 @@ const API_KEY_NAMES = [
   'api_key_transcript',
   'api_key_audio',
 ]
+
+// Prompts that signed-out access-code users may read (never api_key_* rows).
+const CODE_PROMPT_KEYS = ['ai_assessor_prompt', 'ai_assessor_2025_prompt', 'transcript_reviewer_prompt']
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -27,6 +30,22 @@ export default async function handler(req, res) {
 
   if (!action) {
     return res.status(400).json({ error: 'action is required' })
+  }
+
+  // CODE PROMPTS - Hands a signed-out access-code user the saved prompts from the admin panel.
+  // Any valid code (student, mentor, or admin) may ask. Only these prompt keys are returned,
+  // never API keys or anything else in `config`.
+  if (action === 'code-prompts') {
+    const raw = req.headers['x-access-code'] || req.body?.accessCode
+    const found = await lookupCode(supabase, raw)
+    if (found.error) return res.status(found.status).json({ error: found.error })
+    const { data, error } = await supabase
+      .from('config')
+      .select('key, value')
+      .in('key', CODE_PROMPT_KEYS)
+    if (error) return res.status(500).json({ error: 'Could not load the saved prompts' })
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(200).json({ prompts: Object.fromEntries((data || []).map((r) => [r.key, r.value])) })
   }
 
   // UPDATE PROFILE - Update user profile fields (admin only)
