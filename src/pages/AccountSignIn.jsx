@@ -214,15 +214,15 @@ export default function AccountSignIn({ kind }) {
             )
           )}
 
+          <p style={s.helpText}>
+            Need help? Contact{' '}
+            <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
+          </p>
           <div style={s.footerRow}>
             {mode === 'choose'
               ? <button type="button" style={s.linkBtn} onClick={() => navigate('/access')}>← Back to sign-in options</button>
               : <button type="button" style={s.linkBtn} onClick={() => go('choose')}>← Back</button>}
           </div>
-          <p style={s.helpText}>
-            Need help? Contact{' '}
-            <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
-          </p>
         </div>
       </div>
     </div>
@@ -246,7 +246,7 @@ const s = {
   btnAlt: { width: '100%', height: '46px', borderRadius: '8px', background: '#fff', color: '#00205B', border: '2px solid #00205B', fontSize: '13px', fontWeight: 700, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', marginBottom: '12px' },
   linkRow: { textAlign: 'center' },
   linkBtn: { background: 'none', border: 'none', color: '#6b7a99', fontSize: '11px', fontWeight: 600, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', padding: 0 },
-  footerRow: { textAlign: 'center', margin: '8px 0 14px', paddingTop: '14px', borderTop: '1px solid #f0f2f5' },
-  helpText: { textAlign: 'center', fontSize: '10px', color: '#6b7a99', margin: 0 },
+  footerRow: { textAlign: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f2f5' },
+  helpText: { textAlign: 'center', fontSize: '10px', color: '#6b7a99', margin: '8px 0 0' },
   link: { color: '#00205B', fontWeight: 600, textDecoration: 'none' },
 }
