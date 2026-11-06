@@ -292,3 +292,4 @@ Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Sess
 - Audio to Transcript marks pauses of 3+ seconds as `[pause N sec]` lines in the downloaded, copied, saved, and sent text. The "Mark pauses" box is now ticked by default.
 - The Session Observation Form reads those lines (`RE_PAUSE` in `src/lib/sof/transcript.js`): the pause is stored as `pauseBefore` on the next turn, not as speech. The AI evidence step sees it as `(pause before: Ns)` and uses it for A5.4 (silence); the transcript panel shows it in orange.
 - All Session Observation Form screens are centered (960px wide; the two-column form stage is 1400px).
+- Audio to Transcript has two PDF buttons: "Download PDF" (with the speaker breakdown and silence line at the top) and "Download PDF (transcript only)" (`hideBreakdown` in `src/lib/audioTranscriptPdf.js`), for feeding the PDF to the Transcript Reviewer.

@@ -350,7 +350,7 @@ export default function AudioToTranscript() {
     URL.revokeObjectURL(a.href)
   }
 
-  async function downloadPdf() {
+  async function downloadPdf(transcriptOnly = false) {
     setError('')
     setMakingPdf(true)
     try {
@@ -363,6 +363,7 @@ export default function AudioToTranscript() {
         dateText: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         durationText: duration ? stamp(duration) : '',
         logoDataUrl,
+        hideBreakdown: transcriptOnly,
         showTime: bd.hasTime,
         speakers: bd.rows.map((r) => ({
           name: nameOf(r.id), color: colorOf(r.id),
@@ -587,7 +588,8 @@ export default function AudioToTranscript() {
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
                 <button style={btn(true, saving)} disabled={saving} onClick={save}>{saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save to my transcripts'}</button>
-                <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={downloadPdf}>{makingPdf ? 'Making PDF…' : 'Download PDF'}</button>
+                <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={() => downloadPdf(false)}>{makingPdf ? 'Making PDF…' : 'Download PDF'}</button>
+                <button style={btn(false, makingPdf)} disabled={makingPdf} onClick={() => downloadPdf(true)}>Download PDF (transcript only)</button>
                 <button style={btn(false)} onClick={download}>Download .txt</button>
                 <button style={btn(false)} onClick={copy}>Copy</button>
                 {profile?.role === 'admin' && (
