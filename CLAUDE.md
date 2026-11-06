@@ -286,3 +286,12 @@ Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Sess
 - Only transcript text is saved, in `audio_transcripts` (`migrations/add_audio_transcripts.sql`) via actions `audio-save|list|get|delete`.
 - "Send to Transcript Reviewer" hands the text over through `sessionStorage` (`pendingTranscript`, `pendingTranscriptName`), read on mount by `TranscriptScorer.jsx`.
 - AI calls go through the server proxy `/api/ai` (browser holds no Anthropic key); admin helpers live in `server/`.
+
+## Pauses and page layout (Nov 2026)
+
+- Audio to Transcript marks pauses of 3+ seconds as `[pause N sec]` lines in the downloaded, copied, saved, and sent text. The "Mark pauses" box is now ticked by default.
+- The Session Observation Form reads those lines (`RE_PAUSE` in `src/lib/sof/transcript.js`): the pause is stored as `pauseBefore` on the next turn, not as speech. The AI evidence step sees it as `(pause before: Ns)` and uses it for A5.4 (silence); the transcript panel shows it in orange.
+- All Session Observation Form screens are centered (960px wide; the two-column form stage is 1400px).
+- Audio to Transcript has two PDF buttons: "Download PDF" (with the speaker breakdown and silence line at the top) and "Download PDF (transcript only)" (`hideBreakdown` in `src/lib/audioTranscriptPdf.js`), for feeding the PDF to the Transcript Reviewer.
+- Long pauses INSIDE one speaker's turn (same speaker keeps talking after 3+ seconds of quiet) are written into that turn's text as `[pause N sec]` by `buildTurns`. They show in the editor, the .txt, PDF and copy when "Mark pauses" is ticked, and are stripped (also from word counts) when it is not. "Remove all pauses" deletes them from the text.
+- Session Observation Form reading a PDF made by Audio to Transcript: `cleanAudioToolPdfText` in `SessionObservation.jsx` drops the PDF header (file name, date, optional speaker breakdown) and the page footers before parsing. The PDF's speaker cells now read `Coach:` so the parser finds each speaker.

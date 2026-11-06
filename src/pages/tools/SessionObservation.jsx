@@ -50,7 +50,20 @@ async function readPdfText(file) {
     const content = await (await pdf.getPage(i)).getTextContent()
     text += content.items.map((it) => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n'
   }
-  return text
+  return cleanAudioToolPdfText(text)
+}
+
+// A PDF made by our Audio to Transcript tool starts with a header (logo band, file name, date, and optionally
+// the speaker breakdown) and ends every page with a footer. None of that is the conversation, so leave it out.
+function cleanAudioToolPdfText(text) {
+  if (!/CoachRICE\s*\|\s*Doerr Institute for New Leaders/.test(text)) return text
+  const sig = text.search(/CoachRICE\s*\|\s*Doerr Institute for New Leaders/)
+  const rest = text.slice(sig)
+  const m = rest.match(/\bTranscript\s+(?=\[?\d{1,2}:\d{2})/)
+  const body = m ? rest.slice(m.index + m[0].length) : rest
+  return body
+    .replace(/Confidential\.\s*CoachRICE, Doerr Institute for New Leaders, Rice University/g, '\n')
+    .replace(/Page\s+\d+\s+of\s+\d+/g, '\n')
 }
 
 const roleName = (r) => (r === 'coach' ? 'Coach' : r === 'client' ? 'Client' : 'Other')
@@ -422,7 +435,7 @@ export default function SessionObservation() {
     const ready = file || pasted.trim().length > 20
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 820 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           {drafts.length > 0 && (
             <div style={card}>
               <h2 style={h2}>Continue a saved observation</h2>
@@ -495,7 +508,7 @@ export default function SessionObservation() {
   if (stage === 'analyzing') {
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 640 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           <div style={{ ...card, textAlign: 'center', padding: 40 }}>
             <div style={{ fontWeight: 700, color: C.navy, marginBottom: 14 }}>{progress.label}</div>
             <div style={{ height: 8, background: C.soft, borderRadius: 4, overflow: 'hidden' }}>
@@ -514,7 +527,7 @@ export default function SessionObservation() {
     const speakerIds = [...new Set(turns.map((t) => t.speaker))]
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 820 }}>
+        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           <div style={card}>
             <h2 style={h2}>Who is who?</h2>
             <p style={small}>Tell the tool which speaker is the coach (the participant you are evaluating) and which is the client.</p>
@@ -556,7 +569,7 @@ export default function SessionObservation() {
 
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-      <div style={{ fontFamily: font }}>
+      <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>

@@ -9,6 +9,7 @@ import { MONTSERRAT_REGULAR_B64, MONTSERRAT_BOLD_B64 } from './accObservationRep
  *   title, dateText, durationText,
  *   logoDataUrl,                       optional white logo (PNG data URL)
  *   speakers: [{ name, color, timeText, timePct, words, wordPct, turns }],
+ *   hideBreakdown,                     true = leave out the speaker table and silence line (transcript only)
  *   showTime,                          show the time columns
  *   silence: { totalText, pctText, longestText } | null,
  *   rows: [{ time, speaker, color, text, pauseText }],  pauseText = '' or '8 sec pause'
@@ -66,52 +67,55 @@ export function buildTranscriptPdf(data) {
   doc.text([data.dateText, data.durationText ? `Recording length ${data.durationText}` : ''].filter(Boolean).join('   |   '), margin, y)
   y += 20
 
-  // ---- Who did the talking ----
-  doc.setFont('Montserrat', 'bold')
-  doc.setFontSize(11)
-  doc.setTextColor(...NAVY)
-  doc.text('Who did the talking', margin, y)
-  y += 8
+  if (!data.hideBreakdown) {
+    // ---- Who did the talking ----
+    doc.setFont('Montserrat', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...NAVY)
+    doc.text('Who did the talking', margin, y)
+    y += 8
 
-  const head = data.showTime
-    ? [['Speaker', 'Speaking time', '% of time', 'Words', '% of words', 'Turns']]
-    : [['Speaker', 'Words', '% of words', 'Turns']]
-  const body = data.speakers.map((s) =>
-    data.showTime
-      ? [s.name, s.timeText, `${s.timePct.toFixed(0)}%`, s.words.toLocaleString('en-US'), `${s.wordPct.toFixed(0)}%`, String(s.turns)]
-      : [s.name, s.words.toLocaleString('en-US'), `${s.wordPct.toFixed(0)}%`, String(s.turns)])
-  doc.autoTable({
-    startY: y,
-    margin: { left: margin, right: margin },
-    head,
-    body,
-    theme: 'plain',
-    styles: { font: 'Montserrat', fontSize: 9, cellPadding: 6, textColor: [15, 28, 58] },
-    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: LIGHT },
-    columnStyles: Object.fromEntries(head[0].map((_, i) => [i, { halign: i === 0 ? 'left' : 'right' }])),
-    didParseCell: (c) => {
-      if (c.section === 'head') c.cell.styles.halign = c.column.index === 0 ? 'left' : 'right'
-      if (c.section === 'body' && c.column.index === 0) {
-        c.cell.styles.fontStyle = 'bold'
-        c.cell.styles.textColor = data.speakers[c.row.index].color
-      }
-    },
-  })
-  y = doc.lastAutoTable.finalY
+    const head = data.showTime
+      ? [['Speaker', 'Speaking time', '% of time', 'Words', '% of words', 'Turns']]
+      : [['Speaker', 'Words', '% of words', 'Turns']]
+    const body = data.speakers.map((s) =>
+      data.showTime
+        ? [s.name, s.timeText, `${s.timePct.toFixed(0)}%`, s.words.toLocaleString('en-US'), `${s.wordPct.toFixed(0)}%`, String(s.turns)]
+        : [s.name, s.words.toLocaleString('en-US'), `${s.wordPct.toFixed(0)}%`, String(s.turns)])
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head,
+      body,
+      theme: 'plain',
+      styles: { font: 'Montserrat', fontSize: 9, cellPadding: 6, textColor: [15, 28, 58] },
+      headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: LIGHT },
+      columnStyles: Object.fromEntries(head[0].map((_, i) => [i, { halign: i === 0 ? 'left' : 'right' }])),
+      didParseCell: (c) => {
+        if (c.section === 'head') c.cell.styles.halign = c.column.index === 0 ? 'left' : 'right'
+        if (c.section === 'body' && c.column.index === 0) {
+          c.cell.styles.fontStyle = 'bold'
+          c.cell.styles.textColor = data.speakers[c.row.index].color
+        }
+      },
+    })
+    y = doc.lastAutoTable.finalY
 
-  if (data.silence) {
-    y += 14
-    doc.setFont('Montserrat', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(...GRAY)
-    const line = `Silence: ${data.silence.totalText}${data.silence.pctText ? ` (${data.silence.pctText} of the recording)` : ''}   |   Longest pause: ${data.silence.longestText}`
-    doc.text(doc.splitTextToSize(line, contentW), margin, y)
-    y += 4
+    if (data.silence) {
+      y += 14
+      doc.setFont('Montserrat', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...GRAY)
+      const line = `Silence: ${data.silence.totalText}${data.silence.pctText ? ` (${data.silence.pctText} of the recording)` : ''}   |   Longest pause: ${data.silence.longestText}`
+      doc.text(doc.splitTextToSize(line, contentW), margin, y)
+      y += 4
+    }
+
   }
 
   // ---- Transcript ----
-  y += 28
+  y += data.hideBreakdown ? 4 : 28
   if (y > H - 140) { doc.addPage(); y = margin + 8 }
   doc.setFont('Montserrat', 'bold')
   doc.setFontSize(11)
@@ -124,7 +128,7 @@ export function buildTranscriptPdf(data) {
     if (r.pauseText) {
       tBody.push([{ content: `[ ${r.pauseText} ]`, colSpan: 3, styles: { halign: 'center', fontStyle: 'normal', textColor: GRAY, fontSize: 8, cellPadding: 3 } }])
     }
-    tBody.push([r.time, { content: r.speaker, styles: { textColor: r.color } }, r.text])
+    tBody.push([r.time, { content: `${r.speaker}:`, styles: { textColor: r.color } }, r.text])
   })
   doc.autoTable({
     startY: y,
