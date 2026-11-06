@@ -269,7 +269,8 @@ Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individua
 - Usage counts: `access_code_events` records only the tool name and time for each code request (written in `api/ai.js` and the `audio-token` action). Admin > Access Codes shows totals per code. Counts survive deleting a person's saved work.
 - Observation drafts are deleted for real (`obs-delete`), by the mentor coach (list or the form's Delete button) or by an admin (Delete saved data per code).
 - Admin > Data & Privacy (`src/components/DataPurgePanel.jsx`, actions `purge-counts|purge-data|purge-code` in `api/user-actions.js`) shows record counts and deletes transcript and scoring data for good, after the admin types DELETE. Groups: observation drafts, audio transcripts, assessor results, transcript reviews, AI Client chats, exams, competency scores and sessions.
-- Known gap: code users have no list of their past Internal Assessor results (saved under the code, no viewer yet), and admin-customized assessor prompts do not reach code users (they use the default prompts).
+- Saved prompts reach code users through `POST /api/user-actions?action=code-prompts` (any valid code; returns only `ai_assessor_prompt`, `ai_assessor_2025_prompt`, `transcript_reviewer_prompt`). The Internal Assessor and Transcript Reviewer use it when an access code is active.
+- Known gap: code users have no list of their past Internal Assessor results (saved under the code, no viewer yet).
 
 ## Audio to Transcript (Deepgram)
 
