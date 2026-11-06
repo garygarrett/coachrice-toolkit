@@ -15,7 +15,6 @@ import CoachDashboard from './pages/CoachDashboard'
 import History from './pages/History'
 import AdminHistory from './pages/AdminHistory'
 import AdminPanel from './pages/AdminPanel'
-import AdminAnalytics from './pages/AdminAnalytics'
 import Exam from './pages/tools/Exam'
 import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
@@ -89,13 +88,14 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/analytics"
+          path="/admin/config"
           element={
             <ProtectedRoute allowedRole="admin">
-              <AdminAnalytics />
+              <AdminPanel section="config" />
             </ProtectedRoute>
           }
         />
+        <Route path="/admin/analytics" element={<Navigate to="/admin/history" replace />} />
         <Route
           path="/tools/exam"
           element={

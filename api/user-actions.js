@@ -467,6 +467,68 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true })
   }
 
+  // HISTORY SUMMARY - For Admin > History / Data (admin accounts only).
+  // For every mentor coach and admin account: what they have saved in each tool, and how many
+  // times they ran each tool. Counts only, never transcript text or results.
+  if (action === 'history-summary') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+
+    const { data: people, error: peopleError } = await supabase
+      .from('users')
+      .select('id, full_name, email, role, is_active, signup_code_id, last_accessed_at, created_at')
+      .in('role', ['mentor', 'admin_tools', 'admin'])
+      .order('full_name')
+    if (peopleError) return res.status(500).json({ error: 'Could not load people' })
+
+    const ids = (people || []).map((p) => p.id)
+    const blank = () => ({
+      saved: { observations: 0, audio: 0, assessments_2021: 0, assessments_2025: 0 },
+      runs: { observations: 0, assessments: 0, audio: 0 },
+      last_run: null,
+    })
+    const byUser = Object.fromEntries(ids.map((id) => [id, blank()]))
+
+    if (ids.length) {
+      const [drafts, audio, assessments] = await Promise.all([
+        supabase.from('observation_drafts').select('user_id').in('user_id', ids),
+        supabase.from('audio_transcripts').select('user_id').in('user_id', ids).is('deleted_at', null),
+        supabase.from('internal_assessments').select('user_id, assessor_type').in('user_id', ids).is('deleted_at', null),
+      ])
+      for (const r of drafts.data || []) byUser[r.user_id].saved.observations += 1
+      for (const r of audio.data || []) byUser[r.user_id].saved.audio += 1
+      for (const r of assessments.data || []) {
+        const key = String(r.assessor_type) === '2025' ? 'assessments_2025' : 'assessments_2021'
+        byUser[r.user_id].saved[key] += 1
+      }
+
+      // Runs: counted per access code (accounts remember the code they signed up with).
+      const codeToUser = {}
+      for (const p of people) if (p.signup_code_id) codeToUser[p.signup_code_id] = p.id
+      const codeIds = Object.keys(codeToUser)
+      if (codeIds.length) {
+        const { data: events } = await supabase
+          .from('access_code_events')
+          .select('access_code_id, tool, created_at')
+          .in('access_code_id', codeIds)
+          .limit(100000)
+        for (const e of events || []) {
+          const row = byUser[codeToUser[e.access_code_id]]
+          if (!row) continue
+          if (e.tool === 'observation-evidence') row.runs.observations += 1
+          else if (e.tool === 'assessor-2021' || e.tool === 'assessor-2025') row.runs.assessments += 1
+          else if (e.tool === 'audio') row.runs.audio += 1
+          if (!row.last_run || e.created_at > row.last_run) row.last_run = e.created_at
+        }
+      }
+    }
+
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(200).json({
+      people: (people || []).map((p) => ({ ...p, ...byUser[p.id] })),
+    })
+  }
+
   // DATA PURGE (admin accounts only, never access codes). Deletes for good: there is no undo.
   // Each group lists its tables child-first so rows that depend on others go first.
   if (action === 'purge-counts' || action === 'purge-data' || action === 'purge-code') {

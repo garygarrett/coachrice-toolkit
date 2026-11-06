@@ -6,6 +6,7 @@
 export function homeFor(role) {
   if (role === 'mentor') return '/tools/session-observation'
   if (role === 'admin_tools') return '/tools/assessor'
+  if (role === 'admin') return '/admin'
   return '/dashboard'
 }
 

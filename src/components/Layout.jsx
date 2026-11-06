@@ -55,6 +55,24 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
         <circle cx="8" cy="2" r="1" />
       </svg>
     ),
+    users: (
+      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
+        <circle cx="6" cy="5" r="2.5" />
+        <path d="M1.5 14 C1.5 10.8 3.5 9.5 6 9.5 C8.5 9.5 10.5 10.8 10.5 14" />
+        <circle cx="11.5" cy="5.5" r="2" />
+        <path d="M11.5 9.5 C13.5 9.5 14.5 10.8 14.5 13" />
+      </svg>
+    ),
+    settings: (
+      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
+        <line x1="2" y1="4" x2="14" y2="4" />
+        <line x1="2" y1="8" x2="14" y2="8" />
+        <line x1="2" y1="12" x2="14" y2="12" />
+        <circle cx="5" cy="4" r="1.5" fill="#00205B" />
+        <circle cx="10.5" cy="8" r="1.5" fill="#00205B" />
+        <circle cx="6.5" cy="12" r="1.5" fill="#00205B" />
+      </svg>
+    ),
     analytics: (
       <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
         <rect x="2" y="10" width="2" height="4" rx="0.5" />
@@ -93,6 +111,25 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
   ]
   const toolItems = isCode ? codeTools : isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
+  // Full admins see every tool, grouped by who it is for, then the Admin Tools pages.
+  const adminGroups = [
+    { label: 'Student', items: [{ id: 'transcript', label: 'Transcript Reviewer', path: '/tools/transcript', icon: 'transcript' }] },
+    { label: 'Mentor Coach', items: [{ id: 'observation', label: 'Session Observation Form', path: '/tools/session-observation', icon: 'transcript' }] },
+    { label: 'Admin', items: [
+      { id: 'assessor', label: 'Internal Assessor', path: '/tools/assessor', icon: 'transcript' },
+      { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio', icon: 'transcript' },
+    ] },
+    { label: 'In progress', items: [
+      { id: 'exam', label: 'ACC Practice Exam', path: '/tools/exam', icon: 'exam' },
+      { id: 'ai', label: 'AI Client', path: '/tools/ai', icon: 'ai' },
+    ] },
+    { label: 'Admin Tools', items: [
+      { id: 'admin-users', label: 'Users / Access Codes', path: '/admin', icon: 'users' },
+      { id: 'admin-history', label: 'History / Data', path: '/admin/history', icon: 'history' },
+      { id: 'admin-config', label: 'Tool Configuration', path: '/admin/config', icon: 'settings' },
+    ] },
+  ]
+
   return (
     <div style={styles.container}>
       <div style={styles.sidebar}>
@@ -100,16 +137,32 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
           <img src={logo} alt="CoachRICE" style={{ height: 36, width: 'auto', maxWidth: 140, objectFit: 'contain' }} />
         </div>
         <div style={styles.nav}>
-          {!isCode && <div style={styles.navLabel}>General</div>}
-          {!isCode && navItems.map(n => (
+          {isAdmin && adminGroups.map((g, gi) => (
+            <div key={g.label}>
+              {gi > 0 && <div style={styles.navDivider}></div>}
+              <div style={styles.navLabel}>{g.label}</div>
+              {g.items.map(n => (
+                <div
+                  key={n.id}
+                  style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }}
+                  onClick={() => navigate(n.path)}
+                >
+                  <ToolIcon id={n.icon} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
+                  <span style={{ fontSize: 10 }}>{n.label}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {!isAdmin && !isCode && <div style={styles.navLabel}>General</div>}
+          {!isAdmin && !isCode && navItems.map(n => (
             <div key={n.id} style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate(n.id === 'dashboard' ? '/dashboard' : '/history')}>
               <ToolIcon id={n.id} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
               <span>{n.label}</span>
             </div>
           ))}
-          {!isCode && <div style={styles.navDivider}></div>}
-          <div style={styles.navLabel}>{isCode ? (codeRole === 'admin' ? 'Admin tools' : 'Mentor coach tools') : 'Toolkit'}</div>
-          {toolItems.map(n => (
+          {!isAdmin && !isCode && <div style={styles.navDivider}></div>}
+          {!isAdmin && <div style={styles.navLabel}>{isCode ? (codeRole === 'admin' ? 'Admin tools' : 'Mentor coach tools') : 'Toolkit'}</div>}
+          {!isAdmin && toolItems.map(n => (
             <div
               key={n.id}
               style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }}
@@ -119,38 +172,6 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
               <span style={{ fontSize: 10 }}>{n.label}</span>
             </div>
           ))}
-          {isAdmin && (
-            <>
-              <div style={styles.navDivider}></div>
-              <div style={styles.navLabel}>Admin</div>
-              <div style={{ ...styles.navItem, ...(active === 'admin' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin')}>
-                <ToolIcon id="dashboard" size={14} color={active === 'admin' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span>Dashboard</span>
-              </div>
-              <div style={{ ...styles.navItem, ...(active === 'admin-analytics' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin/analytics')}>
-                <ToolIcon id="analytics" size={14} color={active === 'admin-analytics' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span>Analytics</span>
-              </div>
-              <div style={{ ...styles.navItem, ...(active === 'admin-history' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/admin/history')}>
-                <ToolIcon id="history" size={14} color={active === 'admin-history' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span>History</span>
-              </div>
-              <div style={styles.navDivider}></div>
-              <div style={styles.navLabel}>Assessor</div>
-              <div style={{ ...styles.navItem, ...(active === 'assessor' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/tools/assessor')}>
-                <ToolIcon id="transcript" size={14} color={active === 'assessor' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span style={{ fontSize: 10 }}>Internal Assessor</span>
-              </div>
-              <div style={{ ...styles.navItem, ...(active === 'audio' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/tools/audio')}>
-                <ToolIcon id="transcript" size={14} color={active === 'audio' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span style={{ fontSize: 10 }}>Audio to Transcript</span>
-              </div>
-              <div style={{ ...styles.navItem, ...(active === 'observation' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/tools/session-observation')}>
-                <ToolIcon id="transcript" size={14} color={active === 'observation' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span style={{ fontSize: 10 }}>Session Observation Form</span>
-              </div>
-            </>
-          )}
         </div>
         <div style={styles.avatarRow}>
           <div style={styles.avatar}>{profile?.full_name?.[0] || 'C'}</div>

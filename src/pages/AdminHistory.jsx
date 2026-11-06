@@ -4,9 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
-import { AssessmentReportDisplay, generateAssessmentPDF } from '../components/AssessmentReport'
-import { exportAssessmentsToExcel } from '../utils/exportAssessments'
-import { competencyNumber } from '../lib/competency'
+import CompetencyByCode from '../components/CompetencyByCode'
+import DataPurgePanel from '../components/DataPurgePanel'
 
 const COLORS = {
   navy: '#00205B',
@@ -22,26 +21,21 @@ const COLORS = {
 
 export default function AdminHistory() {
   const { user } = useAuth()
-  const [view, setView] = useState('user') // 'user', 'tool', 'assessments', or 'guest'
+  const [view, setView] = useState('people') // 'people' | 'competency' | 'delete'
+  const [person, setPerson] = useState(null) // { kind: 'user' | 'code' | 'summary', id, name, ... }
+  const [summary, setSummary] = useState([]) // mentor coach and admin counts
+  const [codes, setCodes] = useState([])
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
   const [users, setUsers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
-  const [selectedTool, setSelectedTool] = useState('exam')
   const [userHistory, setUserHistory] = useState({ exams: [], transcripts: [], chats: [], assessments2021: [], assessments2025: [] })
-  const [toolHistory, setToolHistory] = useState([])
-  const [internalAssessments, setInternalAssessments] = useState([])
-  const [toolCompetencyBreakdown, setToolCompetencyBreakdown] = useState({})
   const [loading, setLoading] = useState(false)
   const [expandedItems, setExpandedItems] = useState({})
   const [userDetails, setUserDetails] = useState({})
-  const [questionStats, setQuestionStats] = useState([])
   const [guestAnalyses, setGuestAnalyses] = useState([])
   const [guestLoading, setGuestLoading] = useState(false)
 
-  const tools = [
-    { id: 'exam', label: 'Exam Attempts' },
-    { id: 'transcript', label: 'Transcript Analyses' },
-    { id: 'chat', label: 'Chat Sessions' },
-  ]
 
   useEffect(() => {
     // Load jsPDF library for PDF generation
@@ -54,12 +48,10 @@ export default function AdminHistory() {
 
   useEffect(() => {
     loadUsers()
-    loadInternalAssessments()
+    loadSummary()
+    loadCodes()
+    loadGuestAnalyses()
   }, [])
-
-  useEffect(() => {
-    if (view === 'guest') loadGuestAnalyses()
-  }, [view])
 
   async function loadGuestAnalyses() {
     setGuestLoading(true)
@@ -88,44 +80,35 @@ export default function AdminHistory() {
     }
   }
 
-  async function loadInternalAssessments() {
-    try {
-      const [res2025, res2021] = await Promise.all([
-        authFetch(`/api/internal-assessments?userId=${user.id}&assessorType=2025`),
-        authFetch(`/api/internal-assessments?userId=${user.id}&assessorType=2021`),
-      ])
-
-      const data2025 = res2025.ok ? await res2025.json() : { data: [] }
-      const data2021 = res2021.ok ? await res2021.json() : { data: [] }
-
-      const allAssessments = [
-        ...(data2025.data || []).map(a => ({ ...a, assessor_type: '2025' })),
-        ...(data2021.data || []).map(a => ({ ...a, assessor_type: '2021' })),
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-
-      setInternalAssessments(allAssessments)
-    } catch (err) {
-      console.error('Error loading internal assessments:', err)
-    }
-  }
-
   useEffect(() => {
     if (selectedUserId) {
       loadUserHistory(selectedUserId)
     }
   }, [selectedUserId])
 
-  useEffect(() => {
-    if (view === 'tool') {
-      loadToolHistory(selectedTool)
+  async function loadSummary() {
+    try {
+      const res = await authFetch('/api/user-actions?action=history-summary', { method: 'POST' })
+      if (res.ok) setSummary((await res.json()).people || [])
+    } catch (err) {
+      console.error('Error loading summary:', err)
     }
-  }, [selectedTool, view])
+  }
+
+  async function loadCodes() {
+    try {
+      const res = await authFetch('/api/access-codes?action=list')
+      if (res.ok) setCodes(((await res.json()).codes || []).filter(c => (c.role || 'student') === 'student'))
+    } catch (err) {
+      console.error('Error loading access codes:', err)
+    }
+  }
 
   async function loadUsers() {
     try {
       const { data } = await supabase
         .from('users')
-        .select('id, full_name, email, role')
+        .select('id, full_name, email, role, last_accessed_at')
         .order('full_name')
       if (data) setUsers(data)
     } catch (err) {
@@ -159,102 +142,6 @@ export default function AdminHistory() {
       })
     } catch (err) {
       console.error('Error loading user history:', err)
-    }
-    setLoading(false)
-  }
-
-  async function loadToolHistory(toolType) {
-    setLoading(true)
-    try {
-      let endpoint, data
-      switch (toolType) {
-        case 'exam':
-          const examsRes = await authFetch(`/api/exam-history?userId=${user.id}`)
-          data = await examsRes.json()
-          endpoint = 'exams'
-          break
-        case 'transcript':
-          const transcriptsRes = await authFetch(`/api/transcript-history?userId=${user.id}`)
-          data = await transcriptsRes.json()
-          endpoint = 'transcripts'
-          break
-        case 'chat':
-          const chatsRes = await authFetch(`/api/chat-history?userId=${user.id}`)
-          data = await chatsRes.json()
-          endpoint = 'chats'
-          break
-        default:
-          return
-      }
-
-      // Fetch full data for each item to show user info
-      const itemsWithUsers = await Promise.all(
-        (data.data || []).map(async (item) => {
-          try {
-            const { data: userData } = await supabase
-              .from('users')
-              .select('id, full_name, email')
-              .eq('id', item.user_id)
-              .single()
-            return { ...item, user: userData }
-          } catch (err) {
-            console.error('Error fetching user:', err)
-            return { ...item, user: null }
-          }
-        })
-      )
-
-      setToolHistory(itemsWithUsers)
-
-      // For exams, calculate competency breakdown and question stats across all attempts
-      if (toolType === 'exam') {
-        const competencyMap = {}
-        const questionMap = {}
-        for (const item of data.data || []) {
-          // Fetch detailed answers for this exam to get competency and question data
-          const detailRes = await authFetch(`/api/exam-history?userId=${user.id}&attemptId=${item.id}`)
-          const detailData = await detailRes.json()
-
-          if (detailData.answers) {
-            for (const q of detailData.answers) {
-              // Competency stats
-              if (!competencyMap[q.competency]) {
-                competencyMap[q.competency] = { correct: 0, total: 0 }
-              }
-              competencyMap[q.competency].total++
-              if (q.isCorrect) competencyMap[q.competency].correct++
-
-              // Question stats
-              if (!questionMap[q.id]) {
-                questionMap[q.id] = { question: q.question, correct: 0, total: 0, competency: q.competency }
-              }
-              questionMap[q.id].total++
-              if (q.isCorrect) questionMap[q.id].correct++
-            }
-          }
-        }
-
-        const breakdown = Object.entries(competencyMap).map(([name, stats]) => ({
-          competency: name,
-          correct: stats.correct,
-          total: stats.total,
-          percentage: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-        }))
-
-        const questions = Object.entries(questionMap).map(([id, stats]) => ({
-          id,
-          question: stats.question,
-          competency: stats.competency,
-          timesUsed: stats.total,
-          correctCount: stats.correct,
-          successPercentage: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
-        }))
-
-        setToolCompetencyBreakdown(breakdown)
-        setQuestionStats(questions.sort((a, b) => b.timesUsed - a.timesUsed))
-      }
-    } catch (err) {
-      console.error('Error loading tool history:', err)
     }
     setLoading(false)
   }
@@ -336,109 +223,123 @@ export default function AdminHistory() {
     }
   }
 
-  async function deleteAssessment(assessmentId) {
-    if (!window.confirm('Delete this assessment?')) return
-    try {
-      const res = await authFetch('/api/internal-assessments', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assessmentId, userId: user.id }),
-      })
-      if (res.ok) {
-        setInternalAssessments(prev => prev.filter(a => a.id !== assessmentId))
-      } else {
-        alert('Failed to delete assessment')
-      }
-    } catch (err) {
-      console.error('Error deleting assessment:', err)
-      alert('Error deleting assessment')
-    }
-  }
-
-  function downloadAssessmentPDF(assessment) {
-    // Same PDF layout as the Internal Assessor tool and the Transcript Reviewer
-    generateAssessmentPDF(assessment)
-  }
-
-  async function deleteToolSubmission(toolType, submissionId) {
-    const toolName = { exam: 'exam', transcript: 'transcript', chat: 'chat' }[toolType] || toolType
-    if (!window.confirm(`Are you sure you want to delete this ${toolName} submission?`)) return
-    try {
-      let endpoint = ''
-      switch (toolType) {
-        case 'exam':
-          endpoint = `/api/exam-history?userId=${user.id}&attemptId=${submissionId}`
-          break
-        case 'transcript':
-          endpoint = `/api/transcript-history?userId=${user.id}&analysisId=${submissionId}`
-          break
-        case 'chat':
-          endpoint = `/api/chat-history?userId=${user.id}&sessionId=${submissionId}`
-          break
-      }
-      const res = await authFetch(endpoint, { method: 'DELETE' })
-      if (res.ok) {
-        setToolHistory(prev => prev.filter(item => item.id !== submissionId))
-      } else {
-        alert(`Failed to delete ${toolName}`)
-      }
-    } catch (err) {
-      console.error(`Error deleting ${toolType}:`, err)
-      alert(`Error deleting ${toolType}`)
-    }
-  }
-
   return (
-    <Layout active="admin-history" pageTitle="User & Tool History">
+    <Layout active="admin-history" pageTitle="History / Data">
       <div style={s.page}>
-        {/* View Selector */}
+        {/* Tabs */}
         <div style={s.viewSelector}>
-          <button
-            onClick={() => setView('user')}
-            style={{ ...s.viewBtn, ...(view === 'user' ? s.viewBtnActive : {}) }}
-          >
-            User History
-          </button>
-          <button
-            onClick={() => setView('tool')}
-            style={{ ...s.viewBtn, ...(view === 'tool' ? s.viewBtnActive : {}) }}
-          >
-            Tool Analytics
-          </button>
-          <button
-            onClick={() => setView('assessments')}
-            style={{ ...s.viewBtn, ...(view === 'assessments' ? s.viewBtnActive : {}) }}
-          >
-            Internal Assessments
-          </button>
-          <button
-            onClick={() => setView('guest')}
-            style={{ ...s.viewBtn, ...(view === 'guest' ? s.viewBtnActive : {}) }}
-          >
-            Guest Sessions
-          </button>
+          {[['people', 'By person'], ['competency', 'Competency by access code'], ['delete', 'Delete data']].map(([id, label]) => (
+            <button key={id} onClick={() => setView(id)} style={{ ...s.viewBtn, ...(view === id ? s.viewBtnActive : {}) }}>{label}</button>
+          ))}
         </div>
 
-        {/* User History View */}
-        {view === 'user' && (
-          <div style={s.section}>
-            <h2 style={s.sectionTitle}>User History</h2>
-            <div style={s.selectGroup}>
-              <label style={s.label}>Select User:</label>
-              <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                style={s.select}
-              >
-                <option value="">— Choose a user —</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.full_name} ({u.email})
-                  </option>
-                ))}
-              </select>
-            </div>
+        {view === 'people' && (() => {
+          const TYPE = { admin: 'Admin', admin_tools: 'Admin (tools)', mentor: 'Mentor coach', coach: 'Participant', code: 'Student code' }
+          const sumById = Object.fromEntries(summary.map(p => [p.id, p]))
+          const rows = [
+            ...users.map(u => ({ key: `u-${u.id}`, kind: sumById[u.id] ? 'summary' : 'user', id: u.id, name: u.full_name || u.email, email: u.email, type: u.role, last: u.last_accessed_at })),
+            ...codes.map(c => ({ key: `c-${c.id}`, kind: 'code', id: c.id, name: c.label, email: '', type: 'code', last: c.usage?.last_used || null, label: c.label })),
+          ].filter(r => (typeFilter === 'all' || r.type === typeFilter) && (`${r.name} ${r.email}`).toLowerCase().includes(search.trim().toLowerCase()))
+           .sort((x, y) => String(x.name).localeCompare(String(y.name)))
+          return (
+            <div style={s.section}>
+              <h2 style={s.sectionTitle}>Choose a person or student access code</h2>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email" style={{ ...s.select, minWidth: 240 }} />
+                <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={s.select}>
+                  <option value="all">All types</option>
+                  <option value="code">Student codes</option>
+                  <option value="mentor">Mentor coaches</option>
+                  <option value="admin_tools">Admins (tools)</option>
+                  <option value="admin">Admins (full)</option>
+                  <option value="coach">Participants</option>
+                </select>
+              </div>
+              <div style={{ border: `1px solid ${COLORS['gray-border']}`, borderRadius: 8, overflow: 'hidden', maxHeight: 320, overflowY: 'auto', marginBottom: 20 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f7f8fa', textAlign: 'left' }}>
+                      {['Name', 'Type', 'Email', 'Last active'].map(h => <th key={h} style={{ padding: '10px 14px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px', color: COLORS['text-muted'] }}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => {
+                      const on = person && person.key === r.key
+                      return (
+                        <tr key={r.key} onClick={() => { setPerson(r); if (r.kind === 'user') setSelectedUserId(r.id) }}
+                          style={{ cursor: 'pointer', borderTop: '1px solid #f0f2f5', background: on ? '#e6f7fc' : '#fff' }}>
+                          <td style={{ padding: '10px 14px', fontWeight: 600, color: COLORS.navy }}>{r.name}</td>
+                          <td style={{ padding: '10px 14px' }}>{TYPE[r.type] || 'Participant'}</td>
+                          <td style={{ padding: '10px 14px', color: COLORS['text-muted'] }}>{r.email || '—'}</td>
+                          <td style={{ padding: '10px 14px', color: COLORS['text-muted'] }}>{r.last ? new Date(r.last).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
+                        </tr>
+                      )
+                    })}
+                    {rows.length === 0 && <tr><td colSpan={4} style={{ padding: 20, textAlign: 'center', color: '#999' }}>Nobody matches.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
 
+              {!person && <p style={s.empty}>Select a row to see their history.</p>}
+
+              {person?.kind === 'summary' && (() => {
+                const d = sumById[person.id]
+                if (!d) return null
+                const isMentor = d.role === 'mentor'
+                const card = { border: `1px solid ${COLORS['gray-border']}`, borderRadius: 10, padding: '16px 18px' }
+                return (
+                  <div style={card}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy }}>{d.full_name || d.email}</div>
+                    <div style={{ fontSize: 12, color: COLORS['text-muted'], marginBottom: 14 }}>{TYPE[d.role]} · {d.email}</div>
+                    {isMentor ? (
+                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                        <div style={{ ...card, minWidth: 180 }}>
+                          <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.navy }}>{d.runs.observations}</div>
+                          <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Session observations run</div>
+                        </div>
+                        <div style={{ ...card, minWidth: 180 }}>
+                          <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.navy }}>{d.saved.observations}</div>
+                          <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Saved in progress now</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: '#f7f8fa', textAlign: 'left' }}>
+                            {['Tool', 'Saved now', 'Times run'].map(h => <th key={h} style={{ padding: '8px 12px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px', color: COLORS['text-muted'] }}>{h}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ['Internal Assessor (2021)', d.saved.assessments_2021, null],
+                            ['Internal Assessor (2025)', d.saved.assessments_2025, null],
+                            ['Internal Assessor, all versions', null, d.runs.assessments],
+                            ['Audio to Transcript', d.saved.audio, d.runs.audio],
+                            ['Session Observation Form', d.saved.observations, d.runs.observations],
+                          ].map(([tool, saved, runs]) => (
+                            <tr key={tool} style={{ borderTop: '1px solid #f0f2f5' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 600, color: COLORS.navy }}>{tool}</td>
+                              <td style={{ padding: '8px 12px' }}>{saved === null ? '—' : saved}</td>
+                              <td style={{ padding: '8px 12px' }}>{runs === null ? '—' : runs}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    <p style={{ fontSize: 11, color: COLORS['text-muted'], margin: '12px 0 0', lineHeight: 1.6 }}>
+                      Counts only. Transcripts and assessment text are not shown here. &ldquo;Times run&rdquo; counts start when the account was created with a sign-up code.
+                    </p>
+                  </div>
+                )
+              })()}
+            </div>
+          )
+        })()}
+
+        {/* Participant account history (exams, transcripts, chats) */}
+        {view === 'people' && person?.kind === 'user' && (
+          <div style={s.section}>
+            <h2 style={s.sectionTitle}>{person.name}</h2>
             {selectedUserId && (
               <>
                 {/* User's Exams */}
@@ -584,163 +485,25 @@ export default function AdminHistory() {
           </div>
         )}
 
-        {/* Tool History View */}
-        {view === 'tool' && (
-          <div style={s.section}>
-            <h2 style={s.sectionTitle}>Tool Analytics</h2>
-            <div style={s.selectGroup}>
-              <label style={s.label}>Select Tool:</label>
-              <select
-                value={selectedTool}
-                onChange={(e) => setSelectedTool(e.target.value)}
-                style={s.select}
-              >
-                {tools.map(t => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
-                <LoadingBar />
-              </div>
-            ) : (
-              <>
-                <div style={s.stats}>
-                  <div style={s.statBox}>
-                    <div style={s.statLabel}>Total Submissions</div>
-                    <div style={s.statValue}>{toolHistory.length}</div>
-                  </div>
-                  <div style={s.statBox}>
-                    <div style={s.statLabel}>Unique Users</div>
-                    <div style={s.statValue}>{new Set(toolHistory.map(t => t.user_id)).size}</div>
-                  </div>
-                </div>
-
-                {selectedTool === 'exam' && toolCompetencyBreakdown.length > 0 && (
-                  <div style={{ ...s.section, marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Competency Breakdown (All Attempts)
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {toolCompetencyBreakdown.map(comp => (
-                        <div key={comp.competency} style={s.competencyBreakdownRow}>
-                          <span style={s.competencyBreakdownName}>{comp.competency}</span>
-                          <span style={s.competencyBreakdownStat}>{comp.correct}/{comp.total}</span>
-                          <div style={s.competencyBreakdownBar}>
-                            <div style={{ ...s.competencyBreakdownFill, width: `${comp.percentage}%`, background: comp.percentage >= 70 ? '#15803d' : comp.percentage >= 50 ? '#b45309' : '#b91c1c' }} />
-                          </div>
-                          <span style={s.competencyBreakdownPct}>{comp.percentage}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedTool === 'exam' && questionStats.length > 0 && (
-                  <div style={{ ...s.section, marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: COLORS.navy, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Question Analytics
-                    </h3>
-                    <div style={s.questionStatsContainer}>
-                      {questionStats.map(q => (
-                        <div key={q.id} style={s.questionStatRow}>
-                          <div style={{ flex: 1 }}>
-                            <p style={s.questionStatText}>{q.question}</p>
-                            <p style={s.questionStatMeta}>{q.competency}</p>
-                          </div>
-                          <div style={s.questionStatRight}>
-                            <div style={s.questionStatItem}>
-                              <span style={s.questionStatLabel}>Used</span>
-                              <span style={s.questionStatValue}>{q.timesUsed}</span>
-                            </div>
-                            <div style={s.questionStatItem}>
-                              <span style={s.questionStatLabel}>Success</span>
-                              <div style={s.questionStatBar}>
-                                <div style={{ ...s.questionStatFill, width: `${q.successPercentage}%`, background: q.successPercentage >= 70 ? '#15803d' : q.successPercentage >= 50 ? '#b45309' : '#b91c1c' }} />
-                              </div>
-                              <span style={s.questionStatValue}>{q.successPercentage}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={s.listContainer}>
-                  {toolHistory.length === 0 ? (
-                    <p style={s.empty}>No submissions yet</p>
-                  ) : (
-                    toolHistory.map(item => (
-                      <div key={item.id} style={s.item}>
-                        <div style={s.itemHeader} onClick={() => toggleExpand(`tool-${item.id}`)}>
-                          <div style={s.itemInfo}>
-                            <div style={s.itemTitle}>
-                              {item.user?.full_name || 'Unknown User'}
-                            </div>
-                            <div style={s.itemDate}>
-                              {item.user?.email} • {formatDate(item.created_at)}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            {selectedTool === 'exam' && (
-                              <div style={{ color: item.overall_score >= 70 ? '#15803d' : item.overall_score >= 50 ? '#b45309' : '#b91c1c', fontWeight: '700' }}>
-                                {item.overall_score}%
-                              </div>
-                            )}
-                            <button onClick={(e) => { e.stopPropagation(); deleteToolSubmission(selectedTool, item.id) }} style={s.deleteBtn} title="Delete submission">
-                              🗑️
-                            </button>
-                          </div>
-                        </div>
-                        {expandedItems[`tool-${item.id}`] && (
-                          <div style={s.itemDetails}>
-                            {selectedTool === 'exam' && (
-                              <div style={s.stat}>
-                                <span>{item.correct_answers}/{item.total_questions} correct</span>
-                              </div>
-                            )}
-                            {selectedTool === 'transcript' && (
-                              typeof item.competency_scores === 'object' && (
-                                <div style={s.competencyList}>
-                                  {Object.entries(item.competency_scores).slice(0, 5).map(([code, result]) => (
-                                    <span key={code} style={{ ...s.badge, color: result === 'Observed' ? '#15803d' : '#b91c1c' }}>
-                                      {code}: {result}
-                                    </span>
-                                  ))}
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
         {/* Guest Sessions View */}
-        {view === 'guest' && (
+        {view === 'people' && person?.kind === 'code' && (() => {
+          const codeAnalyses = guestAnalyses.filter(a => a.access_code_label === person.label)
+          return (
           <div style={s.section}>
-            <h2 style={s.sectionTitle}>Guest Sessions</h2>
+            <h2 style={s.sectionTitle}>{person.name} (student access code)</h2>
             <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '20px', lineHeight: '1.6' }}>
-              Anonymous transcript evaluations submitted via access code. No user identity or transcript text is stored — only the AI evaluation results.
+              Transcript evaluations submitted with this access code. No user identity or transcript text is stored — only the AI evaluation results.
             </p>
 
             {guestLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
                 <LoadingBar />
               </div>
-            ) : guestAnalyses.length === 0 ? (
-              <p style={s.empty}>No guest sessions yet.</p>
+            ) : codeAnalyses.length === 0 ? (
+              <p style={s.empty}>No sessions for this code yet.</p>
             ) : (
               <div style={s.listContainer}>
-                {guestAnalyses.map(analysis => {
+                {codeAnalyses.map(analysis => {
                   const evalData = analysis.analysis_data || {}
                   const stmts = evalData.behavioral_statements || []
                   const obsCount = stmts.filter(s => s.result === 'Observed').length
@@ -870,89 +633,21 @@ export default function AdminHistory() {
               </div>
             )}
           </div>
+          )
+        })()}
+
+        {view === 'competency' && (
+          <div style={s.section}>
+            <h2 style={s.sectionTitle}>Competency by student access code</h2>
+            <CompetencyByCode analyses={guestAnalyses} loading={guestLoading} />
+          </div>
         )}
 
-        {/* Internal Assessments View */}
-        {view === 'assessments' && (
+        {view === 'delete' && (
           <div style={s.section}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={s.sectionTitle}>Internal Assessor Evaluations</h2>
-              {internalAssessments.length > 0 && (
-                <button
-                  onClick={() => exportAssessmentsToExcel(internalAssessments)}
-                  style={{
-                    padding: '10px 16px',
-                    background: COLORS.navy,
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontFamily: 'Montserrat, sans-serif',
-                    letterSpacing: '0.3px',
-                    transition: 'background 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#001a3f'}
-                  onMouseLeave={(e) => e.target.style.background = COLORS.navy}
-                >
-                  📊 Export to Excel
-                </button>
-              )}
-            </div>
-
-          {internalAssessments.length === 0 ? (
-            <p style={s.empty}>No internal assessments yet.</p>
-          ) : (
-            <div style={s.listContainer}>
-              {internalAssessments.map(assessment => (
-                <div key={assessment.id} style={s.item}>
-                  <div style={s.itemHeader} onClick={() => toggleExpand(`assessment-${assessment.id}`)}>
-                    <div style={s.itemInfo}>
-                      <div style={s.itemTitle}>
-                        {assessment.assessment_data?.coach_identifier || 'Unknown Coach'} • Assessor {assessment.assessor_type}
-                      </div>
-                      <div style={s.itemDate}>
-                        {assessment.transcript_filename && <span>{assessment.transcript_filename} • </span>}
-                        {formatDate(assessment.created_at)}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {assessment.assessment_data?.score_calculation && (
-                        <div style={{ color: assessment.assessment_data.score_calculation.result === 'Pass' ? '#15803d' : '#dc2626', fontWeight: '700' }}>
-                          {(assessment.assessment_data.score_calculation.final_score ?? 0).toFixed(2)}
-                        </div>
-                      )}
-                      <span style={s.expandIcon}>{expandedItems[`assessment-${assessment.id}`] ? '▼' : '▶'}</span>
-                    </div>
-                  </div>
-
-                  {expandedItems[`assessment-${assessment.id}`] && assessment.assessment_data && (
-                    <div style={{ ...s.itemDetails, maxHeight: '1000px', overflowY: 'auto' }}>
-                      {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', paddingBottom: '16px', borderBottom: `1px solid ${COLORS['gray-border']}` }}>
-                        <button
-                          onClick={() => downloadAssessmentPDF(assessment)}
-                          style={{ background: COLORS.navy, border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-                        >
-                          📄 Download PDF
-                        </button>
-                        <button
-                          onClick={() => deleteAssessment(assessment.id)}
-                          style={{ ...s.deleteBtn, marginLeft: 'auto' }}
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                      <AssessmentReportDisplay assessment={assessment} />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-            </div>
-          )}
+            <DataPurgePanel />
+          </div>
+        )}
       </div>
     </Layout>
   )

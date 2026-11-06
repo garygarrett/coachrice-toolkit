@@ -162,10 +162,11 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - Chat Sessions (messages + feedback)
 - Transcripts uploaded to audio transcriber
 
-**Admin History** (`/pages/AdminHistory.jsx`):
-- View by User: select a coach, see all their results across all tools
-- View by Tool: select a tool, see all uses across all coaches; competency breakdown for exams
-- Internal Assessments tab: admin-only view of 2021 and 2025 assessor evaluations with full assessment details and PDF downloads
+**Admin History / Data** (`/admin/history`, `src/pages/AdminHistory.jsx`), full admins only, three tabs:
+- **By person**: one list of every user account plus every student access code (search and type filter). Student code → its transcript evaluations (same cards as before, from `guest_analyses`). Mentor coach → counts only (observations run, saved in progress). Admin (tools or full) → table of what is saved by tool and times run. Participant (`coach`) → exam, transcript and chat history as before. The summary comes from `POST /api/user-actions?action=history-summary` (admin accounts only; counts, never text).
+- **Competency by access code** (`src/components/CompetencyByCode.jsx`, replaces the old Analytics page): each behavior the Transcript Reviewer marks Observed earns one point for its competency (Competency 1 uses its 3 qualifiers). Bars show points earned out of possible as a percent, per student code and for all codes combined, so competencies with different numbers of behaviors compare fairly. Competency 2 is not scored by the Reviewer, so it is not shown.
+- **Delete data**: the permanent-delete panel (`DataPurgePanel`).
+The old "By Tool" and "Internal Assessments" views and the `/api/admin-analytics` endpoint were removed. `/admin/analytics` redirects to `/admin/history`.
 
 ## Recent Work (May 2026)
 
@@ -222,8 +223,8 @@ All endpoints enforce RLS: coaches see only their own data, admins see all.
 - `src/pages/Login.jsx` — login form
 - `src/pages/CoachDashboard.jsx` — coach home (activity feed)
 - `src/pages/History.jsx` — coach's past results (exams, transcripts, chats, internal assessments)
-- `src/pages/AdminPanel.jsx` — admin user management
-- `src/pages/AdminHistory.jsx` — admin analytics: view user history or tool-wide stats
+- `src/pages/AdminPanel.jsx` — `/admin` (prop `section="users"`: Users and Access Codes tabs) and `/admin/config` (`section="config"`: one tab per tool, Tool Configuration)
+- `src/pages/AdminHistory.jsx` — History / Data (see Admin History / Data above)
 - `src/pages/tools/Exam.jsx` — practice exam tool
 - `src/pages/tools/TranscriptScorer.jsx` — transcript scoring tool
 - `src/pages/tools/AIClient.jsx` — coaching bot
@@ -259,6 +260,10 @@ Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individua
 - Save fills the ORIGINAL ICF Word form (`public/templates/icf-session-observation-form-acc.docx`) in the browser with JSZip (`src/lib/sof/fillDocx.js`). It maps the template's 151 content controls by document order and checks the count (151) before filling. A4.3's five rating symbols are plain text in ICF's file (not checkboxes), and the code handles that. If ICF releases a new template version, re-map the control order in `fillDocx.js`.
 - "Save progress" stores a draft (transcript text, speaker roles, evidence, answers, AI suggestions; never audio) in `observation_drafts` (`migrations/add_observation_drafts.sql`) via actions `obs-save|list|get|delete` in `api/user-actions.js` (admin only, per user, soft delete). A first draft saves automatically when the form opens, then autosaves 30 seconds after any change. "Download form" produces the .docx. Mentor coach profiles are not built yet.
 
+## Admin sidebar (full admins)
+
+Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Session Observation Form), **Admin** (Internal Assessor, Audio to Transcript), **In progress** (ACC Practice Exam, AI Client), **Admin Tools** (Users / Access Codes → `/admin`, History / Data → `/admin/history`, Tool Configuration → `/admin/config`). Full admins no longer see the participant Dashboard or History links, and sign-in sends them to `/admin` (`homeFor`). The Users tab no longer has Cohort or Mentor Coach fields (the `cohorts` and `mentor_coaches` tables and `users.cohort_id` / `mentor_coach_id` columns remain, unused by the admin screens). Participant (`coach`) accounts keep the old Dashboard / History / Toolkit sidebar.
+
 ## Sign-in: Student, Mentor Coach, Admin (NEW, Nov 2026)
 
 - Home page `/access` (`src/pages/LoginHome.jsx`) has three boxes. **Student** → `/access/student` (access code, no account, Transcript Reviewer only; `AccessCodeEntry.jsx`). **Mentor Coach** → `/access/mentor` and **Admin** → `/access/admin` (`src/pages/AccountSignIn.jsx`): a "Sign in" tab (default: email + password, Forgot password sends a Supabase reset link to `/set-password`) and a "First time signing in" tab at the top (one-time code, then email + password twice). `/login` still exists for CoachRICE participant accounts.
@@ -271,7 +276,7 @@ Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individua
 - Saved prompts reach tool admins and student-code users through `POST /api/user-actions?action=code-prompts` (returns only `ai_assessor_prompt`, `ai_assessor_2025_prompt`, `transcript_reviewer_prompt`). The Internal Assessor and Transcript Reviewer use it.
 - By design (owner's choice): tool-only admins have no list or viewer of their past Internal Assessor results.
 - Observation drafts are deleted for real (`obs-delete`), by the mentor coach (list or the form's Delete button) or by an admin (Delete saved data per code, which now also removes the work of the person who used that code).
-- Admin > Data & Privacy (`src/components/DataPurgePanel.jsx`, actions `purge-counts|purge-data|purge-code` in `api/user-actions.js`) shows record counts and deletes transcript and scoring data for good, after the admin types DELETE. Admin accounts only.
+- Admin > History / Data > Delete data (`src/components/DataPurgePanel.jsx`, actions `purge-counts|purge-data|purge-code` in `api/user-actions.js`) shows record counts and deletes transcript and scoring data for good, after the admin types DELETE. Admin accounts only.
 
 ## Audio to Transcript (Deepgram)
 
