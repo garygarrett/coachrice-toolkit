@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import Layout from '../../components/Layout'
 import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
-import { parseTranscriptText, transcribeAudio, stamp } from '../../lib/sof/transcript'
+import { parseTranscriptText, stamp } from '../../lib/sof/transcript'
 import { EVIDENCE_SYSTEM, buildEvidenceInput, validateEvidence } from '../../lib/sof/evidencePrompt'
 import {
   RATINGS, LEVELS, SELF_REVIEW, QUALIFIERS, COMPETENCIES, BEHAVIORS, ATTESTATIONS,
@@ -15,8 +15,6 @@ const C = {
 }
 const font = "'Montserrat', sans-serif"
 const MAX_BYTES = 500 * 1024 * 1024
-// Recordings are turned off for now: coaches add transcripts only. Set to true to bring them back.
-const RECORDINGS_ENABLED = true
 const TEMPLATE_URL = '/templates/icf-session-observation-form-acc.docx'
 
 const btn = (primary, disabled) => ({
@@ -71,11 +69,9 @@ export default function SessionObservation() {
   const audioEl = useRef(null)
 
   const [stage, setStage] = useState('input') // input | setup | analyzing | form
-  const [mode, setMode] = useState('transcript') // transcript | audio
   const [pasted, setPasted] = useState('')
-  const [file, setFile] = useState(null) // the transcript file or the recording to transcribe
+  const [file, setFile] = useState(null) // the transcript file
   const [playFile, setPlayFile] = useState(null) // optional recording to play next to a transcript
-  const [consent, setConsent] = useState(false)
   const [progress, setProgress] = useState({ label: '', pct: 0 })
   const [error, setError] = useState('')
 
@@ -140,11 +136,7 @@ export default function SessionObservation() {
   function pickFile(f) {
     setError('')
     if (!f) return
-    if (mode === 'audio') {
-      const ok = f.type.startsWith('audio/') || f.type.startsWith('video/') || /\.(mp3|m4a|wav|mp4|mov|aac|ogg|flac|webm)$/i.test(f.name)
-      if (!ok) { setError('That does not look like an audio or video file. Try MP3, M4A, WAV, or MP4.'); return }
-      if (f.size > MAX_BYTES) { setError('That file is over 500 MB. Please compress it or split it into parts.'); return }
-    } else if (!/\.(txt|pdf)$/i.test(f.name) && f.type !== 'text/plain' && f.type !== 'application/pdf') {
+    if (!/\.(txt|pdf)$/i.test(f.name) && f.type !== 'text/plain' && f.type !== 'application/pdf') {
       setError('Please choose a .txt or .pdf transcript, or paste the text below.'); return
     }
     setFile(f)
@@ -175,14 +167,6 @@ export default function SessionObservation() {
   async function loadTranscript() {
     setError('')
     try {
-      if (mode === 'audio') {
-        if (!file || !consent) return
-        setStage('analyzing')
-        const t = await transcribeAudio(file, setProgress, xhrRef)
-        xhrRef.current = null
-        toSetup(t, file)
-        return
-      }
       let text = pasted
       if (file) text = /\.pdf$/i.test(file.name) || file.type === 'application/pdf' ? await readPdfText(file) : await file.text()
       const t = parseTranscriptText(text)
@@ -435,7 +419,7 @@ export default function SessionObservation() {
 
   // ---------- Screens ----------
   if (stage === 'input') {
-    const ready = mode === 'audio' ? file && consent : file || pasted.trim().length > 20
+    const ready = file || pasted.trim().length > 20
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 820 }}>
@@ -461,14 +445,7 @@ export default function SessionObservation() {
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.
             </p>
-            {RECORDINGS_ENABLED && (
-              <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
-                {[['transcript', 'I have a transcript'], ['audio', 'I have a recording']].map(([id, text]) => (
-                  <button key={id} style={btn(mode === id)} onClick={() => { setMode(id); setFile(null); setError('') }}>{text}</button>
-                ))}
-              </div>
-            )}
-            <div style={{ height: RECORDINGS_ENABLED ? 0 : 14 }} />
+            <div style={{ height: 14 }} />
 
             <div
               onClick={() => fileRef.current?.click()}
@@ -477,23 +454,23 @@ export default function SessionObservation() {
               style={{ border: `2px dashed ${C.border}`, borderRadius: 10, padding: 26, textAlign: 'center', cursor: 'pointer', background: C.soft }}
             >
               <div style={{ fontWeight: 700, color: C.navy, marginBottom: 6 }}>
-                {file ? file.name : mode === 'audio' ? 'Click to choose a recording, or drop it here' : 'Click to choose a .txt or .pdf transcript, or drop it here'}
+                {file ? file.name : 'Click to choose a .txt or .pdf transcript, or drop it here'}
               </div>
-              <div style={small}>{mode === 'audio' ? 'MP3, M4A, WAV, MP4 and similar. Up to 500 MB.' : 'Speaker names and timestamps help. For example: [05:32] Coach: ...'}</div>
+              <div style={small}>Speaker names and timestamps help. For example: [05:32] Coach: ...</div>
               <input ref={fileRef} type="file" hidden
-                accept={mode === 'audio' ? 'audio/*,video/mp4,video/quicktime,video/webm' : '.txt,.pdf,text/plain,application/pdf'}
+                accept=".txt,.pdf,text/plain,application/pdf"
                 onChange={(e) => pickFile(e.target.files?.[0])} />
             </div>
 
-            {mode === 'transcript' && (
+            {(
               <>
                 <div style={{ ...small, margin: '14px 0 6px' }}>Paste the transcript here, or choose a file above:</div>
                 <textarea style={{ ...input, minHeight: 130, resize: 'vertical' }} value={pasted} onChange={(e) => setPasted(e.target.value)}
                   placeholder={'[00:05] Coach: What would you like to focus on today?\n[00:11] Client: ...'} />
-                {RECORDINGS_ENABLED && (
+                {(
                   <>
                     <div style={{ ...small, margin: '14px 0 6px' }}>
-                      Optional: add the recording so you can listen as you review. It plays only on your computer and is not uploaded.
+                      Optional: add the recording to play along with the transcript as you review. It plays only on your computer and is not uploaded.
                     </div>
                     <button style={btn(false)} onClick={() => audioFileRef.current?.click()}>{playFile ? playFile.name : 'Choose recording to play'}</button>
                     <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => pickPlayFile(e.target.files?.[0])} />
@@ -502,21 +479,12 @@ export default function SessionObservation() {
               </>
             )}
 
-            {mode === 'audio' && (
-              <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 18, fontSize: 13, lineHeight: 1.5 }}>
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
-                <span>
-                  Everyone in this recording has agreed to have it transcribed by an outside service (Deepgram). The audio goes straight
-                  from your browser to Deepgram, is not saved by CoachRICE, and Deepgram is told not to use it to train its models.
-                </span>
-              </label>
-            )}
             <p style={{ ...small, marginTop: 14 }}>
               The transcript text is sent to Claude (Anthropic) to find evidence. Recordings are never stored. If you press Save progress, CoachRICE keeps the transcript text and your answers so you can finish later.
             </p>
             {error && <div style={{ color: '#b42318', fontSize: 13, margin: '12px 0' }}>{error}</div>}
             <div style={{ marginTop: 16 }}>
-              <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>{mode === 'audio' ? 'Transcribe' : 'Continue'}</button>
+              <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
             </div>
           </div>
         </div>
@@ -607,7 +575,7 @@ export default function SessionObservation() {
               Evidence for <strong style={{ color: C.navy }}>{activeBehavior.id}</strong> is highlighted. Use <strong>+</strong> to add a whole turn, or select words and press the button below.
             </div>
             {audioUrl && <audio ref={audioEl} src={audioUrl} controls style={{ width: '100%', marginTop: 10, height: 36 }} />}
-            {RECORDINGS_ENABLED && !audioUrl && (
+            {!audioUrl && (
               <div style={{ marginTop: 10 }}>
                 <button style={{ ...btn(false), padding: '6px 10px', fontSize: 12 }} onClick={() => audioFileRef.current?.click()}>Add recording to listen</button>
                 <input ref={audioFileRef} type="file" accept="audio/*,video/mp4,video/quicktime,video/webm" hidden onChange={(e) => attachRecording(e.target.files?.[0])} />

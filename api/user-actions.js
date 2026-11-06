@@ -286,7 +286,7 @@ export default async function handler(req, res) {
   // goes straight from the browser to Deepgram. Our server never sees the audio,
   // and the real Deepgram key never leaves the server.
   if (action === 'audio-token') {
-    const caller = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    const caller = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!caller) return
     const { data: row } = await supabase.from('config').select('value').eq('key', 'api_key_audio').maybeSingle()
     const key = row?.value && String(row.value).trim()
