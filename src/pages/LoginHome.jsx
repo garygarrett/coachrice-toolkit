@@ -6,19 +6,16 @@ const DOORS = [
   {
     path: '/access/student',
     title: 'Student',
-    body: 'Use your access code to open the Transcript Reviewer.',
     accent: '#69cce6',
   },
   {
     path: '/access/mentor',
     title: 'Mentor Coach',
-    body: 'Sign in to complete the Session Observation Form.',
     accent: '#78b3e0',
   },
   {
     path: '/access/admin',
     title: 'Admin',
-    body: 'Sign in to the Internal Assessor, Audio to Transcript, and Session Observation Form.',
     accent: '#ff8200',
   },
 ]
@@ -43,7 +40,6 @@ export default function LoginHome() {
             {DOORS.map((d) => (
               <button key={d.path} type="button" onClick={() => navigate(d.path)} style={{ ...s.door, borderTopColor: d.accent }}>
                 <div style={s.doorTitle}>{d.title}</div>
-                <div style={s.doorBody}>{d.body}</div>
               </button>
             ))}
           </div>
@@ -53,11 +49,6 @@ export default function LoginHome() {
             <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
           </p>
 
-          <div style={s.coachRow}>
-            <button type="button" onClick={() => navigate('/login')} style={s.coachLink}>
-              CoachRICE participant account? Sign in →
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -75,11 +66,8 @@ const s = {
   title: { fontSize: '24px', fontWeight: 800, color: '#00205B', margin: '0 0 8px', letterSpacing: '-0.3px' },
   subtitle: { fontSize: '13px', color: '#6b7a99', lineHeight: 1.7, margin: '0 0 24px' },
   doors: { display: 'flex', flexWrap: 'wrap', gap: '14px', marginBottom: '24px' },
-  door: { flex: '1 1 190px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'left', background: '#fafbfc', border: '1px solid #e2e6ec', borderTop: '4px solid #00205B', borderRadius: '10px', padding: '18px 16px', cursor: 'pointer', fontFamily: "'Montserrat', sans-serif" },
+  door: { flex: '1 1 190px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'left', background: '#fafbfc', border: '1px solid #e2e6ec', borderTop: '4px solid #00205B', borderRadius: '10px', padding: '28px 16px', cursor: 'pointer', fontFamily: "'Montserrat', sans-serif" },
   doorTitle: { fontSize: '16px', fontWeight: 800, color: '#00205B', marginBottom: '8px' },
-  doorBody: { fontSize: '11px', color: '#6b7a99', lineHeight: 1.6 },
   helpText: { textAlign: 'center', fontSize: '10px', color: '#6b7a99', margin: 0 },
   link: { color: '#00205B', fontWeight: 600, textDecoration: 'none' },
-  coachRow: { textAlign: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f2f5' },
-  coachLink: { background: 'none', border: 'none', color: '#6b7a99', fontSize: '10px', fontWeight: 600, fontFamily: "'Montserrat', sans-serif", cursor: 'pointer', padding: 0, letterSpacing: '0.3px' },
 }

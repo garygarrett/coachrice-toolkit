@@ -16,7 +16,7 @@ const C = {
 const font = "'Montserrat', sans-serif"
 const MAX_BYTES = 500 * 1024 * 1024
 // Recordings are turned off for now: coaches add transcripts only. Set to true to bring them back.
-const RECORDINGS_ENABLED = false
+const RECORDINGS_ENABLED = true
 const TEMPLATE_URL = '/templates/icf-session-observation-form-acc.docx'
 
 const btn = (primary, disabled) => ({
