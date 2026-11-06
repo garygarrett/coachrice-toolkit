@@ -32,13 +32,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'action is required' })
   }
 
-  // CODE PROMPTS - Hands a signed-out access-code user the saved prompts from the admin panel.
-  // Any valid code (student, mentor, or admin) may ask. Only these prompt keys are returned,
-  // never API keys or anything else in `config`.
+  // CODE PROMPTS - Hands signed-in tool accounts and student-code users the saved prompts from the
+  // admin panel, whatever the database rules say. Only these prompt keys are returned, never API keys.
   if (action === 'code-prompts') {
-    const raw = req.headers['x-access-code'] || req.body?.accessCode
-    const found = await lookupCode(supabase, raw)
-    if (found.error) return res.status(found.status).json({ error: found.error })
+    if (req.headers.authorization || req.headers.Authorization) {
+      if (!(await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] }))) return
+    } else {
+      const found = await lookupCode(supabase, req.headers['x-access-code'] || req.body?.accessCode, ['student'])
+      if (found.error) return res.status(found.status).json({ error: found.error })
+    }
     const { data, error } = await supabase
       .from('config')
       .select('key, value')
@@ -46,6 +48,73 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: 'Could not load the saved prompts' })
     res.setHeader('Cache-Control', 'no-store')
     return res.status(200).json({ prompts: Object.fromEntries((data || []).map((r) => [r.key, r.value])) })
+  }
+
+  // CODE CHECK - Step 1 of first-time sign-up: is this a mentor-coach or admin code that can still be used?
+  // It does not use the code up. It only says which kind of account the code creates.
+  if (action === 'code-check') {
+    const found = await lookupCode(supabase, req.body?.code, ['mentor', 'admin'])
+    if (found.error) return res.status(found.status).json({ error: found.error })
+    return res.status(200).json({ valid: true, role: found.code.role })
+  }
+
+  // CODE SIGNUP - Step 2: create the account. A mentor/admin code works exactly once.
+  //   mentor code -> role 'mentor' (Session Observation Form only)
+  //   admin code  -> role 'admin_tools' (Internal Assessor, Audio to Transcript, Session Observation Form)
+  if (action === 'code-signup') {
+    const { code, email, password } = req.body || {}
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Enter a valid email address' })
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'Your password must be at least 8 characters' })
+    }
+    const found = await lookupCode(supabase, code, ['mentor', 'admin'])
+    if (found.error) return res.status(found.status).json({ error: found.error })
+    const role = found.code.role === 'admin' ? 'admin_tools' : 'mentor'
+
+    // Claim the code first (only if nobody else did), so two people cannot both use it.
+    const { data: claimed } = await supabase
+      .from('access_codes')
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', found.code.id)
+      .is('used_at', null)
+      .select('id')
+    if (!claimed?.length) return res.status(403).json({ error: 'That access code has already been used' })
+    const release = () => supabase.from('access_codes').update({ used_at: null, used_by: null }).eq('id', found.code.id)
+
+    const { data: created, error: createError } = await supabase.auth.admin.createUser({
+      email: cleanEmail,
+      password,
+      email_confirm: true, // no email check; an admin can fix a mistyped email in the admin panel
+      user_metadata: { full_name: found.code.label, role },
+    })
+    if (createError || !created?.user) {
+      await release()
+      const taken = /already|registered|exists/i.test(createError?.message || '')
+      return res.status(taken ? 409 : 400).json({
+        error: taken ? 'An account with that email already exists. Use returning sign-in instead.' : (createError?.message || 'Could not create the account'),
+      })
+    }
+    const userId = created.user.id
+
+    const { error: profileError } = await supabase.from('users').upsert(
+      { id: userId, email: cleanEmail, full_name: found.code.label, role, is_active: true, signup_code_id: found.code.id },
+      { onConflict: 'id' }
+    )
+    if (profileError) {
+      await supabase.auth.admin.deleteUser(userId)
+      await release()
+      return res.status(500).json({ error: 'Could not finish creating the account. Please try again.' })
+    }
+    await supabase.from('access_codes').update({ used_by: userId }).eq('id', found.code.id)
+
+    // Work that was saved under this code before accounts existed now belongs to the new account.
+    for (const table of ['observation_drafts', 'audio_transcripts', 'internal_assessments']) {
+      await supabase.from(table).update({ user_id: userId, access_code_id: null }).eq('access_code_id', found.code.id)
+    }
+    return res.status(200).json({ success: true, role })
   }
 
   // UPDATE PROFILE - Update user profile fields (admin only)
@@ -123,7 +192,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'userId and role are required' })
       }
 
-      if (!['admin', 'coach'].includes(role)) {
+      if (!['admin', 'coach', 'mentor', 'admin_tools'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role' })
       }
 
@@ -217,7 +286,7 @@ export default async function handler(req, res) {
   // goes straight from the browser to Deepgram. Our server never sees the audio,
   // and the real Deepgram key never leaves the server.
   if (action === 'audio-token') {
-    const caller = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
+    const caller = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!caller) return
     const { data: row } = await supabase.from('config').select('value').eq('key', 'api_key_audio').maybeSingle()
     const key = row?.value && String(row.value).trim()
@@ -236,8 +305,8 @@ export default async function handler(req, res) {
         return res.status(502).json({ error: `Deepgram refused the key (status ${dg.status}). Check the key and its permissions.` })
       }
       const body = JSON.parse(text)
-      if (caller.kind === 'code') {
-        try { await supabase.from('access_code_events').insert({ access_code_id: caller.code.id, tool: 'audio' }) } catch { /* counting must never block */ }
+      if (caller.signupCodeId) {
+        try { await supabase.from('access_code_events').insert({ access_code_id: caller.signupCodeId, tool: 'audio' }) } catch { /* counting must never block */ }
       }
       res.setHeader('Cache-Control', 'no-store')
       return res.status(200).json({ token: body.access_token, expiresIn: body.expires_in })
@@ -249,7 +318,7 @@ export default async function handler(req, res) {
 
   // AUDIO SAVE - Save the edited transcript text (never audio)
   if (action === 'audio-save') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!auth) return
     const { title, transcriptText, turns, speakerNames, durationSeconds } = req.body || {}
     if (typeof transcriptText !== 'string' || !transcriptText.trim()) {
@@ -276,7 +345,7 @@ export default async function handler(req, res) {
 
   // AUDIO LIST - Your saved transcripts (titles only)
   if (action === 'audio-list') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!auth) return
     const { data, error } = await supabase
       .from('audio_transcripts')
@@ -291,7 +360,7 @@ export default async function handler(req, res) {
 
   // AUDIO GET - One saved transcript, full content
   if (action === 'audio-get') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!auth) return
     const { id } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id is required' })
@@ -309,7 +378,7 @@ export default async function handler(req, res) {
 
   // AUDIO DELETE - Soft delete one of your transcripts
   if (action === 'audio-delete') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools'] })
     if (!auth) return
     const { id } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id is required' })
@@ -325,7 +394,7 @@ export default async function handler(req, res) {
   // OBSERVATION DRAFTS - Session Observation Form work in progress (text and answers only, never audio).
   // Deleting one removes it for good.
   if (action === 'obs-save') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['mentor', 'admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
     const { id, title, data } = req.body || {}
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data is required' })
@@ -354,7 +423,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'obs-list') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['mentor', 'admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
     const { data, error } = await supabase
       .from('observation_drafts')
@@ -368,7 +437,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'obs-get') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['mentor', 'admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
     const { id } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id is required' })
@@ -385,7 +454,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'obs-delete') {
-    const auth = await requireCaller(req, res, supabase, { codeRoles: ['mentor', 'admin'] })
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
     const { id } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id is required' })
@@ -452,15 +521,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ results })
     }
 
-    // purge-code: everything a single access code saved (drafts, transcripts, assessments)
+    // purge-code: everything saved by a single access code, or by the person who signed up with it
     const { codeId, confirm } = req.body || {}
     if (!codeId) return res.status(400).json({ error: 'codeId is required' })
     if (confirm !== 'DELETE') return res.status(400).json({ error: 'Type DELETE to confirm' })
+    const { data: codeRow } = await supabase.from('access_codes').select('used_by').eq('id', codeId).maybeSingle()
     const results = []
     for (const table of ['observation_drafts', 'audio_transcripts', 'internal_assessments']) {
-      const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('access_code_id', codeId)
-      const { error } = await supabase.from(table).delete().eq('access_code_id', codeId)
-      results.push({ table, before: count ?? null, error: error ? error.message : null })
+      const filters = [['access_code_id', codeId]]
+      if (codeRow?.used_by) filters.push(['user_id', codeRow.used_by])
+      let before = 0
+      let errMsg = null
+      for (const [col, val] of filters) {
+        const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq(col, val)
+        before += count ?? 0
+        const { error } = await supabase.from(table).delete().eq(col, val)
+        if (error) errMsg = error.message
+      }
+      results.push({ table, before, error: errMsg })
     }
     console.log(`[purge] admin ${auth.user.id} purged saved data of access code ${codeId}`)
     return res.status(200).json({ results })

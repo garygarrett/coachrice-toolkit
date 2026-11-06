@@ -49,15 +49,22 @@ export default async function handler(req, res) {
   // 1. Who is asking? Each tool says what it needs.
   let usageCodeId = null // set when an access code made this request, so we can count its use
   if (tool.access === 'admin' || tool.access === 'mentor') {
-    // Admin accounts, or an access code with the right role.
-    const codeRoles = tool.access === 'admin' ? ['admin'] : ['mentor', 'admin']
-    const caller = await requireCaller(req, res, supabase, { codeRoles })
+    // Signed-in accounts with the right role. Mentor coaches and tool-only admins have accounts now.
+    const accountRoles = tool.access === 'admin' ? ['admin', 'admin_tools'] : ['admin', 'admin_tools', 'mentor']
+    const caller = await requireCaller(req, res, supabase, { accountRoles })
     if (!caller) return
-    if (caller.kind === 'code') usageCodeId = caller.code.id
+    usageCodeId = caller.signupCodeId // keeps the per-code counts on the Access Codes page working
   } else if (tool.access === 'user') {
-    if (!(await requireUser(req, res, supabase))) return
+    const auth = await requireUser(req, res, supabase)
+    if (!auth) return
+    // The student and coach tools are not part of mentor-coach or tool-only admin accounts.
+    const { data: profile } = await supabase.from('users').select('role').eq('id', auth.user.id).single()
+    if (profile?.role === 'mentor' || profile?.role === 'admin_tools') {
+      return fail(res, 403, 'Your account does not include this tool')
+    }
   } else if (tool.access === 'guest') {
-    const found = await lookupCode(supabase, body.accessCode)
+    // Student access codes only. Mentor and admin codes just create accounts.
+    const found = await lookupCode(supabase, body.accessCode, ['student'])
     if (found.error) return fail(res, found.status, found.error)
     usageCodeId = found.code.id
   } else {

@@ -21,15 +21,17 @@ export default function AccessCodeEntry() {
       if (data.valid) {
         sessionStorage.setItem('coachrice_access', 'granted')
         sessionStorage.setItem('coachrice_access_label', data.label || 'Guest')
-        sessionStorage.setItem('coachrice_access_role', data.role || 'student')
+        sessionStorage.setItem('coachrice_access_role', 'student')
         // Keep the code (not an API key) so the server can re-check it on each AI request
         sessionStorage.setItem('coachrice_access_code', code.trim())
         if (data.systemPrompt) sessionStorage.setItem('coachrice_system_prompt', data.systemPrompt)
-        // Each kind of code opens its own tools.
-        const home = data.role === 'mentor' || data.role === 'admin' ? '/access/session-observation' : '/access/transcript'
-        navigate(home, { replace: true })
+        navigate('/access/transcript', { replace: true })
       } else {
-        setError(data.reason === 'expired' ? 'That access code has expired. Please ask for a new one.' : 'That access code is not valid. Please check your code and try again.')
+        setError(
+          data.reason === 'expired' ? 'That access code has expired. Please ask for a new one.'
+          : data.reason === 'signup' ? 'That code creates a Mentor Coach or Admin account. Go back and choose Mentor Coach or Admin instead.'
+          : 'That access code is not valid. Please check your code and try again.'
+        )
         setSubmitting(false)
       }
     } catch {
@@ -50,10 +52,10 @@ export default function AccessCodeEntry() {
         {/* Body */}
         <div style={s.body}>
           <div style={s.eyebrow}>Doerr Institute for New Leaders</div>
-          <h1 style={s.title}>Enter your access code</h1>
+          <h1 style={s.title}>Student access</h1>
           <p style={s.subtitle}>
             Enter the access code provided by your program administrator to open
-            your CoachRICE tools.
+            the Transcript Reviewer.
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -95,8 +97,8 @@ export default function AccessCodeEntry() {
           </p>
 
           <div style={s.adminRow}>
-            <button onClick={() => navigate('/login')} style={s.adminLink}>
-              Admin sign in →
+            <button onClick={() => navigate('/access')} style={s.adminLink}>
+              ← Back to sign-in options
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useVisibility } from '../context/VisibilityContext'
+import { isToolOnlyRole } from '../lib/roles'
 import logo from '../CoachRICE_White.png'
 
 const COLORS = {
@@ -81,25 +82,15 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
   ]
   const isAdmin = profile?.role === 'admin'
 
-  // Mentor-coach and admin access codes have no account. They see only the tools their code includes.
-  let codeRole = null
-  let codeLabel = ''
-  try {
-    if (!profile) {
-      codeRole = sessionStorage.getItem('coachrice_access_role')
-      codeLabel = sessionStorage.getItem('coachrice_access_label') || ''
-    }
-  } catch { /* sessionStorage unavailable */ }
-  const isCode = codeRole === 'mentor' || codeRole === 'admin'
+  // Mentor coaches and tool-only admins have accounts, but they only see their tools (no dashboard or history).
+  const isCode = isToolOnlyRole(profile?.role)
+  const codeRole = profile?.role === 'admin_tools' ? 'admin' : 'mentor'
+  const codeLabel = profile?.full_name || profile?.email || ''
   const codeTools = [
-    ...(codeRole === 'admin' ? [{ id: 'assessor', label: 'Internal Assessor', path: '/access/assessor' }] : []),
-    ...(codeRole === 'admin' ? [{ id: 'audio', label: 'Audio to Transcript', path: '/access/audio' }] : []),
-    { id: 'observation', label: 'Session Observation Form', path: '/access/session-observation' },
+    ...(codeRole === 'admin' ? [{ id: 'assessor', label: 'Internal Assessor', path: '/tools/assessor' }] : []),
+    ...(codeRole === 'admin' ? [{ id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' }] : []),
+    { id: 'observation', label: 'Session Observation Form', path: '/tools/session-observation' },
   ]
-  function codeSignOut() {
-    ;['coachrice_access', 'coachrice_access_role', 'coachrice_access_label', 'coachrice_access_code', 'coachrice_system_prompt'].forEach((k) => sessionStorage.removeItem(k))
-    navigate('/access', { replace: true })
-  }
   const toolItems = isCode ? codeTools : isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
   return (
@@ -164,9 +155,9 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
         <div style={styles.avatarRow}>
           <div style={styles.avatar}>{profile?.full_name?.[0] || 'C'}</div>
           <div>
-            <div style={styles.avatarName}>{isCode ? (codeLabel || 'Access code') : (profile?.full_name?.split(' ')[0] || 'Coach')}</div>
+            <div style={styles.avatarName}>{isCode ? (codeLabel || 'Account') : (profile?.full_name?.split(' ')[0] || 'Coach')}</div>
             <div style={styles.avatarRole}>
-              <button onClick={isCode ? codeSignOut : signOut} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 9, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif' }}>
+              <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 9, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif' }}>
                 Sign Out
               </button>
             </div>
