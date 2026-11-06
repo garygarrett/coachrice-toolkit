@@ -32,7 +32,8 @@ export default function SetPassword() {
       return
     }
 
-    navigate('/agreements', { replace: true })
+    // The agreements screen is turned off for now; go straight to the dashboard.
+    navigate('/dashboard', { replace: true })
   }
 
   return (
