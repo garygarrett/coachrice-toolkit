@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase'
 import { authFetch } from '../lib/authFetch'
 import Layout from '../components/Layout'
 import { getDefaultClientPrompt } from '../lib/prompts'
-import DataPurgePanel from '../components/DataPurgePanel'
 
 const COLORS = {
   navy: '#00205B',
@@ -34,8 +33,6 @@ const EMPTY_USER_FORM = {
   full_name: '',
   email: '',
   role: 'coach',
-  cohort_id: '',
-  mentor_coach_id: '',
 }
 
 const EMPTY_QUESTION = {
@@ -244,15 +241,15 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
   return icons[id] || null
 }
 
-export default function AdminPanel() {
+// section 'users'  = Users and Access Codes tabs (Admin Tools)
+// section 'config' = one tab per tool (Tool Configuration)
+export default function AdminPanel({ section = 'users' }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('users')
+  const [activeTab, setActiveTab] = useState(section === 'config' ? `tool-${TOOLS[0].id}` : 'users')
 
   // ── Users state ──
   const [users, setUsers] = useState([])
-  const [cohorts, setCohorts] = useState([])
-  const [mentorCoaches, setMentorCoaches] = useState([])
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [inviteForm, setInviteForm] = useState(EMPTY_USER_FORM)
   const [inviteSubmitting, setInviteSubmitting] = useState(false)
@@ -309,15 +306,8 @@ export default function AdminPanel() {
   }, [activeTab])
 
   async function loadUsers() {
-    const [{ data: usersData }, { data: cohortsData }, { data: mentorData }] =
-      await Promise.all([
-        supabase.from('users').select('*, cohorts(name), mentor_coaches(full_name)').order('created_at', { ascending: false }),
-        supabase.from('cohorts').select('*').order('name'),
-        supabase.from('mentor_coaches').select('*').order('full_name'),
-      ])
+    const { data: usersData } = await supabase.from('users').select('*').order('created_at', { ascending: false })
     if (usersData) setUsers(usersData)
-    if (cohortsData) setCohorts(cohortsData)
-    if (mentorData) setMentorCoaches(mentorData)
   }
 
   async function loadToolSettings() {
@@ -622,15 +612,6 @@ export default function AdminPanel() {
     let aVal = a[sortColumn]
     let bVal = b[sortColumn]
 
-    // Handle nested fields
-    if (sortColumn === 'cohort_name') {
-      aVal = a.cohorts?.name
-      bVal = b.cohorts?.name
-    } else if (sortColumn === 'mentor_coach_name') {
-      aVal = a.mentor_coaches?.full_name
-      bVal = b.mentor_coaches?.full_name
-    }
-
     // Handle null values
     if (aVal === null || aVal === undefined) aVal = ''
     if (bVal === null || bVal === undefined) bVal = ''
@@ -673,8 +654,6 @@ export default function AdminPanel() {
           full_name: inviteForm.full_name,
           email: inviteForm.email,
           role: inviteForm.role,
-          cohort_id: inviteForm.cohort_id || null,
-          mentor_coach_id: inviteForm.mentor_coach_id || null,
         }),
       })
 
@@ -725,8 +704,6 @@ export default function AdminPanel() {
           full_name: editUserForm.full_name,
           email: editUserForm.email,
           role: editUserForm.role,
-          cohort_id: editUserForm.cohort_id || null,
-          mentor_coach_id: editUserForm.mentor_coach_id || null,
           is_active: editUserForm.is_active,
         }),
       })
@@ -1530,18 +1507,6 @@ export default function AdminPanel() {
                   <option value="admin">Admin</option>
                 </select>
               </label>
-              <label style={s.label}>Cohort
-                <select name="cohort_id" value={inviteForm.cohort_id} onChange={handleInviteChange} style={s.input}>
-                  <option value="">— None —</option>
-                  {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </label>
-              <label style={s.label}>Mentor Coach
-                <select name="mentor_coach_id" value={inviteForm.mentor_coach_id} onChange={handleInviteChange} style={s.input}>
-                  <option value="">— None —</option>
-                  {mentorCoaches.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-                </select>
-              </label>
             </div>
             {userError && <p style={s.errorMsg}>{userError}</p>}
             <div style={s.formActions}>
@@ -1571,18 +1536,6 @@ export default function AdminPanel() {
                   <option value="admin">Admin (full dashboard)</option>
                   <option value="admin_tools">Admin (tools only)</option>
                   <option value="mentor">Mentor coach</option>
-                </select>
-              </label>
-              <label style={s.label}>Cohort
-                <select name="cohort_id" value={editUserForm.cohort_id} onChange={handleEditUserChange} style={s.input}>
-                  <option value="">— None —</option>
-                  {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </label>
-              <label style={s.label}>Mentor Coach
-                <select name="mentor_coach_id" value={editUserForm.mentor_coach_id} onChange={handleEditUserChange} style={s.input}>
-                  <option value="">— None —</option>
-                  {mentorCoaches.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
                 </select>
               </label>
               <label style={s.label}>Account Access
@@ -1617,8 +1570,6 @@ export default function AdminPanel() {
               { label: 'Name', col: 'full_name' },
               { label: 'Email', col: 'email' },
               { label: 'Role', col: 'role' },
-              { label: 'Cohort', col: 'cohort_name' },
-              { label: 'Mentor Coach', col: 'mentor_coach_name' },
               { label: 'Added', col: 'created_at' },
               { label: 'Last Accessed', col: 'last_accessed_at' },
             ].map(h => (
@@ -1649,8 +1600,6 @@ export default function AdminPanel() {
                   {u.is_active === false && <span style={s.badgePaused}>Paused</span>}
                 </div>
               </td>
-              <td style={s.td}>{u.cohorts?.name ?? '—'}</td>
-              <td style={s.td}>{u.mentor_coaches?.full_name ?? '—'}</td>
               <td style={s.td}>{new Date(u.created_at).toLocaleDateString()}</td>
               <td style={s.td}>{u.last_accessed_at ? new Date(u.last_accessed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
               <td style={s.td}>
@@ -1659,7 +1608,7 @@ export default function AdminPanel() {
             </tr>
           ))}
           {sortedUsers.length === 0 && (
-            <tr><td colSpan={9} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
+            <tr><td colSpan={7} style={{ ...s.td, textAlign: 'center', color: '#999' }}>No users yet.</td></tr>
           )}
         </tbody>
       </table>
@@ -1667,9 +1616,12 @@ export default function AdminPanel() {
   )
 
   return (
-    <Layout active="admin" pageTitle="Dashboard">
+    <Layout active={section === 'config' ? 'admin-config' : 'admin-users'} pageTitle={section === 'config' ? 'Tool Configuration' : 'Users / Access Codes'}>
       <div style={s.tabBar}>
-        {[{ id: 'users', label: 'Users' }, ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label })), { id: 'access-codes', label: 'Access Codes' }, { id: 'data', label: 'Data & Privacy' }].map(tab => (
+        {(section === 'config'
+          ? TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label }))
+          : [{ id: 'users', label: 'Users' }, { id: 'access-codes', label: 'Access Codes' }]
+        ).map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -1684,7 +1636,6 @@ export default function AdminPanel() {
         {activeTab === 'users' && usersContent}
         {activeTab.startsWith('tool-') && renderToolTab(TOOLS.find(t => `tool-${t.id}` === activeTab))}
         {activeTab === 'access-codes' && renderAccessCodesTab()}
-        {activeTab === 'data' && <DataPurgePanel />}
       </div>
     </Layout>
   )
