@@ -299,5 +299,80 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true })
   }
 
+  // OBSERVATION DRAFTS - Session Observation Form work in progress (text and answers only, never audio)
+  if (action === 'obs-save') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id, title, data } = req.body || {}
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data is required' })
+    if (JSON.stringify(data).length > 3000000) return res.status(400).json({ error: 'This observation is too large to save' })
+    const cleanTitle = String(title || 'Untitled observation').slice(0, 200)
+    if (id) {
+      const { data: row, error } = await supabase
+        .from('observation_drafts')
+        .update({ title: cleanTitle, data, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('user_id', auth.user.id)
+        .is('deleted_at', null)
+        .select('id, updated_at')
+        .maybeSingle()
+      if (error) return res.status(500).json({ error: error.message })
+      if (!row) return res.status(404).json({ error: 'Saved observation not found' })
+      return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
+    }
+    const { data: row, error } = await supabase
+      .from('observation_drafts')
+      .insert({ user_id: auth.user.id, title: cleanTitle, data })
+      .select('id, updated_at')
+      .single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
+  }
+
+  if (action === 'obs-list') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, title, updated_at')
+      .eq('user_id', auth.user.id)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(100)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ data: data || [] })
+  }
+
+  if (action === 'obs-get') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, title, data, updated_at')
+      .eq('id', id)
+      .eq('user_id', auth.user.id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(404).json({ error: 'Saved observation not found' })
+    return res.status(200).json(data)
+  }
+
+  if (action === 'obs-delete') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { error } = await supabase
+      .from('observation_drafts')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', auth.user.id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
+  }
+
   return res.status(400).json({ error: 'Invalid action' })
 }

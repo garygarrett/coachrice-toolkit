@@ -134,6 +134,10 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
                 <ToolIcon id="transcript" size={14} color={active === 'audio' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
                 <span style={{ fontSize: 10 }}>Audio to Transcript</span>
               </div>
+              <div style={{ ...styles.navItem, ...(active === 'observation' ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate('/tools/session-observation')}>
+                <ToolIcon id="transcript" size={14} color={active === 'observation' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
+                <span style={{ fontSize: 10 }}>Session Observation Form</span>
+              </div>
             </>
           )}
         </div>

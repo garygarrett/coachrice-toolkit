@@ -19,6 +19,7 @@ import TranscriptScorer from './pages/tools/TranscriptScorer'
 import AIClient from './pages/tools/AIClient'
 import InternalAssessor from './pages/tools/InternalAssessor'
 import AudioToTranscript from './pages/tools/AudioToTranscript'
+import SessionObservation from './pages/tools/SessionObservation'
 import AssessorTest from './pages/tools/AssessorTest'
 
 /**
@@ -127,6 +128,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="admin">
               <AudioToTranscript />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/session-observation"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <SessionObservation />
             </ProtectedRoute>
           }
         />
