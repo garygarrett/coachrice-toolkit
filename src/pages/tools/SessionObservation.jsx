@@ -50,7 +50,20 @@ async function readPdfText(file) {
     const content = await (await pdf.getPage(i)).getTextContent()
     text += content.items.map((it) => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n'
   }
-  return text
+  return cleanAudioToolPdfText(text)
+}
+
+// A PDF made by our Audio to Transcript tool starts with a header (logo band, file name, date, and optionally
+// the speaker breakdown) and ends every page with a footer. None of that is the conversation, so leave it out.
+function cleanAudioToolPdfText(text) {
+  if (!/CoachRICE\s*\|\s*Doerr Institute for New Leaders/.test(text)) return text
+  const sig = text.search(/CoachRICE\s*\|\s*Doerr Institute for New Leaders/)
+  const rest = text.slice(sig)
+  const m = rest.match(/\bTranscript\s+(?=\[?\d{1,2}:\d{2})/)
+  const body = m ? rest.slice(m.index + m[0].length) : rest
+  return body
+    .replace(/Confidential\.\s*CoachRICE, Doerr Institute for New Leaders, Rice University/g, '\n')
+    .replace(/Page\s+\d+\s+of\s+\d+/g, '\n')
 }
 
 const roleName = (r) => (r === 'coach' ? 'Coach' : r === 'client' ? 'Client' : 'Other')

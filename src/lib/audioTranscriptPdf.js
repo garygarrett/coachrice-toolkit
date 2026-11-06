@@ -128,7 +128,7 @@ export function buildTranscriptPdf(data) {
     if (r.pauseText) {
       tBody.push([{ content: `[ ${r.pauseText} ]`, colSpan: 3, styles: { halign: 'center', fontStyle: 'normal', textColor: GRAY, fontSize: 8, cellPadding: 3 } }])
     }
-    tBody.push([r.time, { content: r.speaker, styles: { textColor: r.color } }, r.text])
+    tBody.push([r.time, { content: `${r.speaker}:`, styles: { textColor: r.color } }, r.text])
   })
   doc.autoTable({
     startY: y,
