@@ -38,6 +38,12 @@ export const TOOLS = {
   },
 
   // Admins only (these pages are admin-only routes in the app)
+  'observation-evidence': {
+    access: 'admin',
+    keyName: 'api_key_transcript',
+    model: 'claude-sonnet-4-6',
+    maxTokens: 8000,
+  },
   'assessor-2021': {
     access: 'admin',
     keyName: 'api_key_assessor',
