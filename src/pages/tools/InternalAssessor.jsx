@@ -127,13 +127,14 @@ export default function InternalAssessor() {
   }
 
   async function saveToHistory(vId, evaluation, filename) {
-    if (!user) return
+    const codeUser = !user && sessionStorage.getItem('coachrice_access_role') === 'admin'
+    if (!user && !codeUser) return
     try {
       await authFetch('/api/internal-assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user?.id,
           assessorType: vId,
           transcriptFilename: filename || null,
           assessmentData: evaluation,

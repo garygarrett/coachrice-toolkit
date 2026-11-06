@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { authFetch } from '../lib/authFetch'
 import Layout from '../components/Layout'
 import { getDefaultClientPrompt } from '../lib/prompts'
+import DataPurgePanel from '../components/DataPurgePanel'
 
 const COLORS = {
   navy: '#00205B',
@@ -289,7 +290,7 @@ export default function AdminPanel() {
   // ── Access codes state ──
   const [accessCodes, setAccessCodes] = useState([])
   const [accessCodesLoading, setAccessCodesLoading] = useState(false)
-  const [newCodeForm, setNewCodeForm] = useState({ code: '', label: '' })
+  const [newCodeForm, setNewCodeForm] = useState({ code: '', label: '', role: 'student', expiresAt: '' })
   const [accessCodeError, setAccessCodeError] = useState(null)
   const [accessCodeSuccess, setAccessCodeSuccess] = useState(null)
   const [accessCodeSubmitting, setAccessCodeSubmitting] = useState(false)
@@ -811,12 +812,12 @@ export default function AdminPanel() {
       const res = await authFetch('/api/access-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: newCodeForm.code.trim(), label: newCodeForm.label.trim() }),
+        body: JSON.stringify({ code: newCodeForm.code.trim(), label: newCodeForm.label.trim(), role: newCodeForm.role, expiresAt: newCodeForm.expiresAt || null }),
       })
       const data = await res.json()
       if (!res.ok) { setAccessCodeError(data.error || 'Failed to create code.'); return }
       setAccessCodeSuccess(`Code "${newCodeForm.code}" created.`)
-      setNewCodeForm({ code: '', label: '' })
+      setNewCodeForm({ code: '', label: '', role: 'student', expiresAt: '' })
       loadAccessCodes()
     } catch {
       setAccessCodeError('Something went wrong.')
@@ -837,6 +838,25 @@ export default function AdminPanel() {
       if (!res.ok) { setAccessCodeError('Failed to update code.'); return }
       setAccessCodeSuccess(active ? 'Code activated.' : 'Code deactivated.')
       loadAccessCodes()
+    } catch {
+      setAccessCodeError('Something went wrong.')
+    }
+  }
+
+  async function clearCodeData(id, label) {
+    const typed = window.prompt(`Delete everything saved under "${label}" (observation drafts, saved transcripts, assessments)? This cannot be undone.\n\nType DELETE to confirm.`)
+    if (typed !== 'DELETE') return
+    setAccessCodeError(null)
+    setAccessCodeSuccess(null)
+    try {
+      const res = await authFetch('/api/user-actions?action=purge-code', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codeId: id, confirm: 'DELETE' }),
+      })
+      const body = await res.json()
+      if (!res.ok) { setAccessCodeError(body.error || 'Could not delete the saved data.'); return }
+      const n = (body.results || []).reduce((a, r) => a + (r.before || 0), 0)
+      setAccessCodeSuccess(`Deleted ${n} saved record${n === 1 ? '' : 's'} for "${label}".`)
     } catch {
       setAccessCodeError('Something went wrong.')
     }
@@ -866,8 +886,11 @@ export default function AdminPanel() {
         <h1 style={s.heading}>Access Codes</h1>
       </div>
       <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '24px', lineHeight: '1.6' }}>
-        Access codes let participants open the Transcript Reviewer without a personal account.
-        Share the link <strong>/access</strong> and a valid code. Sessions are anonymous — no history is saved.
+        Access codes let people use tools without a personal account. Share the link <strong>/access</strong> and a code.
+        <strong> Student</strong> codes open the Transcript Reviewer (anonymous, no history is saved).
+        <strong> Mentor coach</strong> codes open the Session Observation Form only.
+        <strong> Admin</strong> codes open the Internal Assessor, Audio to Transcript, and the Session Observation Form, with no access to history, users, or analytics.
+        Give each mentor coach their own code: saved observations belong to the code, so people who share one code see each other&rsquo;s work.
       </p>
 
       {accessCodeError && <div style={{ background: '#fff3e6', border: '1px solid #ffe0b2', borderRadius: '6px', padding: '10px 14px', fontSize: '12px', color: '#00205B', marginBottom: '16px' }}>{accessCodeError}</div>}
@@ -899,6 +922,27 @@ export default function AdminPanel() {
               style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 12px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', boxSizing: 'border-box' }}
             />
           </div>
+          <div style={{ minWidth: '140px' }}>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: COLORS['text-main'], marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type</label>
+            <select
+              value={newCodeForm.role}
+              onChange={e => setNewCodeForm(v => ({ ...v, role: e.target.value }))}
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 8px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', background: '#fff' }}
+            >
+              <option value="student">Student</option>
+              <option value="mentor">Mentor coach</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div style={{ minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: COLORS['text-main'], marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expires (optional)</label>
+            <input
+              type="date"
+              value={newCodeForm.expiresAt}
+              onChange={e => setNewCodeForm(v => ({ ...v, expiresAt: e.target.value }))}
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #e2e6ec', padding: '0 10px', fontSize: '13px', fontFamily: 'Montserrat, sans-serif', boxSizing: 'border-box' }}
+            />
+          </div>
           <button
             type="submit"
             disabled={accessCodeSubmitting || !newCodeForm.code.trim() || !newCodeForm.label.trim()}
@@ -916,24 +960,57 @@ export default function AdminPanel() {
             <tr style={{ background: '#f7f8fa' }}>
               <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Code</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Label</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Used</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last used</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Created</th>
               <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '10px', fontWeight: 700, color: COLORS['text-muted'], textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {accessCodesLoading ? (
-              <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>Loading…</td></tr>
+              <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>Loading…</td></tr>
             ) : accessCodes.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>No access codes yet. Add one above.</td></tr>
+              <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#999' }}>No access codes yet. Add one above.</td></tr>
             ) : accessCodes.map(ac => (
               <tr key={ac.id} style={{ borderTop: '1px solid #f0f2f5' }}>
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: COLORS.navy, fontFamily: 'monospace', fontSize: '13px' }}>{ac.code}</td>
                 <td style={{ padding: '12px 16px', color: COLORS['text-main'] }}>{ac.label}</td>
+                <td style={{ padding: '12px 16px', fontSize: '12px', color: COLORS['text-main'] }}>
+                  {{ student: 'Student', mentor: 'Mentor coach', admin: 'Admin' }[ac.role || 'student']}
+                </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: ac.active ? '#dcfce7' : '#f3f4f6', color: ac.active ? '#16a34a' : '#6b7a99' }}>
-                    {ac.active ? 'Active' : 'Inactive'}
-                  </span>
+                  {(() => {
+                    const expired = ac.expires_at && new Date(ac.expires_at) < new Date()
+                    const on = ac.active && !expired
+                    return (
+                      <>
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, background: on ? '#dcfce7' : '#f3f4f6', color: on ? '#16a34a' : '#6b7a99' }}>
+                          {expired ? 'Expired' : ac.active ? 'Active' : 'Inactive'}
+                        </span>
+                        {ac.expires_at && !expired && (
+                          <div style={{ fontSize: '10px', color: COLORS['text-muted'], marginTop: '3px' }}>
+                            until {new Date(ac.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: '12px', color: COLORS['text-main'], lineHeight: 1.5 }}>
+                  {(() => {
+                    const u = ac.usage || {}
+                    const parts = []
+                    if (u.observations) parts.push(`${u.observations} observation${u.observations === 1 ? '' : 's'}`)
+                    if (u.assessments) parts.push(`${u.assessments} assessment${u.assessments === 1 ? '' : 's'}`)
+                    if (u.transcriptions) parts.push(`${u.transcriptions} transcription${u.transcriptions === 1 ? '' : 's'}`)
+                    if (u.reviews) parts.push(`${u.reviews} review${u.reviews === 1 ? '' : 's'}`)
+                    return parts.length ? parts.map((p) => <div key={p}>{p}</div>) : <span style={{ color: '#999' }}>Not used yet</span>
+                  })()}
+                </td>
+                <td style={{ padding: '12px 16px', color: COLORS['text-muted'], fontSize: '12px' }}>
+                  {ac.usage?.last_used ? new Date(ac.usage.last_used).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                 </td>
                 <td style={{ padding: '12px 16px', color: COLORS['text-muted'], fontSize: '12px' }}>
                   {new Date(ac.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -946,6 +1023,14 @@ export default function AdminPanel() {
                     >
                       {ac.active ? 'Deactivate' : 'Activate'}
                     </button>
+                    {ac.role && ac.role !== 'student' && (
+                      <button
+                        onClick={() => clearCodeData(ac.id, ac.label)}
+                        style={{ padding: '5px 12px', borderRadius: '5px', border: '1px solid #e2e6ec', background: '#fff', fontSize: '11px', fontWeight: 600, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', color: COLORS['text-main'] }}
+                      >
+                        Delete saved data
+                      </button>
+                    )}
                     <button
                       onClick={() => deleteAccessCode(ac.id, ac.code)}
                       style={{ padding: '5px 12px', borderRadius: '5px', border: '1px solid #fecaca', background: '#fff', fontSize: '11px', fontWeight: 600, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', color: '#dc2626' }}
@@ -1576,7 +1661,7 @@ export default function AdminPanel() {
   return (
     <Layout active="admin" pageTitle="Dashboard">
       <div style={s.tabBar}>
-        {[{ id: 'users', label: 'Users' }, ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label })), { id: 'access-codes', label: 'Access Codes' }].map(tab => (
+        {[{ id: 'users', label: 'Users' }, ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label })), { id: 'access-codes', label: 'Access Codes' }, { id: 'data', label: 'Data & Privacy' }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -1591,6 +1676,7 @@ export default function AdminPanel() {
         {activeTab === 'users' && usersContent}
         {activeTab.startsWith('tool-') && renderToolTab(TOOLS.find(t => `tool-${t.id}` === activeTab))}
         {activeTab === 'access-codes' && renderAccessCodesTab()}
+        {activeTab === 'data' && <DataPurgePanel />}
       </div>
     </Layout>
   )
