@@ -295,3 +295,10 @@ Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Sess
 - Audio to Transcript has two PDF buttons: "Download PDF" (with the speaker breakdown and silence line at the top) and "Download PDF (transcript only)" (`hideBreakdown` in `src/lib/audioTranscriptPdf.js`), for feeding the PDF to the Transcript Reviewer.
 - Long pauses INSIDE one speaker's turn (same speaker keeps talking after 3+ seconds of quiet) are written into that turn's text as `[pause N sec]` by `buildTurns`. They show in the editor, the .txt, PDF and copy when "Mark pauses" is ticked, and are stripped (also from word counts) when it is not. "Remove all pauses" deletes them from the text.
 - Session Observation Form reading a PDF made by Audio to Transcript: `cleanAudioToolPdfText` in `SessionObservation.jsx` drops the PDF header (file name, date, optional speaker breakdown) and the page footers before parsing. The PDF's speaker cells now read `Coach:` so the parser finds each speaker.
+
+## Annotated transcript export (Session Observation Form, Nov 2026)
+
+- The form's top bar has "Download annotated transcript (PDF)". `src/lib/sof/annotatedTranscriptPdf.js` builds it with jsPDF in the browser (same header band, Montserrat, footer, and table look as the Audio to Transcript PDF; shared loaders in `src/lib/pdfLibs.js`). Nothing is uploaded.
+- Every evidence quote the coach selected is highlighted (soft lime) in its turn, followed by an orange tag with the behavior code(s), like `[A6.1, A7.2]`. If an evidence quote was edited so it no longer matches the transcript text, the turn still gets the tag at its end, without a highlight. Long pauses (3+ sec) print as `[ pause N sec ]` rows.
+- The last section is an "Evidence index": each of the 20 behaviors with the chosen rating and the times of its evidence.
+- The form has a "Name of this observation" box at the top (`form.title`, `draftTitle()` in `SessionObservation.jsx`). It names the saved draft in the "Continue a saved observation" list and the annotated PDF. If left blank, the name falls back to the client name plus session, then "Untitled observation".
