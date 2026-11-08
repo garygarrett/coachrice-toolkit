@@ -283,6 +283,7 @@ export default function SessionObservation() {
 
   function draftTitle() {
     const a = form.admin
+    if ((form.title || '').trim()) return form.title.trim()
     return [a.clientName.trim() || 'Untitled observation', a.clientSession.trim()].filter(Boolean).join(' – ')
   }
 
@@ -616,6 +617,11 @@ export default function SessionObservation() {
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
       <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+      <div style={{ marginBottom: 14 }}>
+        <label style={label} htmlFor="obs-title">Name of this observation</label>
+        <input id="obs-title" style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 560 }} value={form.title || ''}
+          onChange={(e) => set({ title: e.target.value })} placeholder="For example: Jordan R. – Session 2" maxLength={120} />
+      </div>
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>

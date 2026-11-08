@@ -65,6 +65,7 @@ export const ATTESTATIONS = [
 // A fresh, empty form.
 export function emptyForm() {
   return {
+    title: '', // the name shown in the saved list and on the exported PDF
     admin: { name: '', email: '', clientName: '', clientEmail: '', clientSession: '', mentorSession: '' },
     level: null,
     selfReview: [false, false, false],
