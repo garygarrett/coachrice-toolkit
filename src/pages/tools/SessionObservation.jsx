@@ -3,6 +3,9 @@ import Layout from '../../components/Layout'
 import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
 import { parseTranscriptText, stamp } from '../../lib/sof/transcript'
+import { buildAnnotatedTranscriptPdf } from '../../lib/sof/annotatedTranscriptPdf'
+import { ensurePdfLibs, urlToDataUrl } from '../../lib/pdfLibs'
+import logoWhite from '../../CoachRICE_White.png'
 import { EVIDENCE_SYSTEM, buildEvidenceInput, validateEvidence } from '../../lib/sof/evidencePrompt'
 import {
   RATINGS, LEVELS, SELF_REVIEW, QUALIFIERS, COMPETENCIES, BEHAVIORS, ATTESTATIONS,
@@ -93,6 +96,7 @@ export default function SessionObservation() {
   const [audioUrl, setAudioUrl] = useState('')
   const [ai, setAi] = useState(null) // the AI's suggestions
   const [form, setForm] = useState(emptyForm())
+  const [exporting, setExporting] = useState(false)
   const [active, setActive] = useState('A3.1')
   const [selection, setSelection] = useState(null) // { turnId, text }
   const [saving, setSaving] = useState(false)
@@ -280,6 +284,48 @@ export default function SessionObservation() {
   function draftTitle() {
     const a = form.admin
     return [a.clientName.trim() || 'Untitled observation', a.clientSession.trim()].filter(Boolean).join(' – ')
+  }
+
+  // Transcript PDF with the selected evidence highlighted (same look as the Audio to Transcript PDF)
+  async function downloadAnnotated() {
+    setExporting(true); setNotice('')
+    try {
+      await ensurePdfLibs()
+      let logoDataUrl = null
+      try { logoDataUrl = await urlToDataUrl(logoWhite) } catch { /* the PDF still works without the logo */ }
+      const marks = {}, loose = {}, timesByCode = {}
+      const turnById = Object.fromEntries(turns.map((t) => [t.id, t]))
+      BEHAVIORS.forEach((b) => (form.evidence[b.id] || []).forEach((e) => {
+        const t = turnById[e.turn]
+        if (!t) return
+        const at = e.quote ? t.text.indexOf(e.quote) : -1
+        if (at >= 0) (marks[t.id] = marks[t.id] || []).push({ start: at, end: at + e.quote.length, codes: [b.id] })
+        else (loose[t.id] = loose[t.id] || new Set()).add(b.id)
+        ;(timesByCode[b.id] = timesByCode[b.id] || new Map()).set(t.id, t.time || `Turn ${t.id}`)
+      }))
+      const colorOf = (role) => (role === 'coach' ? [0, 32, 91] : role === 'client' ? [46, 117, 182] : [124, 126, 127])
+      const last = [...turns].reverse().find((t) => typeof t.start === 'number')
+      const doc = buildAnnotatedTranscriptPdf({
+        title: draftTitle(),
+        dateText: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        durationText: last ? stamp(last.start) : '',
+        logoDataUrl,
+        turns: turns.map((t, i) => ({
+          time: t.time, speaker: roleName(roles[t.speaker]), color: colorOf(roles[t.speaker]), text: t.text,
+          pauseText: i > 0 && t.pauseBefore >= 3 ? `pause ${Math.round(t.pauseBefore)} sec` : '',
+          marks: marks[t.id] || [], looseCodes: [...(loose[t.id] || [])],
+        })),
+        index: BEHAVIORS.map((b) => ({
+          code: b.id, behavior: b.text, rating: RATINGS.find((r) => r.id === form.ratings[b.id])?.label || '',
+          times: [...(timesByCode[b.id]?.entries() || [])].sort((a, c) => a[0] - c[0]).map(([, label]) => label).join(', '),
+        })),
+      })
+      const base = draftTitle().replace(/[^\w\- ]+/g, '').trim() || 'observation'
+      doc.save(`${base} - annotated transcript.pdf`)
+    } catch (e) {
+      setNotice(e.message || 'The PDF could not be made.')
+    }
+    setExporting(false)
   }
 
   async function saveDraft(quiet = false) {
@@ -573,6 +619,7 @@ export default function SessionObservation() {
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
+        <button style={btn(false, exporting)} disabled={exporting} onClick={downloadAnnotated}>{exporting ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
         <span style={{ fontSize: 12, color: dirty ? C.orange : C.gray, fontWeight: 600 }}>
           {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Saving soon…') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
         </span>
