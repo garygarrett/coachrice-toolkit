@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import LoadingBar from '../components/LoadingBar'
 import CompetencyByCode from '../components/CompetencyByCode'
 import DataPurgePanel from '../components/DataPurgePanel'
+import SavedObservations from '../components/SavedObservations'
 
 const COLORS = {
   navy: '#00205B',
@@ -299,7 +300,7 @@ export default function AdminHistory() {
                         </div>
                         <div style={{ ...card, minWidth: 180 }}>
                           <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.navy }}>{d.saved.observations}</div>
-                          <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Saved in progress now</div>
+                          <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Saved now (in progress or complete)</div>
                         </div>
                       </div>
                     ) : (
@@ -327,8 +328,9 @@ export default function AdminHistory() {
                       </table>
                     )}
                     <p style={{ fontSize: 11, color: COLORS['text-muted'], margin: '12px 0 0', lineHeight: 1.6 }}>
-                      Counts only. Transcripts and assessment text are not shown here. &ldquo;Times run&rdquo; counts start when the account was created with a sign-up code.
+                      Counts for each tool. Saved Session Observation Forms open in full below (read only). &ldquo;Times run&rdquo; counts start when the account was created with a sign-up code.
                     </p>
+                    <SavedObservations userId={d.id} />
                   </div>
                 )
               })()}
@@ -512,7 +514,7 @@ export default function AdminHistory() {
                       <div style={s.itemHeader} onClick={() => toggleExpand(`guest-${analysis.id}`)}>
                         <div style={s.itemInfo}>
                           <div style={s.itemTitle}>
-                            {evalData.coach_identifier || 'Anonymous Coach'} — {analysis.access_code_label}
+                            Transcript review — {analysis.access_code_label}
                           </div>
                           <div style={s.itemDate}>{formatDate(analysis.created_at)}</div>
                         </div>

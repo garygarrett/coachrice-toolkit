@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '../server/auth.js'
+import { withoutCoachName } from '../server/privacy.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -113,7 +114,7 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase
         .from('guest_analyses')
-        .insert({ access_code_label: accessCodeLabel, analysis_data: analysisData, competency_scores: competencyScores || null })
+        .insert({ access_code_label: accessCodeLabel, analysis_data: withoutCoachName(analysisData), competency_scores: competencyScores || null })
         .select('id')
         .single()
 

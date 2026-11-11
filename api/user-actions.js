@@ -467,6 +467,41 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true })
   }
 
+  // OBSERVATIONS, ADMIN VIEW - read-only. Full admins can list and open any mentor coach's saved
+  // Session Observation Forms (in progress or complete). These two actions never change anything.
+  if (action === 'obs-admin-list') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { userId } = req.body || {}
+    if (!userId) return res.status(400).json({ error: 'userId is required' })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, title, created_at, updated_at, form:data->form')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(200)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ data: data || [] })
+  }
+
+  if (action === 'obs-admin-get') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, user_id, title, data, created_at, updated_at')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(404).json({ error: 'Saved observation not found' })
+    const { data: owner } = await supabase.from('users').select('full_name, email, role').eq('id', data.user_id).maybeSingle()
+    return res.status(200).json({ ...data, owner: owner || null })
+  }
+
   // HISTORY SUMMARY - For Admin > History / Data (admin accounts only).
   // For every mentor coach and admin account: what they have saved in each tool, and how many
   // times they ran each tool. Counts only, never transcript text or results.
