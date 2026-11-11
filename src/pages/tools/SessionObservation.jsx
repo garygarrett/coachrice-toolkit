@@ -3,9 +3,7 @@ import Layout from '../../components/Layout'
 import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
 import { parseTranscriptText, stamp } from '../../lib/sof/transcript'
-import { buildAnnotatedTranscriptPdf } from '../../lib/sof/annotatedTranscriptPdf'
-import { ensurePdfLibs, urlToDataUrl } from '../../lib/pdfLibs'
-import logoWhite from '../../CoachRICE_White.png'
+import { downloadAnnotatedTranscript, downloadFilledForm, observationTitle } from '../../lib/sof/annotatedExport'
 import { EVIDENCE_SYSTEM, buildEvidenceInput, validateEvidence } from '../../lib/sof/evidencePrompt'
 import {
   RATINGS, LEVELS, SELF_REVIEW, QUALIFIERS, COMPETENCIES, BEHAVIORS, ATTESTATIONS,
@@ -18,7 +16,6 @@ const C = {
 }
 const font = "'Montserrat', sans-serif"
 const MAX_BYTES = 500 * 1024 * 1024
-const TEMPLATE_URL = '/templates/icf-session-observation-form-acc.docx'
 
 const btn = (primary, disabled) => ({
   fontFamily: font, fontWeight: 700, fontSize: 13, padding: '10px 18px', borderRadius: 8,
@@ -281,51 +278,13 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ }
   }
 
-  function draftTitle() {
-    const a = form.admin
-    if ((form.title || '').trim()) return form.title.trim()
-    return [a.clientName.trim() || 'Untitled observation', a.clientSession.trim()].filter(Boolean).join(' – ')
-  }
+  const draftTitle = () => observationTitle(form)
 
   // Transcript PDF with the selected evidence highlighted (same look as the Audio to Transcript PDF)
   async function downloadAnnotated() {
     setExporting(true); setNotice('')
-    try {
-      await ensurePdfLibs()
-      let logoDataUrl = null
-      try { logoDataUrl = await urlToDataUrl(logoWhite) } catch { /* the PDF still works without the logo */ }
-      const marks = {}, loose = {}, timesByCode = {}
-      const turnById = Object.fromEntries(turns.map((t) => [t.id, t]))
-      BEHAVIORS.forEach((b) => (form.evidence[b.id] || []).forEach((e) => {
-        const t = turnById[e.turn]
-        if (!t) return
-        const at = e.quote ? t.text.indexOf(e.quote) : -1
-        if (at >= 0) (marks[t.id] = marks[t.id] || []).push({ start: at, end: at + e.quote.length, codes: [b.id] })
-        else (loose[t.id] = loose[t.id] || new Set()).add(b.id)
-        ;(timesByCode[b.id] = timesByCode[b.id] || new Map()).set(t.id, t.time || `Turn ${t.id}`)
-      }))
-      const colorOf = (role) => (role === 'coach' ? [0, 32, 91] : role === 'client' ? [46, 117, 182] : [124, 126, 127])
-      const last = [...turns].reverse().find((t) => typeof t.start === 'number')
-      const doc = buildAnnotatedTranscriptPdf({
-        title: draftTitle(),
-        dateText: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        durationText: last ? stamp(last.start) : '',
-        logoDataUrl,
-        turns: turns.map((t, i) => ({
-          time: t.time, speaker: roleName(roles[t.speaker]), color: colorOf(roles[t.speaker]), text: t.text,
-          pauseText: i > 0 && t.pauseBefore >= 3 ? `pause ${Math.round(t.pauseBefore)} sec` : '',
-          marks: marks[t.id] || [], looseCodes: [...(loose[t.id] || [])],
-        })),
-        index: BEHAVIORS.map((b) => ({
-          code: b.id, behavior: b.text, rating: RATINGS.find((r) => r.id === form.ratings[b.id])?.label || '',
-          times: [...(timesByCode[b.id]?.entries() || [])].sort((a, c) => a[0] - c[0]).map(([, label]) => label).join(', '),
-        })),
-      })
-      const base = draftTitle().replace(/[^\w\- ]+/g, '').trim() || 'observation'
-      doc.save(`${base} - annotated transcript.pdf`)
-    } catch (e) {
-      setNotice(e.message || 'The PDF could not be made.')
-    }
+    try { await downloadAnnotatedTranscript({ form, turns, roles }) }
+    catch (e) { setNotice(e.message || 'The PDF could not be made.') }
     setExporting(false)
   }
 
@@ -403,17 +362,7 @@ export default function SessionObservation() {
     setSaving(true)
     setNotice('')
     try {
-      const [{ fillObservationForm }, tpl] = await Promise.all([import('../../lib/sof/fillDocx'), fetch(TEMPLATE_URL)])
-      if (!tpl.ok) throw new Error('Could not load the ICF form template.')
-      const blob = await fillObservationForm(form, await tpl.arrayBuffer())
-      const safe = (s) => s.replace(/[^\w\- ]+/g, '').trim()
-      const name = ['Session Observation Form', safe(form.admin.clientName), safe(form.admin.clientSession)].filter(Boolean).join(' - ')
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${name}.docx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
+      await downloadFilledForm(form)
       setNotice(missing.length ? `Saved. ${missing.length} item${missing.length === 1 ? ' is' : 's are'} still blank on the form (see the list at the bottom).` : 'Saved. The completed form is in your downloads.')
     } catch (e) {
       setNotice(`Could not save: ${e.message}`)

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireSelf } from '../server/auth.js'
+import { withoutCoachNameText } from '../server/privacy.js'
 
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -95,7 +96,7 @@ export default async function handler(req, res) {
         .from('transcript_analyses')
         .insert({
           user_id: userId,
-          analysis_text: analysisText,
+          analysis_text: withoutCoachNameText(analysisText),
           competency_scores: competencyScores || null,
         })
         .select()
