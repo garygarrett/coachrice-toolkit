@@ -16,6 +16,16 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { action, code } = req.query
 
+    // Public: the editable text of the sign-in pages (only keys that start with login_).
+    if (action === 'login-content') {
+      const { data, error } = await supabase.from('site_content').select('key, value').like('key', 'login\\_%')
+      if (error) return res.status(200).json({ content: {} }) // the pages fall back to their standard text
+      const content = {}
+      ;(data || []).forEach(r => { if (r.value && String(r.value).trim()) content[r.key] = r.value })
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=30')
+      return res.status(200).json({ content })
+    }
+
     if (action === 'verify') {
       if (!code) return res.status(400).json({ valid: false, error: 'No code provided' })
 

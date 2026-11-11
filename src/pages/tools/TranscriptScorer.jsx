@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import Layout from "../../components/Layout";
 import LoadingBar from "../../components/LoadingBar";
 import { generateACCObservationReportPDF } from "../../lib/accObservationReport";
+import { TRANSCRIPT_START_DEFAULTS } from "../../lib/transcriptStartDefaults";
 
 const SYSTEM_PROMPT_DEFAULT = `## ROLE
 
@@ -240,12 +241,7 @@ A8.2: "Coach supports the client to use their learning to plan next steps."
 A8.3: "Coach supports the client to close the session."`;
 
 const CONTENT_DEFAULTS = {
-  transcript_start_badge: '',
-  transcript_start_title: '',
-  transcript_start_subtitle: '',
-  transcript_start_info_1: '',
-  transcript_start_info_2: '',
-  transcript_start_info_3: '',
+  ...TRANSCRIPT_START_DEFAULTS,
   theme_primary_color: '#00205B',
 };
 

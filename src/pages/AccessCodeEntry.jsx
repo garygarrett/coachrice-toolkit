@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoImage from '../CoachRICE_White.png'
+import { useLoginContent } from '../lib/loginContent'
 
 export default function AccessCodeEntry() {
   const navigate = useNavigate()
+  const t = useLoginContent()
   const [code, setCode] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -46,17 +48,14 @@ export default function AccessCodeEntry() {
         {/* Header band */}
         <div style={s.header}>
           <img src={logoImage} alt="CoachRICE" style={s.logo} />
-          <div style={s.headerLabel}>CoachRICE Toolkit</div>
+          <div style={s.headerLabel}>{t('login_header_label')}</div>
         </div>
 
         {/* Body */}
         <div style={s.body}>
-          <div style={s.eyebrow}>Doerr Institute for New Leaders</div>
-          <h1 style={s.title}>Student access</h1>
-          <p style={s.subtitle}>
-            Enter the access code provided by your program administrator to open
-            the Transcript Reviewer.
-          </p>
+          <div style={s.eyebrow}>{t('login_eyebrow')}</div>
+          <h1 style={s.title}>{t('login_student_title')}</h1>
+          <p style={s.subtitle}>{t('login_student_subtitle')}</p>
 
           <form onSubmit={handleSubmit}>
             <label htmlFor="access-code" style={s.label}>ACCESS CODE</label>
@@ -87,18 +86,18 @@ export default function AccessCodeEntry() {
                 cursor: submitting || !code.trim() ? 'not-allowed' : 'pointer',
               }}
             >
-              {submitting ? 'Verifying…' : 'Access Transcript Reviewer'}
+              {submitting ? 'Verifying…' : t('login_student_button')}
             </button>
           </form>
 
           <p style={s.helpText}>
-            Need help? Contact{' '}
-            <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
+            {t('login_help_prefix')}{' '}
+            <a href={`mailto:${t('login_help_email')}`} style={s.link}>{t('login_help_email')}</a>
           </p>
 
           <div style={s.adminRow}>
             <button onClick={() => navigate('/access')} style={s.adminLink}>
-              ← Back to sign-in options
+              {t('login_back_link')}
             </button>
           </div>
         </div>

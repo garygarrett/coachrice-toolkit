@@ -235,16 +235,6 @@ export default function CoachDashboard() {
       tag: content.ai_card_tag || TOOL_DEFAULTS.ai.tag,
       path: '/tools/ai',
     },
-    {
-      id: 'audio',
-      icon: 'audio',
-      bg: colors.audio?.bg || '#f0f2f5',
-      color: colors.audio?.color || COLORS.gray,
-      title: content.audio_card_title || TOOL_DEFAULTS.audio.title,
-      desc: content.audio_card_description || TOOL_DEFAULTS.audio.desc,
-      tag: content.audio_card_tag || TOOL_DEFAULTS.audio.tag,
-      path: '/tools/audio',
-    },
   ]
 
   const isAdmin = profile?.role === 'admin'

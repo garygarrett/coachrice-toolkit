@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { homeFor } from '../lib/roles'
 import logoImage from '../CoachRICE_White.png'
+import { useLoginContent } from '../lib/loginContent'
 
 // Sign-in for Mentor Coaches and Admins (tool-only accounts).
 //   First time: enter the one-time access code, then choose an email and password.
@@ -26,6 +27,7 @@ const COPY = {
 export default function AccountSignIn({ kind }) {
   const copy = COPY[kind]
   const navigate = useNavigate()
+  const t = useLoginContent()
   const { user, profile, loading } = useAuth()
 
   const [mode, setMode] = useState('returning') // returning (default) | forgot | code | account
@@ -142,21 +144,21 @@ export default function AccountSignIn({ kind }) {
       <div style={s.card}>
         <div style={s.header}>
           <img src={logoImage} alt="CoachRICE" style={s.logo} />
-          <div style={s.headerLabel}>CoachRICE Toolkit</div>
+          <div style={s.headerLabel}>{t('login_header_label')}</div>
         </div>
 
         <div style={s.body}>
-          <div style={s.eyebrow}>Doerr Institute for New Leaders</div>
-          <h1 style={s.title}>{copy.title} sign-in</h1>
+          <div style={s.eyebrow}>{t('login_eyebrow')}</div>
+          <h1 style={s.title}>{t(kind === 'mentor' ? 'login_mentor_title' : 'login_admin_title')}</h1>
 
           <div style={s.tabs}>
-            <button type="button" onClick={() => go('returning')} style={{ ...s.tab, ...(onReturning ? s.tabOn : {}) }}>Sign in</button>
-            <button type="button" onClick={() => go('code')} style={{ ...s.tab, ...(!onReturning ? s.tabOn : {}) }}>First time signing in</button>
+            <button type="button" onClick={() => go('returning')} style={{ ...s.tab, ...(onReturning ? s.tabOn : {}) }}>{t('login_tab_signin')}</button>
+            <button type="button" onClick={() => go('code')} style={{ ...s.tab, ...(!onReturning ? s.tabOn : {}) }}>{t('login_tab_first')}</button>
           </div>
 
           {mode === 'code' && (
             <form onSubmit={checkCode}>
-              <p style={s.subtitle}>Enter the one-time access code from your program administrator. It works once, to create your account.</p>
+              <p style={s.subtitle}>{t('login_code_subtitle')}</p>
               <label htmlFor="code" style={s.label}>Access code</label>
               {input({ id: 'code', type: 'text', value: code, onChange: (e) => setCode(e.target.value), required: true, autoFocus: true, autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false, placeholder: 'Enter your access code' })}
               {error && <div style={s.errorBox}>{error}</div>}
@@ -166,7 +168,7 @@ export default function AccountSignIn({ kind }) {
 
           {mode === 'account' && (
             <form onSubmit={createAccount}>
-              <p style={s.subtitle}>Your code works. Choose the email and password you will use to sign in from now on. Keep them safe: the email is how you reset a forgotten password.</p>
+              <p style={s.subtitle}>{t('login_create_subtitle')}</p>
               <label htmlFor="email" style={s.label}>Email address</label>
               {input({ id: 'email', type: 'email', value: email, onChange: (e) => setEmail(e.target.value), required: true, autoFocus: true, autoComplete: 'email', placeholder: 'you@rice.edu' })}
               <label htmlFor="pw" style={s.label}>Password (at least 8 characters)</label>
@@ -200,7 +202,7 @@ export default function AccountSignIn({ kind }) {
               </>
             ) : (
               <form onSubmit={sendReset}>
-                <p style={s.subtitle}>Enter your email address and we will send you a link to choose a new password.</p>
+                <p style={s.subtitle}>{t('login_forgot_subtitle')}</p>
                 <label htmlFor="email" style={s.label}>Email address</label>
                 {input({ id: 'email', type: 'email', value: email, onChange: (e) => setEmail(e.target.value), required: true, autoFocus: true, autoComplete: 'email', placeholder: 'you@rice.edu' })}
                 {error && <div style={s.errorBox}>{error}</div>}
@@ -213,11 +215,11 @@ export default function AccountSignIn({ kind }) {
           )}
 
           <p style={s.helpText}>
-            Need help? Contact{' '}
-            <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
+            {t('login_help_prefix')}{' '}
+            <a href={`mailto:${t('login_help_email')}`} style={s.link}>{t('login_help_email')}</a>
           </p>
           <div style={s.footerRow}>
-            <button type="button" style={s.linkBtn} onClick={() => navigate('/access')}>← Back to sign-in options</button>
+            <button type="button" style={s.linkBtn} onClick={() => navigate('/access')}>{t('login_back_link')}</button>
           </div>
         </div>
       </div>
