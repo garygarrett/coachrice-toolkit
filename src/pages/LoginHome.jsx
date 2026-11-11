@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import logoImage from '../CoachRICE_White.png'
+import { useLoginContent } from '../lib/loginContent'
 
 // Simple line icons in Doerr navy.
 const ICON = { fill: 'none', stroke: '#00205B', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -38,19 +39,19 @@ function DoorIcon({ kind }) {
 const DOORS = [
   {
     path: '/access/student',
-    title: 'Student',
+    titleKey: 'login_door_student',
     icon: 'student',
     accent: '#69cce6',
   },
   {
     path: '/access/mentor',
-    title: 'Mentor Coach',
+    titleKey: 'login_door_mentor',
     icon: 'mentor',
     accent: '#78b3e0',
   },
   {
     path: '/access/admin',
-    title: 'Admin',
+    titleKey: 'login_door_admin',
     icon: 'admin',
     accent: '#ff8200',
   },
@@ -58,32 +59,33 @@ const DOORS = [
 
 export default function LoginHome() {
   const navigate = useNavigate()
+  const t = useLoginContent()
 
   return (
     <div style={s.page}>
       <div style={s.card}>
         <div style={s.header}>
           <img src={logoImage} alt="CoachRICE" style={s.logo} />
-          <div style={s.headerLabel}>CoachRICE Toolkit</div>
+          <div style={s.headerLabel}>{t('login_header_label')}</div>
         </div>
 
         <div style={s.body}>
-          <div style={s.eyebrow}>Doerr Institute for New Leaders</div>
-          <h1 style={s.title}>Welcome. Who is signing in?</h1>
-          <p style={s.subtitle}>Choose the option that describes you.</p>
+          <div style={s.eyebrow}>{t('login_eyebrow')}</div>
+          <h1 style={s.title}>{t('login_home_title')}</h1>
+          <p style={s.subtitle}>{t('login_home_subtitle')}</p>
 
           <div style={s.doors}>
             {DOORS.map((d) => (
               <button key={d.path} type="button" onClick={() => navigate(d.path)} style={{ ...s.door, borderTopColor: d.accent }}>
                 <DoorIcon kind={d.icon} />
-                <div style={s.doorTitle}>{d.title}</div>
+                <div style={s.doorTitle}>{t(d.titleKey)}</div>
               </button>
             ))}
           </div>
 
           <p style={s.helpText}>
-            Need help? Contact{' '}
-            <a href="mailto:CoachRICE@rice.edu" style={s.link}>CoachRICE@rice.edu</a>
+            {t('login_help_prefix')}{' '}
+            <a href={`mailto:${t('login_help_email')}`} style={s.link}>{t('login_help_email')}</a>
           </p>
 
         </div>

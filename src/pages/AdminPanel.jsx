@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { authFetch } from '../lib/authFetch'
 import Layout from '../components/Layout'
 import { getDefaultClientPrompt } from '../lib/prompts'
+import { LOGIN_GROUPS, LOGIN_FIELDS } from '../lib/loginContent'
+import { TRANSCRIPT_START_DEFAULTS } from '../lib/transcriptStartDefaults'
 
 const COLORS = {
   navy: '#00205B',
@@ -56,135 +58,93 @@ const TOOL_DEFAULTS = {
   assessor2025: { tag: 'Assessment', title: 'Internal Assessor (2025)', desc: 'Nov 2025 BARS evaluation' },
 }
 
+// What each start page shows when nothing is saved. Only the Transcript Reviewer has built-in text; the others start blank.
 const TOOL_PAGE_DEFAULTS = {
-  exam: {
-    badge: 'Knowledge Assessment',
-    subtitle: 'Test your knowledge with our comprehensive practice exam',
-    info: 'Complete 200+ questions covering all ACC core competencies. Get instant feedback and detailed explanations. Track your progress and identify areas for improvement.',
-  },
   transcript: {
-    badge: 'Session Review',
-    subtitle: 'Upload and analyze your coaching sessions',
-    info: 'Review transcripts of your coaching conversations. Receive AI-powered feedback aligned with ACC competencies. Improve your coaching effectiveness.',
-  },
-  ai: {
-    badge: 'Practice Tool',
-    subtitle: 'Practice coaching with an AI-powered client',
-    info: 'Engage in realistic coaching conversations. Get feedback on your coaching approach. Develop your coaching skills in a safe environment.',
-  },
-  audio: {
-    badge: 'Utility',
-    subtitle: 'Convert your audio recordings to text',
-    info: 'Upload audio files from your coaching sessions. Get accurate transcriptions for analysis. Use with the Transcript Reviewer tool.',
-  },
-  assessor: {
-    badge: 'Performance Assessment',
-    subtitle: 'Get AI-powered evaluation of your coaching sessions',
-    info: 'Upload a session transcript for calibrated assessment against ACC Minimum Skill Requirements. Receive detailed feedback and numerical scoring using the CoachRICE Level 1 ACC Scoring Algorithm.',
-  },
-  assessor2025: {
-    badge: 'Nov 2025 Assessment',
-    subtitle: 'Evaluate sessions against the latest ACC BARS guide',
-    info: 'Upload a session transcript for assessment against the Nov 2025 ACC BARS Resource Guide. Receive detailed feedback aligned with the updated competencies and behavioral anchors.',
+    badge: TRANSCRIPT_START_DEFAULTS.transcript_start_badge,
+    title: TRANSCRIPT_START_DEFAULTS.transcript_start_title,
+    subtitle: TRANSCRIPT_START_DEFAULTS.transcript_start_subtitle,
+    info: [TRANSCRIPT_START_DEFAULTS.transcript_start_info_1, TRANSCRIPT_START_DEFAULTS.transcript_start_info_2, TRANSCRIPT_START_DEFAULTS.transcript_start_info_3],
   },
 }
 
+// The tools, as they are published. group: 'published' (in the main sidebar) or 'progress' (still being built).
+//   pageContent: has a start page whose text is editable here   dashboard: has a tile on the old participant dashboard
 const TOOLS = [
-  {
-    id: 'exam',
-    label: 'ACC Practice Exam',
-    contentPrefix: 'exam',
-    hasPrompts: false,
-    hasApiKeys: false,
-    hasQuestions: true,
-    placeholder: false,
-    cardBg: '#e6f7fc',
-    cardColor: '#0284c7',
-    tagColor: '#e8ecf5',
-    tagTextColor: '#00205B',
-  },
   {
     id: 'transcript',
     label: 'Transcript Reviewer',
+    group: 'published',
+    note: 'Used by students (with an access code) and by older participant accounts. Its AI key also powers the Session Observation Form.',
     contentPrefix: 'transcript',
+    pageContent: true,
+    dashboard: true,
     hasPrompts: true,
     promptKeys: ['transcript_reviewer_prompt'],
     promptLabels: ['System Prompt'],
     hasApiKeys: true,
     apiKeyKeys: ['api_key_transcript'],
     apiKeyLabels: ['API Key'],
-    hasQuestions: false,
-    placeholder: false,
-    cardBg: '#fff0e0',
-    cardColor: '#ea580c',
-    tagColor: '#fef3c7',
-    tagTextColor: '#92400e',
+    cardBg: '#fff0e0', cardColor: '#ea580c', tagColor: '#fef3c7', tagTextColor: '#92400e',
+  },
+  {
+    id: 'observation',
+    label: 'Session Observation Form',
+    group: 'published',
+    info: true,
+    cardBg: '#e6f7fc', cardColor: '#0284c7', tagColor: '#e8ecf5', tagTextColor: '#00205B',
+  },
+  {
+    id: 'assessor',
+    label: 'Internal Assessor',
+    group: 'published',
+    note: 'One tool with a 2021 and a 2025 version. Each version has its own prompt and its own AI key.',
+    contentPrefix: 'assessor',
+    hasPrompts: true,
+    promptKeys: ['ai_assessor_prompt', 'ai_assessor_2025_prompt'],
+    promptLabels: ['System Prompt (2021 version)', 'System Prompt (2025 version, Nov 2025 BARS Guide)'],
+    hasApiKeys: true,
+    apiKeyKeys: ['api_key_assessor', 'api_key_assessor_2025'],
+    apiKeyLabels: ['API Key (2021 version)', 'API Key (2025 version)'],
+    cardBg: '#f3e8ff', cardColor: '#7c3aed', tagColor: '#ede9fe', tagTextColor: '#5b21b6',
+  },
+  {
+    id: 'audio',
+    label: 'Audio to Transcript',
+    group: 'published',
+    note: 'For admin accounts only. Audio goes from the browser straight to Deepgram and is never stored.',
+    contentPrefix: 'audio',
+    hasApiKeys: true,
+    apiKeyKeys: ['api_key_audio'],
+    apiKeyLabels: ['Deepgram API Key'],
+    cardBg: '#f0f2f5', cardColor: '#7C7E7F', tagColor: '#e2e6ec', tagTextColor: '#6b7a99',
+  },
+  {
+    id: 'exam',
+    label: 'ACC Practice Exam',
+    group: 'progress',
+    note: 'Still in progress. Participant accounts and admins can open it.',
+    contentPrefix: 'exam',
+    pageContent: true,
+    dashboard: true,
+    hasQuestions: true,
+    cardBg: '#e6f7fc', cardColor: '#0284c7', tagColor: '#e8ecf5', tagTextColor: '#00205B',
   },
   {
     id: 'ai',
     label: 'AI Client',
+    group: 'progress',
+    note: 'Still in progress. Participant accounts and admins can open it.',
     contentPrefix: 'ai',
+    pageContent: true,
+    dashboard: true,
     hasPrompts: true,
     promptKeys: ['ai_client_chatbot_prompt', 'ai_client_feedback_prompt'],
     promptLabels: ['Chatbot System Prompt', 'Feedback Bot System Prompt'],
     hasApiKeys: true,
     apiKeyKeys: ['api_key_chatbot', 'api_key_feedback'],
     apiKeyLabels: ['Chatbot API Key', 'Feedback Bot API Key'],
-    hasQuestions: false,
-    placeholder: false,
-    cardBg: '#fff0e0',
-    cardColor: '#ea580c',
-    tagColor: '#fef3c7',
-    tagTextColor: '#92400e',
-  },
-  {
-    id: 'audio',
-    label: 'Audio to Transcript',
-    contentPrefix: 'audio',
-    hasPrompts: false,
-    hasApiKeys: true,
-    apiKeyKeys: ['api_key_audio'],
-    apiKeyLabels: ['Deepgram API Key'],
-    hasQuestions: false,
-    placeholder: false,
-    cardBg: '#f0f2f5',
-    cardColor: '#7C7E7F',
-    tagColor: '#e2e6ec',
-    tagTextColor: '#6b7a99',
-  },
-  {
-    id: 'assessor',
-    label: 'Internal Assessor (2021)',
-    contentPrefix: 'assessor',
-    hasPrompts: true,
-    promptKeys: ['ai_assessor_prompt'],
-    promptLabels: ['System Prompt'],
-    hasApiKeys: true,
-    apiKeyKeys: ['api_key_assessor'],
-    apiKeyLabels: ['API Key'],
-    hasQuestions: false,
-    placeholder: false,
-    cardBg: '#f3e8ff',
-    cardColor: '#7c3aed',
-    tagColor: '#ede9fe',
-    tagTextColor: '#5b21b6',
-  },
-  {
-    id: 'assessor2025',
-    label: 'Internal Assessor (2025)',
-    contentPrefix: 'assessor2025',
-    hasPrompts: true,
-    promptKeys: ['ai_assessor_2025_prompt'],
-    promptLabels: ['System Prompt (Nov 2025 BARS Guide)'],
-    hasApiKeys: true,
-    apiKeyKeys: ['api_key_assessor_2025'],
-    apiKeyLabels: ['API Key'],
-    hasQuestions: false,
-    placeholder: false,
-    cardBg: '#fef3c7',
-    cardColor: '#d97706',
-    tagColor: '#fef08a',
-    tagTextColor: '#b45309',
+    cardBg: '#fff0e0', cardColor: '#ea580c', tagColor: '#fef3c7', tagTextColor: '#92400e',
   },
 ]
 
@@ -267,8 +227,8 @@ export default function AdminPanel({ section = 'users' }) {
   // API keys are write-only: the browser never receives a saved key, only whether one is saved.
   const [apiKeyInputs, setApiKeyInputs] = useState({})
   const [apiKeyStatus, setApiKeyStatus] = useState({})
-  const [prompts, setPrompts] = useState({ aiClientChatbot: '', aiClientFeedback: '', assessor: '', assessor2025: '' })
-  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true, audio: true, assessor: true, assessor2025: true })
+  const [prompts, setPrompts] = useState({})
+  const [visibility, setVisibility] = useState({ exam: true, transcript: true, ai: true })
   const [tileColors, setTileColors] = useState({})
   const [toolLoading, setToolLoading] = useState(false)
   const [toolError, setToolError] = useState(null)
@@ -298,7 +258,7 @@ export default function AdminPanel({ section = 'users' }) {
     setToolSuccess(null)
     if (activeTab === 'users') {
       loadUsers()
-    } else if (activeTab.startsWith('tool-')) {
+    } else if (activeTab.startsWith('tool-') || activeTab === 'signin') {
       loadToolSettings()
     } else if (activeTab === 'access-codes') {
       loadAccessCodes()
@@ -344,15 +304,16 @@ export default function AdminPanel({ section = 'users' }) {
         // Status badges are cosmetic; ignore failures.
       }
       setPrompts({
-        aiClientChatbot: configMap.ai_client_chatbot_prompt ?? getDefaultClientPrompt(),
-        aiClientFeedback: configMap.ai_client_feedback_prompt ?? '',
-        assessor: configMap.ai_assessor_prompt ?? '',
+        ai_client_chatbot_prompt: configMap.ai_client_chatbot_prompt ?? getDefaultClientPrompt(),
+        ai_client_feedback_prompt: configMap.ai_client_feedback_prompt ?? '',
+        ai_assessor_prompt: configMap.ai_assessor_prompt ?? '',
+        ai_assessor_2025_prompt: configMap.ai_assessor_2025_prompt ?? '',
+        transcript_reviewer_prompt: configMap.transcript_reviewer_prompt ?? '',
       })
       setVisibility({
         exam: configMap.tool_exam_visible !== 'false',
         transcript: configMap.tool_transcript_visible !== 'false',
         ai: configMap.tool_ai_visible !== 'false',
-        audio: configMap.tool_audio_visible !== 'false',
       })
 
       // Load tile colors (use defaults from TOOLS if not in config)
@@ -402,16 +363,26 @@ export default function AdminPanel({ section = 'users' }) {
     setToolLoading(false)
   }
 
+  async function handleSignInSave() {
+    setToolLoading(true)
+    setToolError(null)
+    setToolSuccess(null)
+    // A blank box saves as blank, and a blank box means "use the default text".
+    const rows = LOGIN_FIELDS.map(f => ({ key: f.key, value: (contentValues[f.key] ?? '').trim() }))
+    const { error } = await supabase.from('site_content').upsert(rows, { onConflict: 'key' })
+    if (error) setToolError(error.message)
+    else setToolSuccess('Sign-in page text saved. Reload a sign-in page to see it.')
+    setToolLoading(false)
+  }
+
   async function handleToolPromptsSave(toolId) {
     setToolLoading(true)
     setToolError(null)
     setToolSuccess(null)
 
-    const updates = [
-      { key: 'ai_client_chatbot_prompt', value: prompts.aiClientChatbot },
-      { key: 'ai_client_feedback_prompt', value: prompts.aiClientFeedback },
-      { key: 'ai_assessor_prompt', value: prompts.assessor },
-    ]
+    // Save only this tool's prompts, so one tab can never overwrite another tool's prompt.
+    const tool = TOOLS.find(t => t.id === toolId)
+    const updates = tool.promptKeys.map(key => ({ key, value: prompts[key] ?? '' }))
 
     const { error } = await supabase.from('config').upsert(updates, { onConflict: 'key' })
 
@@ -1031,37 +1002,97 @@ export default function AdminPanel({ section = 'users' }) {
   )
 
   // ── Tool tab renderer ──
+  const renderSignInTab = () => (
+    <div>
+      <div style={s.titleRow}>
+        <h1 style={s.heading}>Sign-in Pages</h1>
+      </div>
+      <p style={{ fontSize: '13px', color: COLORS['text-muted'], margin: '0 0 14px', lineHeight: 1.6 }}>
+        Edit the words on the sign-in pages: the home page, Student, Mentor Coach, and Admin. Leave a box empty to use the standard text (shown in gray). The layout, colors, and buttons stay the same.
+      </p>
+      {toolError && <p style={s.errorMsg}>{toolError}</p>}
+      {toolSuccess && <p style={s.successBanner}>{toolSuccess}</p>}
+      {LOGIN_GROUPS.map(group => (
+        <div key={group.id} style={s.formCard}>
+          <h2 style={s.formHeading}>{group.label}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {group.fields.map(f => (
+              <label key={f.key} style={s.label}>
+                {f.label}
+                {f.long ? (
+                  <textarea
+                    value={contentValues[f.key] ?? ''}
+                    onChange={e => setContentValues(v => ({ ...v, [f.key]: e.target.value }))}
+                    placeholder={f.def}
+                    style={{ ...s.textarea, minHeight: '70px' }}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={contentValues[f.key] ?? ''}
+                    onChange={e => setContentValues(v => ({ ...v, [f.key]: e.target.value }))}
+                    placeholder={f.def}
+                    style={s.input}
+                  />
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button onClick={handleSignInSave} disabled={toolLoading} style={s.submitBtn}>
+        {toolLoading ? 'Saving…' : 'Save Sign-in Text'}
+      </button>
+    </div>
+  )
+
   const renderToolTab = (tool) => (
     <div key={tool.id}>
       <div style={s.titleRow}>
         <h1 style={s.heading}>{tool.label}</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '12px', color: COLORS['text-main'], fontWeight: 500 }}>
-            {visibility[tool.id] ? 'Visible to participants' : 'Hidden from participants'}
-          </span>
+        <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '10px', background: tool.group === 'published' ? '#edf7d0' : '#fff1de', color: tool.group === 'published' ? '#4d5b00' : '#a45a00' }}>
+          {tool.group === 'published' ? 'Published' : 'In progress'}
+        </span>
+      </div>
+      {tool.note && <p style={{ fontSize: '13px', color: COLORS['text-muted'], margin: '0 0 14px', lineHeight: 1.6 }}>{tool.note}</p>}
+
+      {toolError && <p style={s.errorMsg}>{toolError}</p>}
+      {toolSuccess && <p style={s.successBanner}>{toolSuccess}</p>}
+
+      {tool.info && (
+        <div style={s.formCard}>
+          <h2 style={s.formHeading}>How this tool is set up</h2>
+          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13.5px', lineHeight: 1.8, color: COLORS['text-main'] }}>
+            <li>Who can use it: mentor coach, tool admin, and admin accounts.</li>
+            <li>AI key: it uses the <strong>Transcript Reviewer API key</strong> {apiKeyStatus.api_key_transcript ? '(saved ✓)' : '(not set)'}. Change it on the Transcript Reviewer tab.</li>
+            <li>AI instructions: built into the app. The AI only suggests evidence; the mentor coach picks every rating.</li>
+            <li>Saved work: drafts are kept per mentor coach, and full admins can read them in History / Data (read only).</li>
+          </ul>
+        </div>
+      )}
+
+      {/* Participant dashboard tile + visibility (older participant accounts only) */}
+      {tool.dashboard && (
+      <details style={{ ...s.formCard, padding: '14px 20px' }}>
+        <summary style={{ cursor: 'pointer', fontSize: '14px', fontWeight: 700, color: COLORS.navy }}>
+          Participant dashboard tile (older CoachRICE participant accounts only)
+        </summary>
+        <p style={{ fontSize: '12.5px', color: COLORS['text-muted'], lineHeight: 1.6, margin: '10px 0 14px' }}>
+          Admins, mentor coaches, and students never see the dashboard. This only changes the tile and the sidebar link that participant accounts see.
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 600, color: COLORS['text-main'], marginBottom: '18px' }}>
           <input
             type="checkbox"
-            checked={visibility[tool.id]}
+            checked={!!visibility[tool.id]}
             onChange={(e) => {
               const newValue = e.target.checked
               setVisibility(v => ({ ...v, [tool.id]: newValue }))
               handleToolVisibilitySave(tool.id, newValue)
             }}
-            style={{
-              width: '44px',
-              height: '24px',
-              cursor: 'pointer',
-              accentColor: COLORS.teal,
-            }}
+            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: COLORS.teal }}
           />
-        </div>
-      </div>
-
-      {toolError && <p style={s.errorMsg}>{toolError}</p>}
-      {toolSuccess && <p style={s.successBanner}>{toolSuccess}</p>}
-
-      {/* Dashboard Tile Preview + Content */}
-      <div style={s.formCard}>
+          {visibility[tool.id] ? 'Visible to participants' : 'Hidden from participants'}
+        </label>
         <h2 style={s.formHeading}>Dashboard Tile</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Live preview */}
@@ -1194,11 +1225,13 @@ export default function AdminPanel({ section = 'users' }) {
             {toolLoading ? 'Saving…' : 'Save Colors'}
           </button>
         </div>
-      </div>
+      </details>
+      )}
 
-      {/* Setup Page Content */}
+      {/* Start page text */}
+      {tool.pageContent && (
       <div style={s.formCard}>
-        <h2 style={s.formHeading}>Setup Page Content</h2>
+        <h2 style={s.formHeading}>Start Page Text</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Preview */}
           <div style={{
@@ -1216,7 +1249,7 @@ export default function AdminPanel({ section = 'users' }) {
               </div>
             )}
             <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: COLORS.navy, letterSpacing: '-0.3px' }}>
-              {contentValues[`${tool.contentPrefix}_start_title`] ?? tool.label}
+              {contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? tool.label}
             </h2>
             {(contentValues[`${tool.contentPrefix}_start_subtitle`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.subtitle) && (
               <p style={{ fontSize: '13px', color: COLORS['text-muted'], margin: 0, lineHeight: '1.5' }}>
@@ -1224,7 +1257,7 @@ export default function AdminPanel({ section = 'users' }) {
               </p>
             )}
             {[1, 2, 3].map(i => {
-              const infoValue = contentValues[`${tool.contentPrefix}_start_info_${i}`];
+              const infoValue = contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info?.[i - 1];
               if (!infoValue) return null;
               return (
                 <div key={`info_${i}`} style={{ fontSize: '12px', lineHeight: '1.6', color: COLORS['text-main'], margin: '4px 0' }}>
@@ -1249,7 +1282,7 @@ export default function AdminPanel({ section = 'users' }) {
               Title
               <input
                 type="text"
-                value={contentValues[`${tool.contentPrefix}_start_title`] ?? tool.label ?? ''}
+                value={contentValues[`${tool.contentPrefix}_start_title`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.title ?? tool.label ?? ''}
                 onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_title`]: e.target.value }))}
                 style={s.input}
                 placeholder={tool.label}
@@ -1269,7 +1302,7 @@ export default function AdminPanel({ section = 'users' }) {
                 Info Item {i}
                 <input
                   type="text"
-                  value={contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? ''}
+                  value={contentValues[`${tool.contentPrefix}_start_info_${i}`] ?? TOOL_PAGE_DEFAULTS[tool.id]?.info?.[i - 1] ?? ''}
                   onChange={e => setContentValues(v => ({ ...v, [`${tool.contentPrefix}_start_info_${i}`]: e.target.value }))}
                   style={s.input}
                   placeholder={`Info item ${i}`}
@@ -1282,9 +1315,10 @@ export default function AdminPanel({ section = 'users' }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* System Prompts (if applicable) */}
-      {tool.hasPrompts && !tool.placeholder && (
+      {tool.hasPrompts && (
         <div style={s.formCard}>
           <h2 style={s.formHeading}>System Prompts</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1292,11 +1326,8 @@ export default function AdminPanel({ section = 'users' }) {
               <label key={key} style={s.label}>
                 {tool.promptLabels[i]}
                 <textarea
-                  value={prompts[key === 'ai_client_chatbot_prompt' ? 'aiClientChatbot' : key === 'ai_client_feedback_prompt' ? 'aiClientFeedback' : 'assessor'] || ''}
-                  onChange={e => {
-                    const field = key === 'ai_client_chatbot_prompt' ? 'aiClientChatbot' : key === 'ai_client_feedback_prompt' ? 'aiClientFeedback' : 'assessor'
-                    setPrompts(v => ({ ...v, [field]: e.target.value }))
-                  }}
+                  value={prompts[key] || ''}
+                  onChange={e => setPrompts(v => ({ ...v, [key]: e.target.value }))}
                   style={{ ...s.textarea, fontFamily: 'monospace', fontSize: '0.85rem', minHeight: '200px' }}
                 />
               </label>
@@ -1308,14 +1339,8 @@ export default function AdminPanel({ section = 'users' }) {
         </div>
       )}
 
-      {tool.placeholder && (
-        <div style={s.formCard}>
-          <p style={{ textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>Prompts coming soon…</p>
-        </div>
-      )}
-
       {/* API Keys (if applicable) */}
-      {tool.hasApiKeys && !tool.placeholder && (
+      {tool.hasApiKeys && (
         <div style={s.formCard}>
           <h2 style={s.formHeading}>API Keys</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1619,22 +1644,32 @@ export default function AdminPanel({ section = 'users' }) {
     <Layout active={section === 'config' ? 'admin-config' : 'admin-users'} pageTitle={section === 'config' ? 'Tool Configuration' : 'Users / Access Codes'}>
       <div style={s.tabBar}>
         {(section === 'config'
-          ? TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label }))
+          ? [
+              ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label, group: t.group })),
+              { id: 'signin', label: 'Sign-in Pages', group: 'signin' },
+            ]
           : [{ id: 'users', label: 'Users' }, { id: 'access-codes', label: 'Access Codes' }]
-        ).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
-          >
-            {tab.label}
-          </button>
+        ).map((tab, i, all) => (
+          <span key={tab.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {tab.group && tab.group !== all[i - 1]?.group && (
+              <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: COLORS['text-muted'], margin: i ? '0 4px 0 14px' : '0 4px 0 8px' }}>
+                {tab.group === 'published' ? 'Published' : tab.group === 'progress' ? 'In progress' : 'Pages'}
+              </span>
+            )}
+            <button
+              onClick={() => setActiveTab(tab.id)}
+              style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
+            >
+              {tab.label}
+            </button>
+          </span>
         ))}
       </div>
 
       <div style={s.content}>
         {activeTab === 'users' && usersContent}
         {activeTab.startsWith('tool-') && renderToolTab(TOOLS.find(t => `tool-${t.id}` === activeTab))}
+        {activeTab === 'signin' && renderSignInTab()}
         {activeTab === 'access-codes' && renderAccessCodesTab()}
       </div>
     </Layout>
@@ -1644,6 +1679,8 @@ export default function AdminPanel({ section = 'users' }) {
 const s = {
   tabBar: {
     display: 'flex',
+    flexWrap: 'wrap',
+    rowGap: '4px',
     gap: 0,
     background: '#fff',
     borderRadius: '10px',
