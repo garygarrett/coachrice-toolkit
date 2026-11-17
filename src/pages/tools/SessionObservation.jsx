@@ -766,8 +766,8 @@ export default function SessionObservation() {
               <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
               <div style={small}>A Session Observation Form for one coaching session, or the Competency Review Form that sums up a participant&rsquo;s Session Observation Forms.</div>
             </div>
-            <button style={btn(mode === 'sof')} aria-pressed={mode === 'sof'} onClick={() => { setMode('sof'); setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>Session Observation Form</button>
-            <button style={btn(mode === 'review')} aria-pressed={mode === 'review'} onClick={() => { setMode('review'); setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>Competency Review Form</button>
+            <button style={btn(mode === 'sof')} aria-pressed={mode === 'sof'} onClick={() => setMode('sof')}>Session Observation Form</button>
+            <button style={btn(mode === 'review')} aria-pressed={mode === 'review'} onClick={() => setMode('review')}>Competency Review Form</button>
           </div>
           </>)}
           <div ref={startCardRef}>
