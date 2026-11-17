@@ -21,6 +21,7 @@ import AIClient from './pages/tools/AIClient'
 import InternalAssessor from './pages/tools/InternalAssessor'
 import AudioToTranscript from './pages/tools/AudioToTranscript'
 import SessionObservation from './pages/tools/SessionObservation'
+import CompetencyReview from './pages/tools/CompetencyReview'
 import AssessorTest from './pages/tools/AssessorTest'
 
 /**
@@ -141,6 +142,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole={['admin', 'admin_tools', 'mentor']}>
               <SessionObservation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tools/competency-review"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'admin_tools', 'mentor']}>
+              <CompetencyReview />
             </ProtectedRoute>
           }
         />
