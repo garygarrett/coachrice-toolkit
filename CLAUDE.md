@@ -291,7 +291,7 @@ Phase 3 = Auth + User Management | Phase 4 = DB setup | Phases 5–8 = individua
 
 ## Admin sidebar (full admins)
 
-Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (Session Observation Form), **Admin** (Internal Assessor, Audio to Transcript), **In progress** (ACC Practice Exam, AI Client), **Admin Tools** (Users / Access Codes → `/admin`, History / Data → `/admin/history`, Tool Configuration → `/admin/config`). Full admins no longer see the participant Dashboard or History links, and sign-in sends them to `/admin` (`homeFor`). The Users tab no longer has Cohort or Mentor Coach fields (the `cohorts` and `mentor_coaches` tables and `users.cohort_id` / `mentor_coach_id` columns remain, unused by the admin screens). Participant (`coach`) accounts keep the old Dashboard / History / Toolkit sidebar.
+Groups, top to bottom: **Student** (Transcript Reviewer), **Mentor Coach** (the Session Observation Form page, sidebar label "SOF/CRF"), **Admin** (Internal Assessor, Audio to Transcript), **In progress** (ACC Practice Exam, AI Client), **Admin Tools** (Users / Access Codes → `/admin`, History / Data → `/admin/history`, Tool Configuration → `/admin/config`). Full admins no longer see the participant Dashboard or History links, and sign-in sends them to `/admin` (`homeFor`). The Users tab no longer has Cohort or Mentor Coach fields (the `cohorts` and `mentor_coaches` tables and `users.cohort_id` / `mentor_coach_id` columns remain, unused by the admin screens). Participant (`coach`) accounts keep the old Dashboard / History / Toolkit sidebar.
 
 ## Sign-in: Student, Mentor Coach, Admin (NEW, Nov 2026)
 

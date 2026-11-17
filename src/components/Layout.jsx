@@ -116,14 +116,14 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
   const codeTools = [
     ...(codeRole === 'admin' ? [{ id: 'assessor', label: 'Internal Assessor', path: '/tools/assessor' }] : []),
     ...(codeRole === 'admin' ? [{ id: 'audio', label: 'Audio to Transcript', path: '/tools/audio' }] : []),
-    { id: 'observation', label: 'Session Observation Form', path: '/tools/session-observation' },
+    { id: 'observation', label: 'SOF/CRF', path: '/tools/session-observation' },
   ]
   const toolItems = isCode ? codeTools : isAdmin ? allToolItems : allToolItems.filter(tool => visibility[tool.id])
 
   // Full admins see every tool, grouped by who it is for, then the Admin Tools pages.
   const adminGroups = [
     { label: 'Student', items: [{ id: 'transcript', label: 'Transcript Reviewer', path: '/tools/transcript', icon: 'transcript' }] },
-    { label: 'Mentor Coach', items: [{ id: 'observation', label: 'Session Observation Form', path: '/tools/session-observation', icon: 'transcript' }] },
+    { label: 'Mentor Coach', items: [{ id: 'observation', label: 'SOF/CRF', path: '/tools/session-observation', icon: 'transcript' }] },
     { label: 'Admin', items: [
       { id: 'assessor', label: 'Internal Assessor', path: '/tools/assessor', icon: 'transcript' },
       { id: 'audio', label: 'Audio to Transcript', path: '/tools/audio', icon: 'transcript' },
