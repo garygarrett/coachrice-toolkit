@@ -5,6 +5,7 @@ import { authFetch } from '../lib/authFetch'
 import { invalidateGuide } from '../lib/guideAvailability'
 import { GuideBody, guideDocumentHtml, CONTACT_LINE } from '../lib/guideMarkdown'
 import { STARTER_SECTIONS } from '../lib/guideDefaults'
+import GuideEditor from '../components/GuideEditor'
 
 const font = 'Montserrat, sans-serif'
 const C = { navy: '#00205B', teal: '#69cce6', gray: '#7C7E7F', orange: '#ff8200', lime: '#c9d647', border: '#e2e6ec', muted: '#6b7a99' }
@@ -18,8 +19,6 @@ const label = (id) => AUDIENCES.find((a) => a.id === id)?.label || id
 const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 16 }
 const btn = (primary) => ({ fontFamily: font, fontWeight: 700, fontSize: 13, padding: '9px 16px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${C.navy}`, background: primary ? C.navy : '#fff', color: primary ? '#fff' : C.navy })
 const input = { fontFamily: font, fontSize: 14, padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, width: '100%', boxSizing: 'border-box' }
-
-const HELP = `Formatting: start a line with ## for a heading or ### for a smaller one. Start lines with - for bullets or 1. for steps. Use **bold** for bold text, [words](https://link) for a link, and ![caption](/guide/picture.png) for a picture already on the site. Leave a blank line between paragraphs.`
 
 export default function FAQGuide() {
   const { profile } = useAuth()
@@ -175,8 +174,8 @@ export default function FAQGuide() {
                 <label htmlFor="g-title" style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>Title</label>
                 <input id="g-title" style={{ ...input, margin: '4px 0 14px' }} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={200} />
                 <label htmlFor="g-body" style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>Text</label>
-                <textarea id="g-body" style={{ ...input, margin: '4px 0 6px', minHeight: 260, lineHeight: 1.5 }} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
-                <p style={{ margin: '0 0 14px', fontSize: 12, color: C.muted }}>{HELP}</p>
+                <GuideEditor value={draft.body} onChange={(v) => setDraft((d) => ({ ...d, body: v }))} uploadImage={async (img) => (await call('guide-upload-image', img)).url} font={font} />
+                <div style={{ height: 14 }} />
                 <fieldset style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', margin: '0 0 14px' }}>
                   <legend style={{ fontWeight: 700, fontSize: 13, color: C.navy, padding: '0 6px' }}>Who can see this section?</legend>
                   {AUDIENCES.map((a) => (
@@ -186,12 +185,6 @@ export default function FAQGuide() {
                   ))}
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Full admins always see every section. Tool admins are accounts that use the Internal Assessor and Audio to Transcript tools.</div>
                 </fieldset>
-                {draft.body.trim() && (
-                  <details style={{ marginBottom: 14 }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 700, color: C.navy, fontSize: 13 }}>Preview</summary>
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, marginTop: 8 }}><GuideBody text={draft.body} font={font} /></div>
-                  </details>
-                )}
                 <button style={btn(true)} disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save section'}</button>{' '}
                 <button style={btn(false)} onClick={() => { setDraft(null); setError('') }}>Cancel</button>
               </div>

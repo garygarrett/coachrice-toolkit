@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 import { requireAdmin, requireUser, requireCaller, lookupCode } from '../server/auth.js'
 
 const API_KEY_NAMES = [
@@ -802,6 +803,33 @@ export default async function handler(req, res) {
     const { error } = await supabase.from('guide_sections').delete().eq('id', id)
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ success: true })
+  }
+
+  // Picture upload for the guide editor (full admins). The browser shrinks the picture first and sends it as base64.
+  // It goes into a public Supabase Storage bucket 'guide-images' (made automatically the first time) under a random
+  // file name, and the public address comes back to be put in the section text.
+  if (action === 'guide-upload-image') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { type, data } = req.body || {}
+    const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' }
+    const ext = EXT[type]
+    if (!ext) return res.status(400).json({ error: 'Please choose a PNG, JPG, WEBP, or GIF picture.' })
+    const bytes = Buffer.from(String(data || ''), 'base64')
+    if (!bytes.length) return res.status(400).json({ error: 'The picture was empty.' })
+    if (bytes.length > 3 * 1024 * 1024) return res.status(413).json({ error: 'That picture is too large (3 MB maximum).' })
+    const path = `${randomUUID()}.${ext}`
+    const bucket = 'guide-images'
+    const put = () => supabase.storage.from(bucket).upload(path, bytes, { contentType: type, cacheControl: '31536000', upsert: false })
+    let { error } = await put()
+    if (error && /bucket.*not found|not found/i.test(error.message || '')) {
+      const made = await supabase.storage.createBucket(bucket, { public: true })
+      if (made.error && !/already exists/i.test(made.error.message || '')) return res.status(500).json({ error: made.error.message })
+      ;({ error } = await put())
+    }
+    if (error) return res.status(500).json({ error: error.message })
+    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path)
+    return res.status(200).json({ url: pub.publicUrl })
   }
 
   // Saves a new order: ids is the full list of section ids, first to last.
