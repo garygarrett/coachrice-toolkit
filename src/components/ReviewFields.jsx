@@ -155,7 +155,7 @@ export default function ReviewFields({ review, setReview, readOnly = false, sofs
                         <button
                           key={x.formNumber}
                           type="button"
-                          aria-label={`Open Session Observation Form #${x.formNumber} at ${b.id}`}
+                          aria-label={`Open SOF #${x.formNumber} at ${b.id}`}
                           onClick={() => onOpenSof(x, b.id)}
                           style={{ fontFamily: font, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, cursor: 'pointer', border: `1px solid ${good ? C.green : C.border}`, background: good ? '#f3f8d6' : C.soft, color: C.navy }}
                         >

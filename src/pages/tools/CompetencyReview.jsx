@@ -255,7 +255,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
                   return (
                     <button key={x.id} type="button" onClick={() => (on ? setPanel(null) : openSof(x))}
                       style={{ ...btn(on), padding: '5px 12px', fontSize: 12 }}>
-                      Form #{x.formNumber} · {done ? 'Complete' : 'In progress'}
+                      SOF #{x.formNumber} · {done ? 'Complete' : 'In progress'}
                     </button>
                   )
                 })}
@@ -278,12 +278,12 @@ export default function CompetencyReview({ request = null, onStageChange = null,
         </div>
         </div>
         {panel && (
-          <aside role="complementary" aria-label={`Session Observation Form #${panel.sof.formNumber}`}
+          <aside role="complementary" aria-label={`SOF #${panel.sof.formNumber}`}
             style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: shownW, background: '#fff', borderLeft: `1px solid ${C.border}`, boxShadow: '-6px 0 24px rgba(0,32,91,0.12)', zIndex: 30, display: 'flex', flexDirection: 'column', fontFamily: font }}>
             <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the side panel" title="Drag to resize" onPointerDown={startDrag}
               style={{ position: 'absolute', left: -5, top: 0, bottom: 0, width: 10, cursor: 'col-resize', zIndex: 31 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>Session Observation Form #{panel.sof.formNumber}</div>
+              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>SOF #{panel.sof.formNumber}</div>
               <button type="button" aria-label="Close side panel" onClick={() => setPanel(null)} style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }}>Close ✕</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
