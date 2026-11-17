@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
@@ -24,6 +24,25 @@ const input = { fontFamily: font, fontSize: 14, padding: '10px 12px', borderRadi
 export default function FAQGuide() {
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const pageRef = useRef(null)
+  const scroller = useRef(null)
+  const [showTop, setShowTop] = useState(false)
+  // The page scrolls inside the layout's content box, not the browser window, so find whichever one scrolls.
+  useEffect(() => {
+    let el = pageRef.current?.parentElement
+    while (el && el !== document.body) {
+      const oy = window.getComputedStyle(el).overflowY
+      if (oy === 'auto' || oy === 'scroll') break
+      el = el.parentElement
+    }
+    const target = el && el !== document.body ? el : window
+    scroller.current = target
+    const read = () => setShowTop((target === window ? window.scrollY : target.scrollTop) > 400)
+    target.addEventListener('scroll', read, { passive: true })
+    read()
+    return () => target.removeEventListener('scroll', read)
+  }, [])
+  const backToTop = () => scroller.current?.scrollTo({ top: 0, behavior: 'smooth' })
   const isAdmin = profile?.role === 'admin'
   const [sections, setSections] = useState(null)
   const [error, setError] = useState('')
@@ -95,7 +114,7 @@ export default function FAQGuide() {
 
   return (
     <Layout active="guide" pageTitle="FAQ / Guide">
-      <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+      <div ref={pageRef} style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <h1 style={{ margin: 0, fontSize: 26, color: C.navy }}>FAQ / Guide</h1>
@@ -199,6 +218,12 @@ export default function FAQGuide() {
           <div style={{ marginTop: 8, padding: '14px 18px', borderRadius: 10, background: '#eef7fb', borderLeft: `5px solid ${C.teal}`, color: C.navy, fontWeight: 600, fontSize: 14 }}>
             For any questions, email <a href="mailto:CoachRICE@rice.edu" style={{ color: C.navy }}>CoachRICE@rice.edu</a>
           </div>
+        )}
+        {showTop && (
+          <button type="button" onClick={backToTop} aria-label="Back to top"
+            style={{ position: 'fixed', right: 28, bottom: 24, zIndex: 40, fontFamily: font, fontWeight: 700, fontSize: 13, padding: '10px 16px', borderRadius: 999, cursor: 'pointer', border: `1.5px solid ${C.navy}`, background: C.navy, color: '#fff', boxShadow: '0 4px 14px rgba(0,32,91,0.3)' }}>
+            ↑ Back to top
+          </button>
         )}
       </div>
     </Layout>

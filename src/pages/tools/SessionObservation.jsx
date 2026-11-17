@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import CompetencyReview from './CompetencyReview'
 import GuidedTour from '../../components/GuidedTour'
+import TourHelpButton from '../../components/TourHelpButton'
 import { HOME_TOUR, FORM_TOUR } from '../../lib/tourSteps'
 import { tourSeen, markTourSeen } from '../../lib/tourSeen'
 import Layout from '../../components/Layout'
@@ -659,11 +660,9 @@ export default function SessionObservation() {
     return (
       <Layout active="observation" pageTitle={crfForm ? 'Competency Review Form Mentor Coaching' : 'Session Observation Form Mentor Coaching'}>
         {tour === 'home' && <GuidedTour steps={HOME_TOUR} onClose={closeTour} font={font} />}
+        {!tour && !crfForm && <TourHelpButton onClick={startHomeTour} />}
         <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           {!crfForm && (<>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-            <button style={{ ...btn(false), border: 'none', color: C.navy, textDecoration: 'underline', padding: '4px 6px' }} onClick={startHomeTour}>Take a quick tour</button>
-          </div>
           {cohorts.length > 1 && (
             <div data-tour="home-cohort" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <label style={{ ...label, margin: 0, fontSize: 14 }} htmlFor="obs-cohort">Cohort</label>
@@ -994,6 +993,7 @@ export default function SessionObservation() {
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
       {tour === 'form' && <GuidedTour steps={FORM_TOUR} onClose={closeTour} font={font} />}
+      {!tour && <TourHelpButton onClick={() => setTour('form')} />}
       <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ marginBottom: 14 }}>
         <label style={label} htmlFor="obs-title">Name of this observation</label>
@@ -1065,7 +1065,6 @@ export default function SessionObservation() {
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
         <button style={btn(false, exporting)} disabled={exporting} onClick={downloadAnnotated}>{exporting ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
-        <button style={{ ...btn(false), border: 'none', color: C.navy, textDecoration: 'underline' }} onClick={() => setTour('form')}>Take a quick tour</button>
         <span style={{ fontSize: 12, color: dirty ? C.orange : C.gray, fontWeight: 600 }}>
           {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Saving soon…') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
         </span>
