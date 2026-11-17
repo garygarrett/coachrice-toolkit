@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { authFetch } from '../lib/authFetch'
 import Layout from '../components/Layout'
+import CohortsTab from '../components/CohortsTab'
 import { getDefaultClientPrompt } from '../lib/prompts'
 import { LOGIN_GROUPS, LOGIN_FIELDS } from '../lib/loginContent'
 import { TRANSCRIPT_START_DEFAULTS } from '../lib/transcriptStartDefaults'
@@ -1648,7 +1649,7 @@ export default function AdminPanel({ section = 'users' }) {
               ...TOOLS.map(t => ({ id: `tool-${t.id}`, label: t.label, group: t.group })),
               { id: 'signin', label: 'Sign-in Pages', group: 'signin' },
             ]
-          : [{ id: 'users', label: 'Users' }, { id: 'access-codes', label: 'Access Codes' }]
+          : [{ id: 'users', label: 'Users' }, { id: 'cohorts', label: 'Cohorts' }, { id: 'access-codes', label: 'Access Codes' }]
         ).map((tab, i, all) => (
           <span key={tab.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
             {tab.group && tab.group !== all[i - 1]?.group && (
@@ -1671,6 +1672,7 @@ export default function AdminPanel({ section = 'users' }) {
         {activeTab.startsWith('tool-') && renderToolTab(TOOLS.find(t => `tool-${t.id}` === activeTab))}
         {activeTab === 'signin' && renderSignInTab()}
         {activeTab === 'access-codes' && renderAccessCodesTab()}
+        {activeTab === 'cohorts' && <CohortsTab />}
       </div>
     </Layout>
   )

@@ -396,11 +396,12 @@ export default async function handler(req, res) {
   if (action === 'obs-save') {
     const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
-    const { id, title, data } = req.body || {}
+    const { id, title, data, link } = req.body || {}
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data is required' })
     if (JSON.stringify(data).length > 3000000) return res.status(400).json({ error: 'This observation is too large to save' })
     const cleanTitle = String(title || 'Untitled observation').slice(0, 200)
     if (id) {
+      // The participant link is chosen once, when the observation is first saved. Later saves never change it.
       const { data: row, error } = await supabase
         .from('observation_drafts')
         .update({ title: cleanTitle, data, updated_at: new Date().toISOString() })
@@ -413,12 +414,43 @@ export default async function handler(req, res) {
       if (!row) return res.status(404).json({ error: 'Saved observation not found' })
       return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
     }
+    // New observation. If it is for a cohort participant, check the caller may use that participant and form number.
+    const insert = { [auth.owner.column]: auth.owner.value, title: cleanTitle, data }
+    if (link && link.participantId) {
+      const formNumber = Number(link.formNumber)
+      if (!Number.isInteger(formNumber) || formNumber < 1 || formNumber > 3) {
+        return res.status(400).json({ error: 'Choose Session Observation Form #1, #2, or #3' })
+      }
+      const { data: participant } = await supabase
+        .from('observation_participants')
+        .select('id, cohort_id')
+        .eq('id', link.participantId)
+        .maybeSingle()
+      if (!participant) return res.status(404).json({ error: 'That participant was not found. Ask an admin to check the cohort.' })
+      if (auth.role !== 'admin') {
+        const { data: assigned } = await supabase
+          .from('observation_cohort_mentors')
+          .select('cohort_id')
+          .eq('cohort_id', participant.cohort_id)
+          .eq('user_id', auth.user.id)
+          .maybeSingle()
+        if (!assigned) return res.status(403).json({ error: 'You are not assigned to that participant’s cohort' })
+      }
+      insert.cohort_id = participant.cohort_id
+      insert.participant_id = participant.id
+      insert.form_number = formNumber
+    }
     const { data: row, error } = await supabase
       .from('observation_drafts')
-      .insert({ [auth.owner.column]: auth.owner.value, title: cleanTitle, data })
+      .insert(insert)
       .select('id, updated_at')
       .single()
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({ error: `Session Observation Form #${insert.form_number} already exists for that participant. Open the saved one instead.` })
+      }
+      return res.status(500).json({ error: error.message })
+    }
     return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
   }
 
@@ -427,7 +459,7 @@ export default async function handler(req, res) {
     if (!auth) return
     const { data, error } = await supabase
       .from('observation_drafts')
-      .select('id, title, updated_at')
+      .select('id, title, updated_at, participant_id, form_number')
       .eq(auth.owner.column, auth.owner.value)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
@@ -443,7 +475,7 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: 'id is required' })
     const { data, error } = await supabase
       .from('observation_drafts')
-      .select('id, title, data, updated_at')
+      .select('id, title, data, updated_at, cohort_id, participant_id, form_number')
       .eq('id', id)
       .eq(auth.owner.column, auth.owner.value)
       .is('deleted_at', null)
@@ -500,6 +532,182 @@ export default async function handler(req, res) {
     if (!data) return res.status(404).json({ error: 'Saved observation not found' })
     const { data: owner } = await supabase.from('users').select('full_name, email, role').eq('id', data.user_id).maybeSingle()
     return res.status(200).json({ ...data, owner: owner || null })
+  }
+
+  // COHORTS - Admin > Users / Access Codes > Cohorts. A cohort is a group of participant NAMES (no accounts)
+  // plus the mentor coaches assigned to it. Mentor coaches pick a participant and Form #1/2/3 when they start
+  // a Session Observation Form. Everything below except cohort-mine is full admins only.
+  const COHORT_MENTOR_ROLES = ['mentor', 'admin_tools', 'admin']
+  const cleanName = (v) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, 120)
+
+  // What the admin screen needs in one call: cohorts, participants, mentor assignments, assignable
+  // mentor coaches, and every observation linked to a participant (with its form, to tell Complete from In progress).
+  if (action === 'cohort-admin-load') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const [cohorts, participants, assignments, mentors, drafts] = await Promise.all([
+      supabase.from('observation_cohorts').select('id, name, created_at').order('name'),
+      supabase.from('observation_participants').select('id, cohort_id, full_name, created_at').order('full_name'),
+      supabase.from('observation_cohort_mentors').select('cohort_id, user_id'),
+      supabase.from('users').select('id, full_name, email, role, is_active').in('role', COHORT_MENTOR_ROLES).order('full_name'),
+      supabase
+        .from('observation_drafts')
+        .select('id, user_id, participant_id, form_number, title, created_at, updated_at, form:data->form')
+        .not('participant_id', 'is', null)
+        .is('deleted_at', null)
+        .limit(2000),
+    ])
+    const failed = [cohorts, participants, assignments, mentors, drafts].find((r) => r.error)
+    if (failed) return res.status(500).json({ error: failed.error.message })
+    return res.status(200).json({
+      cohorts: cohorts.data || [],
+      participants: participants.data || [],
+      assignments: assignments.data || [],
+      mentors: mentors.data || [],
+      observations: drafts.data || [],
+    })
+  }
+
+  if (action === 'cohort-save') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    const name = cleanName(req.body?.name)
+    if (!name) return res.status(400).json({ error: 'Enter a cohort name' })
+    if (id) {
+      const { data, error } = await supabase.from('observation_cohorts').update({ name }).eq('id', id).select('id, name, created_at').maybeSingle()
+      if (error) return res.status(500).json({ error: error.message })
+      if (!data) return res.status(404).json({ error: 'Cohort not found' })
+      return res.status(200).json({ success: true, cohort: data })
+    }
+    const { data, error } = await supabase.from('observation_cohorts').insert({ name }).select('id, name, created_at').single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true, cohort: data })
+  }
+
+  // Deleting a cohort removes its participant names and mentor assignments. Saved observations are kept;
+  // only their link to the participant is cleared.
+  if (action === 'cohort-delete') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { error } = await supabase.from('observation_cohorts').delete().eq('id', id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
+  }
+
+  // Add several participant names at once. Names already in the cohort (ignoring capital letters) are skipped.
+  if (action === 'participants-add') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { cohortId, names } = req.body || {}
+    if (!cohortId || !Array.isArray(names)) return res.status(400).json({ error: 'cohortId and names are required' })
+    if (names.length > 200) return res.status(400).json({ error: 'Add up to 200 names at a time' })
+    const { data: existing, error: existingError } = await supabase.from('observation_participants').select('full_name').eq('cohort_id', cohortId)
+    if (existingError) return res.status(500).json({ error: existingError.message })
+    const seen = new Set((existing || []).map((p) => p.full_name.toLowerCase()))
+    const rows = []
+    for (const raw of names) {
+      const full_name = cleanName(raw)
+      if (!full_name || seen.has(full_name.toLowerCase())) continue
+      seen.add(full_name.toLowerCase())
+      rows.push({ cohort_id: cohortId, full_name })
+    }
+    if (!rows.length) return res.status(200).json({ success: true, added: [], skipped: names.length })
+    const { data, error } = await supabase.from('observation_participants').insert(rows).select('id, cohort_id, full_name, created_at')
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true, added: data || [], skipped: names.length - rows.length })
+  }
+
+  if (action === 'participant-update') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    const full_name = cleanName(req.body?.full_name)
+    if (!id || !full_name) return res.status(400).json({ error: 'id and a name are required' })
+    const { data, error } = await supabase.from('observation_participants').update({ full_name }).eq('id', id).select('id, cohort_id, full_name, created_at').maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(404).json({ error: 'Participant not found' })
+    return res.status(200).json({ success: true, participant: data })
+  }
+
+  if (action === 'participant-delete') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { error } = await supabase.from('observation_participants').delete().eq('id', id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
+  }
+
+  // Set the full list of mentor coaches for one cohort (replaces what was there).
+  if (action === 'cohort-mentors-set') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { cohortId, userIds } = req.body || {}
+    if (!cohortId || !Array.isArray(userIds)) return res.status(400).json({ error: 'cohortId and userIds are required' })
+    const wanted = [...new Set(userIds)]
+    if (wanted.length) {
+      const { data: found, error: foundError } = await supabase.from('users').select('id').in('id', wanted).in('role', COHORT_MENTOR_ROLES)
+      if (foundError) return res.status(500).json({ error: foundError.message })
+      if ((found || []).length !== wanted.length) return res.status(400).json({ error: 'Only mentor coach accounts can be assigned to a cohort' })
+    }
+    const { error: clearError } = await supabase.from('observation_cohort_mentors').delete().eq('cohort_id', cohortId)
+    if (clearError) return res.status(500).json({ error: clearError.message })
+    if (wanted.length) {
+      const { error: addError } = await supabase.from('observation_cohort_mentors').insert(wanted.map((user_id) => ({ cohort_id: cohortId, user_id })))
+      if (addError) return res.status(500).json({ error: addError.message })
+    }
+    return res.status(200).json({ success: true })
+  }
+
+  // COHORT MINE - For the Session Observation Form start screen. Returns only the cohorts this account is
+  // assigned to, each with its participants, and for each participant which form numbers already have a
+  // saved observation. It never returns another mentor's observation id, title, or content.
+  if (action === 'cohort-mine') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { data: mine, error: mineError } = await supabase.from('observation_cohort_mentors').select('cohort_id').eq('user_id', auth.user.id)
+    if (mineError) return res.status(500).json({ error: mineError.message })
+    const cohortIds = (mine || []).map((m) => m.cohort_id)
+    if (!cohortIds.length) return res.status(200).json({ cohorts: [] })
+    const [cohorts, participants] = await Promise.all([
+      supabase.from('observation_cohorts').select('id, name').in('id', cohortIds).order('name'),
+      supabase.from('observation_participants').select('id, cohort_id, full_name').in('cohort_id', cohortIds).order('full_name'),
+    ])
+    const failed = [cohorts, participants].find((r) => r.error)
+    if (failed) return res.status(500).json({ error: failed.error.message })
+    const participantIds = (participants.data || []).map((p) => p.id)
+    let drafts = []
+    if (participantIds.length) {
+      const { data, error } = await supabase
+        .from('observation_drafts')
+        .select('id, user_id, participant_id, form_number')
+        .in('participant_id', participantIds)
+        .is('deleted_at', null)
+      if (error) return res.status(500).json({ error: error.message })
+      drafts = data || []
+    }
+    const byParticipant = {}
+    drafts.forEach((d) => {
+      const mineDraft = d.user_id === auth.user.id
+      ;(byParticipant[d.participant_id] = byParticipant[d.participant_id] || []).push({
+        formNumber: d.form_number,
+        mine: mineDraft,
+        id: mineDraft ? d.id : null,
+      })
+    })
+    return res.status(200).json({
+      cohorts: (cohorts.data || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        participants: (participants.data || [])
+          .filter((p) => p.cohort_id === c.id)
+          .map((p) => ({ id: p.id, name: p.full_name, forms: byParticipant[p.id] || [] })),
+      })),
+    })
   }
 
   // HISTORY SUMMARY - For Admin > History / Data (admin accounts only).

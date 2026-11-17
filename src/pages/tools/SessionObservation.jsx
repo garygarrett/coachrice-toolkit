@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Layout from '../../components/Layout'
+import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
 import { parseTranscriptText, stamp } from '../../lib/sof/transcript'
@@ -102,6 +103,10 @@ export default function SessionObservation() {
   const [drafts, setDrafts] = useState([])
   const [savingDraft, setSavingDraft] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const { profile } = useAuth()
+  const [cohorts, setCohorts] = useState([]) // cohorts this account is assigned to, with participants and which forms exist
+  const [pick, setPick] = useState({ cohortId: '', participantId: '', formNumber: 0 }) // choice on the start screen
+  const [link, setLink] = useState(null) // { cohortId, participantId, formNumber } for the observation being worked on
   const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
@@ -113,7 +118,14 @@ export default function SessionObservation() {
   }, [])
   useEffect(() => () => { xhrRef.current?.abort() }, [])
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
-  useEffect(() => { loadDrafts() }, [])
+  useEffect(() => { loadDrafts(); loadCohorts() }, [])
+
+  // A mentor coach who is assigned to a cohort must say who the observation is for.
+  // Admins who are not mentor coaches may skip it.
+  const pickRequired = profile?.role === 'mentor' && cohorts.length > 0
+  const pickCohort = cohorts.find((c) => c.id === pick.cohortId) || null
+  const pickPerson = pickCohort?.participants.find((p) => p.id === pick.participantId) || null
+  const pickReady = pickPerson ? pick.formNumber > 0 : !pickRequired
 
   const snapshot = useMemo(() => JSON.stringify({ form, roles, active }), [form, roles, active])
   const dirty = stage === 'form' && snapshot !== lastSaved.current
@@ -174,7 +186,20 @@ export default function SessionObservation() {
     setRoles(initial)
     if (audioUrl) URL.revokeObjectURL(audioUrl)
     setAudioUrl(audioFile ? URL.createObjectURL(audioFile) : '')
-    set({ noTimestamps: !t.some((x) => x.time) })
+    // If this observation is for a cohort participant, fill in their name and a starting title.
+    // The mentor coach can still change both.
+    if (pickPerson && pick.formNumber) {
+      setLink({ cohortId: pickCohort.id, participantId: pickPerson.id, formNumber: pick.formNumber })
+      setForm((f) => ({
+        ...f,
+        noTimestamps: !t.some((x) => x.time),
+        title: f.title || `${pickPerson.name} – Session Observation Form #${pick.formNumber}`,
+        admin: { ...f.admin, clientName: f.admin.clientName || pickPerson.name },
+      }))
+    } else {
+      setLink(null)
+      set({ noTimestamps: !t.some((x) => x.time) })
+    }
     setStage('setup')
   }
 
@@ -278,6 +303,17 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ }
   }
 
+  // The cohorts and participants this account may observe, and which form numbers already exist.
+  async function loadCohorts() {
+    try {
+      const res = await authFetch('/api/user-actions?action=cohort-mine', { method: 'POST' })
+      if (!res.ok) return
+      const list = (await res.json()).cohorts || []
+      setCohorts(list)
+      setPick((p) => (list.some((c) => c.id === p.cohortId) ? p : { cohortId: list[0]?.id || '', participantId: '', formNumber: 0 }))
+    } catch { /* the picker is optional for most accounts; ignore */ }
+  }
+
   const draftTitle = () => observationTitle(form)
 
   // Transcript PDF with the selected evidence highlighted (same look as the Audio to Transcript PDF)
@@ -295,7 +331,7 @@ export default function SessionObservation() {
     try {
       const res = await authFetch('/api/user-actions?action=obs-save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form, turns, roles, ai, active } }),
+        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form, turns, roles, ai, active }, link }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || `status ${res.status}`)
@@ -346,6 +382,7 @@ export default function SessionObservation() {
       if (!res.ok) throw new Error('Could not delete it')
       if (id === draftId) resetAll()
       loadDrafts()
+      loadCohorts() // deleting frees that participant's form number again
     } catch (e) {
       setError(e.message)
     }
@@ -380,6 +417,8 @@ export default function SessionObservation() {
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
     setPasted(''); setConsent(false); setNotice(''); setError('')
     setDraftId(null); setSavedAt(null); lastSaved.current = ''; autoCreated.current = false
+    setLink(null); setPick((p) => ({ cohortId: p.cohortId, participantId: '', formNumber: 0 }))
+    loadCohorts()
   }
 
   // ---------- Pieces ----------
@@ -428,7 +467,7 @@ export default function SessionObservation() {
 
   // ---------- Screens ----------
   if (stage === 'input') {
-    const ready = file || pasted.trim().length > 20
+    const ready = (file || pasted.trim().length > 20) && pickReady
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
@@ -439,7 +478,10 @@ export default function SessionObservation() {
               {drafts.map((d) => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
                   <div style={{ flex: 1, fontSize: 13 }}>
-                    <div style={{ fontWeight: 700, color: C.navy }}>{d.title}</div>
+                    <div style={{ fontWeight: 700, color: C.navy }}>
+                      {d.title}
+                      {d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>Form #{d.form_number}</span> : null}
+                    </div>
                     <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
                   </div>
                   <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
@@ -455,6 +497,72 @@ export default function SessionObservation() {
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.
             </p>
             <div style={{ height: 14 }} />
+
+            {cohorts.length > 0 && (
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
+                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
+                <div style={{ ...small, marginBottom: 12 }}>
+                  Choose the participant and which Session Observation Form this is. Their name fills in on the form for you.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: cohorts.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+                  {cohorts.length > 1 && (
+                    <div>
+                      <label style={label} htmlFor="obs-cohort">Cohort</label>
+                      <select id="obs-cohort" style={input} value={pick.cohortId}
+                        onChange={(e) => setPick({ cohortId: e.target.value, participantId: '', formNumber: 0 })}>
+                        {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label style={label} htmlFor="obs-participant">Participant{cohorts.length === 1 ? ` (${cohorts[0].name})` : ''}</label>
+                    <select id="obs-participant" style={input} value={pick.participantId}
+                      onChange={(e) => setPick((p) => ({ ...p, participantId: e.target.value, formNumber: 0 }))}>
+                      <option value="">{pickRequired ? 'Choose a participant…' : 'Not for a cohort participant'}</option>
+                      {(pickCohort?.participants || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {pickCohort && pickCohort.participants.length === 0 && (
+                  <div style={{ ...small, marginTop: 8 }}>This cohort has no participants yet. Ask an admin to add names in Users / Access Codes &gt; Cohorts.</div>
+                )}
+                {pickPerson && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={label}>Session Observation Form</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {[1, 2, 3].map((n) => {
+                        const existing = pickPerson.forms.find((f) => f.formNumber === n)
+                        const chosen = pick.formNumber === n
+                        if (existing) {
+                          return (
+                            <div key={n} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', background: C.white, minWidth: 150 }}>
+                              <div style={{ fontWeight: 800, color: C.gray, fontSize: 13 }}>Form #{n}</div>
+                              {existing.mine ? (
+                                <>
+                                  <div style={{ ...small, marginBottom: 6 }}>Already started by you</div>
+                                  <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(existing.id)}>Open saved form</button>
+                                </>
+                              ) : (
+                                <div style={small}>Already started by another mentor coach</div>
+                              )}
+                            </div>
+                          )
+                        }
+                        return (
+                          <button key={n} type="button" onClick={() => setPick((p) => ({ ...p, formNumber: n }))} aria-pressed={chosen}
+                            style={{
+                              fontFamily: font, fontWeight: 800, fontSize: 14, padding: '12px 22px', borderRadius: 10, cursor: 'pointer', minWidth: 150,
+                              border: `2px solid ${chosen ? C.navy : C.border}`, background: chosen ? C.navy : C.white, color: chosen ? C.white : C.navy,
+                            }}>
+                            Form #{n}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div
               onClick={() => fileRef.current?.click()}
@@ -494,6 +602,11 @@ export default function SessionObservation() {
             {error && <div style={{ color: '#b42318', fontSize: 13, margin: '12px 0' }}>{error}</div>}
             <div style={{ marginTop: 16 }}>
               <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
+              {!pickReady && (
+                <span style={{ ...small, marginLeft: 12 }}>
+                  {pickPerson ? 'Choose Form #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
+                </span>
+              )}
             </div>
           </div>
         </div>
