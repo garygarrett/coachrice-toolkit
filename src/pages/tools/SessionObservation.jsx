@@ -403,9 +403,10 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ }
   }
 
-  // "Start Form #n" in the By participant panel: fill in the start card below (the page does not scroll).
+  // "Start Form #n" in the By participant panel: fill in the start card below and bring it into view.
   function startFormFor(person, n) {
     setPick({ cohortId: person.cohortId, participantId: person.id, formNumber: n })
+    setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   // The participants assigned to this account (grouped by cohort), and which form numbers already exist.
