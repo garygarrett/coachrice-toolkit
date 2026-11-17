@@ -745,6 +745,92 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...data, owner: owner || null })
   }
 
+  // FAQ / GUIDE - sections admins write. Each section lists which kinds of accounts may read it
+  // ('participant' = role coach, 'mentor', 'tool_admin' = role admin_tools). Full admins see and edit everything.
+  // guide-list works for every signed-in account and returns only what that account may read.
+  const GUIDE_AUDIENCES = ['participant', 'mentor', 'tool_admin']
+  const guideAudienceFor = (role) => (role === 'coach' ? 'participant' : role === 'mentor' ? 'mentor' : role === 'admin_tools' ? 'tool_admin' : null)
+  const cleanGuide = (b) => {
+    const title = String(b?.title || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+    const body = String(b?.body || '').slice(0, 30000)
+    const audiences = [...new Set((Array.isArray(b?.audiences) ? b.audiences : []).filter((a) => GUIDE_AUDIENCES.includes(a)))]
+    return { title, body, audiences }
+  }
+
+  if (action === 'guide-list') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['coach', 'mentor', 'admin_tools', 'admin'] })
+    if (!auth) return
+    const { data, error } = await supabase
+      .from('guide_sections')
+      .select('id, title, body, audiences, sort_order')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+    if (error) return res.status(500).json({ error: error.message })
+    if (auth.role === 'admin') return res.status(200).json({ sections: data || [], canEdit: true })
+    const mine = guideAudienceFor(auth.role)
+    const sections = (data || [])
+      .filter((s) => (s.audiences || []).includes(mine))
+      .map(({ id, title, body, sort_order }) => ({ id, title, body, sort_order }))
+    return res.status(200).json({ sections, canEdit: false })
+  }
+
+  if (action === 'guide-save') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    const clean = cleanGuide(req.body)
+    if (!clean.title) return res.status(400).json({ error: 'Please give the section a title.' })
+    if (id) {
+      const { data, error } = await supabase.from('guide_sections')
+        .update({ ...clean, updated_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle()
+      if (error) return res.status(500).json({ error: error.message })
+      if (!data) return res.status(404).json({ error: 'That section no longer exists.' })
+      return res.status(200).json({ id: data.id })
+    }
+    const { data: last } = await supabase.from('guide_sections').select('sort_order').order('sort_order', { ascending: false }).limit(1)
+    const next = (last?.[0]?.sort_order ?? -1) + 1
+    const { data, error } = await supabase.from('guide_sections').insert({ ...clean, sort_order: next }).select('id').single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ id: data.id })
+  }
+
+  if (action === 'guide-delete') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { error } = await supabase.from('guide_sections').delete().eq('id', id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
+  }
+
+  // Saves a new order: ids is the full list of section ids, first to last.
+  if (action === 'guide-reorder') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : []
+    if (!ids.length) return res.status(400).json({ error: 'ids is required' })
+    for (let i = 0; i < ids.length; i += 1) {
+      const { error } = await supabase.from('guide_sections').update({ sort_order: i }).eq('id', ids[i])
+      if (error) return res.status(500).json({ error: error.message })
+    }
+    return res.status(200).json({ success: true })
+  }
+
+  // Loads the starter sections, only while the guide is still empty.
+  if (action === 'guide-seed') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { count, error: countError } = await supabase.from('guide_sections').select('id', { count: 'exact', head: true })
+    if (countError) return res.status(500).json({ error: countError.message })
+    if (count > 0) return res.status(409).json({ error: 'The guide already has sections.' })
+    const list = (Array.isArray(req.body?.sections) ? req.body.sections : []).slice(0, 50).map(cleanGuide).filter((s) => s.title)
+    if (!list.length) return res.status(400).json({ error: 'sections is required' })
+    const { error } = await supabase.from('guide_sections').insert(list.map((s, i) => ({ ...s, sort_order: i })))
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ added: list.length })
+  }
+
   // COHORTS - Admin > Users / Access Codes > Cohorts. A cohort is a group of participant NAMES (no accounts)
   // plus the mentor coaches assigned to it. Mentor coaches pick a participant and Form #1/2/3 when they start
   // a Session Observation Form. Everything below except cohort-mine is full admins only.
