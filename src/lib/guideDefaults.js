@@ -78,7 +78,7 @@ The tool now looks through the transcript and highlights possible evidence for e
   {
     title: 'Working in the form',
     audiences: MENTOR,
-    body: `The form screen has three parts: the **transcript** on the left, a narrow **Jump to** bar in the middle, and the **ICF form** on the right.
+    body: `The form screen has three parts: the **transcript** on the left, the **ICF form** in the middle, and a narrow **Jump** bar on the right.
 
 ![The transcript, the Jump to bar, and the form, side by side.](/guide/07-form-overview.png)
 
@@ -95,7 +95,7 @@ Each competency card lists its behaviors. Choose one rating for every behavior: 
 ![Rate each behavior and review its evidence. The selected behavior is outlined.](/guide/08-evidence-ratings.png)
 
 ### Move around
-Use **Jump to** to go to Form details, Competency 1 and the other competencies (each shows how many behaviors you have rated), or Signature & save. If you added a recording, select a timestamp to hear that moment.
+Use the **Jump** bar on the right to go to Form details, Competency 1 and the other competencies (each shows a count like 3/4 for behaviors rated; hover to see the full name), or Signature. If you added a recording, select a timestamp to hear that moment.
 
 ### Feedback
 At the end of each competency card, add **Areas of Strength** and **Areas for Development** for that competency.`,

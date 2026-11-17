@@ -1068,7 +1068,7 @@ export default function SessionObservation() {
         </span>
         {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) 150px minmax(380px, 7fr)', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) minmax(380px, 7fr) 64px', gap: 14, alignItems: 'start' }}>
 
         {/* Transcript */}
         <div data-tour="form-transcript" style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
@@ -1126,28 +1126,28 @@ export default function SessionObservation() {
           </div>
         </div>
 
-        {/* Side bar: jump to a competency */}
-        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 8px 8px' }}>Jump to</div>
+        {/* Side bar on the right: jump to a competency (short labels; the full name shows on hover) */}
+        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ gridColumn: 3, gridRow: 1, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 0 8px', textAlign: 'center' }}>Jump</div>
           {[
-            { id: 'sec-info', label: 'Form details', sub: '' },
-            { id: 'sec-c1', label: '1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2 answered` },
+            { id: 'sec-info', label: 'Info', full: 'Form details', sub: '' },
+            { id: 'sec-c1', label: '1', full: 'Competency 1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2` },
             ...COMPETENCIES.map((c) => {
               const mine = BEHAVIORS.filter((b) => b.comp === c.n)
-              return { id: `sec-c${c.n}`, label: `${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length} rated`, first: mine[0]?.id }
+              return { id: `sec-c${c.n}`, label: `${c.n}`, full: `Competency ${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length}`, first: mine[0]?.id }
             }),
-            { id: 'sec-sign', label: 'Signature & save', sub: '' },
+            { id: 'sec-sign', label: 'Sign', full: 'Signature & save', sub: '' },
           ].map((it) => {
             const on = navActive === it.id
             return (
-              <button key={it.id} type="button" aria-current={on ? 'true' : undefined}
+              <button key={it.id} type="button" title={it.sub ? `${it.full} (${it.sub} done)` : it.full} aria-label={it.sub ? `${it.full}, ${it.sub}` : it.full} aria-current={on ? 'true' : undefined}
                 onClick={() => {
                   setNavActive(it.id)
                   navLockUntil.current = Date.now() + 1200
                   if (it.first) setActive(it.first)
                   document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', fontFamily: font, cursor: 'pointer', border: 'none', borderLeft: `4px solid ${on ? C.sky : 'transparent'}`, background: on ? '#eef6ff' : 'transparent', borderRadius: 6, padding: '8px 8px', marginBottom: 2, color: C.navy }}>
+                style={{ display: 'block', width: '100%', textAlign: 'center', fontFamily: font, cursor: 'pointer', border: 'none', borderRight: `4px solid ${on ? C.sky : 'transparent'}`, background: on ? '#eef6ff' : 'transparent', borderRadius: 6, padding: '8px 2px', marginBottom: 2, color: C.navy }}>
                 <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>{it.label}</span>
                 {it.sub && <span style={{ display: 'block', fontSize: 11, color: C.gray, marginTop: 1 }}>{it.sub}</span>}
               </button>
@@ -1156,7 +1156,7 @@ export default function SessionObservation() {
         </nav>
 
         {/* Form */}
-        <div>
+        <div style={{ gridColumn: 2, gridRow: 1, minWidth: 0 }}>
           <div style={{ ...card, background: C.navy, color: C.white, border: 'none' }}>
             <div style={{ fontWeight: 800, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
