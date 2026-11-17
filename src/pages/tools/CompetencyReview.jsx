@@ -316,7 +316,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
           </select>
           {existingForPick && (
             <div style={{ marginTop: 12, background: '#fff8f0', border: `1px solid ${C.orange}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }}>
-              <strong>{pickPerson?.name} already has a Competency Review Form.</strong> A participant has only one.{' '}
+              <strong>{pickPerson?.name} already has a Competency Review Form.</strong>{' '}
               <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openSaved(existingForPick.id)}>Open saved review</button>
             </div>
           )}
