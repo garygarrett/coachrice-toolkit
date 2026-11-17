@@ -816,7 +816,7 @@ export default function SessionObservation() {
             <CompetencyReview request={crfRequest} onStageChange={setCrfStage} onChanged={() => { loadDrafts(); loadCohorts() }} />
           ) : (
           <div style={card}>
-            <h2 style={h2}>Start a session observation</h2>
+            <h2 style={h2}>Start a Session Observation Form</h2>
             <p style={small}>
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.

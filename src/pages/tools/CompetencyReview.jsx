@@ -302,7 +302,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
       <div style={{ fontFamily: font }}>
         {error && <div role="alert" style={{ background: '#fdecec', border: '1px solid #e8a0a0', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#8a1c1c', marginBottom: 12 }}>{error}</div>}
         <div style={card}>
-          <h2 style={h2}>Start a competency review</h2>
+          <h2 style={h2}>Start a Competency Review Form</h2>
           <p style={small}>
             The Competency Review Form sums up a participant&rsquo;s Session Observation Forms. When you start it for a participant,
             each behavior is pre-filled as &ldquo;Proficiency Demonstrated&rdquo; if any of their Session Observation Forms rated it Meets or Exceeds the
