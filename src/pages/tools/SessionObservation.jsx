@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import CompetencyReview from './CompetencyReview'
 import Layout from '../../components/Layout'
 import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
@@ -120,7 +120,14 @@ export default function SessionObservation() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [draftId, setDraftId] = useState(null)
-  const navigate = useNavigate()
+  // "What would you like to create?": the bottom half of the start screen is either the Session Observation Form
+  // or the Competency Review Form, on this same page. ?form=review (the old Competency Review link) starts on the review.
+  const [mode, setMode] = useState(() => (new URLSearchParams(window.location.search).get('form') === 'review' ? 'review' : 'sof'))
+  const [crfRequest, setCrfRequest] = useState(() => {
+    const pid = new URLSearchParams(window.location.search).get('participant')
+    return pid ? { participantId: pid, n: 1 } : null
+  })
+  const [crfStage, setCrfStage] = useState('start')
   const [drafts, setDrafts] = useState([])
   const [reviews, setReviews] = useState([]) // this account's saved Competency Review Forms
   const [savingDraft, setSavingDraft] = useState(false)
@@ -625,9 +632,11 @@ export default function SessionObservation() {
   // ---------- Screens ----------
   if (stage === 'input') {
     const ready = (file || pasted.trim().length > 20) && pickReady
+    const crfForm = mode === 'review' && crfStage === 'form' // an open review takes over the page, like an open observation
     return (
-      <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
-        <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+      <Layout active="observation" pageTitle={crfForm ? 'Competency Review Form Mentor Coaching' : 'Session Observation Form Mentor Coaching'}>
+        <div style={crfForm ? { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+          {!crfForm && (<>
           {cohorts.length > 1 && (
             <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <label style={{ ...label, margin: 0, fontSize: 14 }} htmlFor="obs-cohort">Cohort</label>
@@ -741,7 +750,7 @@ export default function SessionObservation() {
                           </div>
                         </div>
                         {!elsewhereReview && (
-                          <button style={{ ...btn(!!mineReview), padding: '7px 14px' }} onClick={() => navigate(`/tools/competency-review?participant=${viewPerson.id}`)}>
+                          <button style={{ ...btn(!!mineReview), padding: '7px 14px' }} onClick={() => { setMode('review'); setCrfRequest({ participantId: viewPerson.id, n: Date.now() }) }}>
                             {mineReview ? 'Open' : 'Start Competency Review'}
                           </button>
                         )}
@@ -757,10 +766,15 @@ export default function SessionObservation() {
               <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
               <div style={small}>A Session Observation Form for one coaching session, or the Competency Review Form that sums up a participant&rsquo;s Session Observation Forms.</div>
             </div>
-            <button style={btn(true)} onClick={() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Session Observation Form</button>
-            <button style={btn(false)} onClick={() => navigate('/tools/competency-review')}>Competency Review Form</button>
+            <button style={btn(mode === 'sof')} aria-pressed={mode === 'sof'} onClick={() => { setMode('sof'); setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>Session Observation Form</button>
+            <button style={btn(mode === 'review')} aria-pressed={mode === 'review'} onClick={() => { setMode('review'); setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>Competency Review Form</button>
           </div>
-          <div style={card} ref={startCardRef}>
+          </>)}
+          <div ref={startCardRef}>
+          {mode === 'review' ? (
+            <CompetencyReview request={crfRequest} onStageChange={setCrfStage} onChanged={() => { loadDrafts(); loadCohorts() }} />
+          ) : (
+          <div style={card}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
@@ -879,6 +893,8 @@ export default function SessionObservation() {
                 </span>
               )}
             </div>
+          </div>
+          )}
           </div>
         </div>
       </Layout>
