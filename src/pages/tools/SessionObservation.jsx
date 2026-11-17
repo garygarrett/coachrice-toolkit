@@ -790,7 +790,6 @@ export default function SessionObservation() {
           <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice" data-tour="home-choice">
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
-              <div style={small}>A Session Observation Form for one coaching session, or the Competency Review Form that sums up a participant&rsquo;s Session Observation Forms.</div>
             </div>
             <button style={btn(mode === 'sof')} aria-pressed={mode === 'sof'} onClick={() => setMode('sof')}>Session Observation Form</button>
             <button style={btn(mode === 'review')} aria-pressed={mode === 'review'} onClick={() => setMode('review')}>Competency Review Form</button>
@@ -810,10 +809,7 @@ export default function SessionObservation() {
 
             {cohorts.length > 0 && (
               <div data-tour="home-who" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
-                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
-                <div style={{ ...small, marginBottom: 12 }}>
-                  Choose the participant and which Session Observation Form this is. Their name fills in on the form for you.
-                </div>
+                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 12 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
                 <div>
                   <label style={label} htmlFor="obs-participant">Participant{shownCohorts.length === 1 ? ` (${shownCohorts[0].name})` : ''}</label>
                   <select id="obs-participant" style={{ ...input, maxWidth: 420 }} value={pick.participantId}
@@ -875,6 +871,7 @@ export default function SessionObservation() {
               </div>
             )}
 
+            <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 8 }}>Transcript</div>
             <div
               data-tour="home-transcript"
               onClick={() => fileRef.current?.click()}
@@ -898,7 +895,8 @@ export default function SessionObservation() {
                   placeholder={'[00:05] Coach: What would you like to focus on today?\n[00:11] Client: ...'} />
                 {(
                   <>
-                    <div style={{ ...small, margin: '14px 0 6px' }}>
+                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, margin: '22px 0 6px' }}>Recording</div>
+                    <div style={{ ...small, margin: '0 0 6px' }}>
                       Optional: add the recording to play along with the transcript as you review. It plays only on your computer and is not uploaded.
                     </div>
                     <button style={btn(false)} onClick={() => audioFileRef.current?.click()}>{playFile ? playFile.name : 'Choose recording to play'}</button>
