@@ -493,7 +493,7 @@ export default async function handler(req, res) {
     if (!auth) return
     const { data, error } = await supabase
       .from('observation_drafts')
-      .select('id, title, updated_at, participant_id, form_number, form:data->form')
+      .select('id, title, updated_at, cohort_id, participant_id, form_number, form:data->form')
       .eq(auth.owner.column, auth.owner.value)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })

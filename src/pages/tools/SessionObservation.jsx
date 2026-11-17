@@ -16,6 +16,8 @@ const C = {
   orange: '#ff8200', green: '#c9d647', border: '#e2e6ec', soft: '#f0f2f5',
 }
 const font = "'Montserrat', sans-serif"
+// Short names for the competency side bar.
+const SHORT = { 3: 'Agreements', 4: 'Trust & Safety', 5: 'Presence', 6: 'Active Listening', 7: 'Evokes Awareness', 8: 'Client Growth' }
 // A to Z by participant name, ignoring capital letters.
 const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 const MAX_BYTES = 500 * 1024 * 1024
@@ -120,6 +122,9 @@ export default function SessionObservation() {
   const [relinking, setRelinking] = useState(false)
   const [viewPersonId, setViewPersonId] = useState('') // participant chosen in the "By participant" dropdown
   const startCardRef = useRef(null)
+  const [navActive, setNavActive] = useState('sec-info') // section highlighted in the side bar between transcript and form
+  const navLockUntil = useRef(0) // after a side bar click, ignore scroll tracking until the smooth scroll ends
+  const [cohortFilter, setCohortFilter] = useState('') // cohort chosen at the top of the page ('' = all cohorts)
   const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
@@ -133,22 +138,40 @@ export default function SessionObservation() {
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
   useEffect(() => { loadDrafts(); loadCohorts() }, [])
 
+  // Side bar: highlight the form section that is on screen.
+  useEffect(() => {
+    if (stage !== 'form' || typeof IntersectionObserver === 'undefined') return undefined
+    const ids = ['sec-info', 'sec-c1', ...COMPETENCIES.map((c) => `sec-c${c.n}`), 'sec-sign']
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean)
+    const seen = new Set()
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => (e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id)))
+      const first = ids.find((id) => seen.has(id))
+      if (first && Date.now() > navLockUntil.current) setNavActive(first)
+    }, { rootMargin: '-150px 0px -50% 0px' })
+    els.forEach((el) => obs.observe(el))
+    return () => obs.disconnect()
+  }, [stage])
+
   // Saved observations split by the same rule used everywhere else: Complete = nothing left to fill in.
   const isCompleteDraft = (d) => missingItems({ ...emptyForm(), ...(d.form || {}) }).length === 0
-  const completedDrafts = drafts.filter(isCompleteDraft)
-  const inProgressDrafts = drafts.filter((d) => !isCompleteDraft(d))
+  // The cohort selector at the top limits the lists below it. "All cohorts" shows everything, including forms not linked to a cohort.
+  const shownDrafts = cohortFilter ? drafts.filter((d) => d.cohort_id === cohortFilter) : drafts
+  const completedDrafts = shownDrafts.filter(isCompleteDraft)
+  const inProgressDrafts = shownDrafts.filter((d) => !isCompleteDraft(d))
 
   // A mentor coach who is assigned to a cohort must say who the observation is for.
   // Admins who are not mentor coaches may skip it.
   const pickRequired = profile?.role === 'mentor' && cohorts.length > 0
-  const pickCohort = cohorts.find((c) => c.id === pick.cohortId) || null
-  const pickPerson = pickCohort?.participants.find((p) => p.id === pick.participantId) || null
+  const pickPerson = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id }))).find((p) => p.id === pick.participantId) || null
+  const pickCohort = cohorts.find((c) => c.id === pickPerson?.cohortId) || null
+  const shownCohorts = cohortFilter ? cohorts.filter((c) => c.id === cohortFilter) : cohorts
   const pickTaken = pickPerson?.forms.find((f) => f.formNumber === pick.formNumber) || null // the chosen form number already has a saved observation
   const pickReady = pickPerson ? pick.formNumber > 0 && !pickTaken : !pickRequired
 
   // "Participant and form" panel on the form screen: change who a saved observation is for.
   const allPeople = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id })))
-  const peopleAZ = [...allPeople].sort(az) // every participant assigned to this account, A to Z
+  const peopleAZ = allPeople.filter((p) => !cohortFilter || p.cohortId === cohortFilter).sort(az) // participants in the chosen cohort(s), A to Z
   const viewPerson = peopleAZ.find((p) => p.id === viewPersonId) || null
   const relinkPerson = allPeople.find((p) => p.id === relink.participantId)
     || (link && link.participantId === relink.participantId ? { id: link.participantId, name: link.participantName, cohortId: link.cohortId, forms: [] } : null)
@@ -229,7 +252,7 @@ export default function SessionObservation() {
     // If this observation is for a cohort participant, fill in their name on the form.
     // The observation's own name is generated from the participant and form number.
     if (pickPerson && pick.formNumber) {
-      setLink({ cohortId: pickCohort.id, participantId: pickPerson.id, formNumber: pick.formNumber, participantName: pickPerson.name })
+      setLink({ cohortId: pickPerson.cohortId, participantId: pickPerson.id, formNumber: pick.formNumber, participantName: pickPerson.name })
       setForm((f) => ({
         ...f,
         noTimestamps: !t.some((x) => x.time),
@@ -358,7 +381,8 @@ export default function SessionObservation() {
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
       setCohorts(list)
       setViewPersonId((id) => (list.some((c) => c.participants.some((p) => p.id === id)) ? id : ''))
-      setPick((p) => (list.some((c) => c.id === p.cohortId) ? p : { cohortId: list[0]?.id || '', participantId: '', formNumber: 0 }))
+      setPick((p) => (list.some((c) => c.participants.some((x) => x.id === p.participantId)) ? p : { cohortId: '', participantId: '', formNumber: 0 }))
+      setCohortFilter((id) => (list.some((c) => c.id === id) ? id : ''))
     } catch { /* the picker is optional for most accounts; ignore */ }
   }
 
@@ -561,6 +585,22 @@ export default function SessionObservation() {
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+          {cohorts.length > 1 && (
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <label style={{ ...label, margin: 0, fontSize: 14 }} htmlFor="obs-cohort">Cohort</label>
+              <select id="obs-cohort" style={{ ...input, maxWidth: 320 }} value={cohortFilter}
+                onChange={(e) => {
+                  const id = e.target.value
+                  setCohortFilter(id)
+                  setViewPersonId('')
+                  setPick((p) => (!id || allPeople.some((x) => x.id === p.participantId && x.cohortId === id) ? p : { cohortId: '', participantId: '', formNumber: 0 }))
+                }}>
+                <option value="">All cohorts</option>
+                {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <span style={small}>Your saved observations and participants below show this cohort only.</span>
+            </div>
+          )}
           {(drafts.length > 0 || allPeople.length > 0) && (
             <div style={card}>
               <h2 style={h2}>Your saved observations</h2>
@@ -592,11 +632,11 @@ export default function SessionObservation() {
                   ))}
                 </details>
               ))}
-              {allPeople.length > 0 && (
+              {peopleAZ.length > 0 && (
                 <details open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
                   <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
                     By participant
-                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{allPeople.length}</span>
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{peopleAZ.length}</span>
                   </summary>
                   <div style={{ paddingBottom: 12 }}>
                     <label style={label} htmlFor="obs-by-participant">Choose a participant to see just their reports</label>
@@ -604,7 +644,7 @@ export default function SessionObservation() {
                       <option value="">Choose a participant…</option>
                       {peopleAZ.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name}{cohorts.length > 1 ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
+                          {p.name}{cohorts.length > 1 && !cohortFilter ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
                         </option>
                       ))}
                     </select>
@@ -654,27 +694,25 @@ export default function SessionObservation() {
                 <div style={{ ...small, marginBottom: 12 }}>
                   Choose the participant and which Session Observation Form this is. Their name fills in on the form for you.
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: cohorts.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
-                  {cohorts.length > 1 && (
-                    <div>
-                      <label style={label} htmlFor="obs-cohort">Cohort</label>
-                      <select id="obs-cohort" style={input} value={pick.cohortId}
-                        onChange={(e) => setPick({ cohortId: e.target.value, participantId: '', formNumber: 0 })}>
-                        {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div>
-                    <label style={label} htmlFor="obs-participant">Participant{cohorts.length === 1 ? ` (${cohorts[0].name})` : ''}</label>
-                    <select id="obs-participant" style={input} value={pick.participantId}
-                      onChange={(e) => setPick((p) => ({ ...p, participantId: e.target.value, formNumber: 0 }))}>
-                      <option value="">{pickRequired ? 'Choose a participant…' : 'Not for a cohort participant'}</option>
-                      {(pickCohort?.participants || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
+                <div>
+                  <label style={label} htmlFor="obs-participant">Participant{shownCohorts.length === 1 ? ` (${shownCohorts[0].name})` : ''}</label>
+                  <select id="obs-participant" style={{ ...input, maxWidth: 420 }} value={pick.participantId}
+                    onChange={(e) => {
+                      const person = allPeople.find((x) => x.id === e.target.value)
+                      setPick({ cohortId: person?.cohortId || '', participantId: e.target.value, formNumber: 0 })
+                    }}>
+                    <option value="">{pickRequired ? 'Choose a participant…' : 'Not for a cohort participant'}</option>
+                    {shownCohorts.length === 1
+                      ? shownCohorts[0].participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)
+                      : shownCohorts.map((c) => (
+                        <optgroup key={c.id} label={c.name}>
+                          {c.participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </optgroup>
+                      ))}
+                  </select>
                 </div>
-                {pickCohort && pickCohort.participants.length === 0 && (
-                  <div style={{ ...small, marginTop: 8 }}>This cohort has no participants yet. Ask an admin to add names in Users / Access Codes &gt; Cohorts.</div>
+                {shownCohorts.length > 0 && shownCohorts.every((c) => c.participants.length === 0) && (
+                  <div style={{ ...small, marginTop: 8 }}>No participants are assigned to you yet. Ask an admin to assign participants to you in Users / Access Codes &gt; Cohorts.</div>
                 )}
                 {pickPerson && (
                   <div style={{ marginTop: 14 }}>
@@ -906,7 +944,7 @@ export default function SessionObservation() {
         </span>
         {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 5fr) minmax(380px, 7fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) 150px minmax(380px, 7fr)', gap: 14, alignItems: 'start' }}>
 
         {/* Transcript */}
         <div style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
@@ -964,6 +1002,35 @@ export default function SessionObservation() {
           </div>
         </div>
 
+        {/* Side bar: jump to a competency */}
+        <nav aria-label="Jump to a competency" style={{ position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 8px 8px' }}>Jump to</div>
+          {[
+            { id: 'sec-info', label: 'Form details', sub: '' },
+            { id: 'sec-c1', label: '1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2 answered` },
+            ...COMPETENCIES.map((c) => {
+              const mine = BEHAVIORS.filter((b) => b.comp === c.n)
+              return { id: `sec-c${c.n}`, label: `${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length} rated`, first: mine[0]?.id }
+            }),
+            { id: 'sec-sign', label: 'Signature & save', sub: '' },
+          ].map((it) => {
+            const on = navActive === it.id
+            return (
+              <button key={it.id} type="button" aria-current={on ? 'true' : undefined}
+                onClick={() => {
+                  setNavActive(it.id)
+                  navLockUntil.current = Date.now() + 1200
+                  if (it.first) setActive(it.first)
+                  document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', fontFamily: font, cursor: 'pointer', border: 'none', borderLeft: `4px solid ${on ? C.sky : 'transparent'}`, background: on ? '#eef6ff' : 'transparent', borderRadius: 6, padding: '8px 8px', marginBottom: 2, color: C.navy }}>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>{it.label}</span>
+                {it.sub && <span style={{ display: 'block', fontSize: 11, color: C.gray, marginTop: 1 }}>{it.sub}</span>}
+              </button>
+            )
+          })}
+        </nav>
+
         {/* Form */}
         <div>
           <div style={{ ...card, background: C.navy, color: C.white, border: 'none' }}>
@@ -973,7 +1040,7 @@ export default function SessionObservation() {
             </div>
           </div>
 
-          <div style={card}>
+          <div id="sec-info" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Administrative Information</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
               {field('1. Mentor Coach Name', form.admin.name, (v) => setAdmin('name', v))}
@@ -995,7 +1062,7 @@ export default function SessionObservation() {
             {SELF_REVIEW.map((text, i) => check(form.selfReview[i], (v) => set({ selfReview: form.selfReview.map((b, j) => (j === i ? v : b)) }), text, i))}
           </div>
 
-          <div style={card}>
+          <div id="sec-c1" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Competency 1: Demonstrates Ethical Practice</h2>
             <p style={small}>
               Listen to and evaluate the entire recording first. Select &ldquo;Observed&rdquo; when there was sufficient evidence that a qualifier was demonstrated, and
@@ -1032,7 +1099,7 @@ export default function SessionObservation() {
           </div>
 
           {COMPETENCIES.map((c) => (
-            <div key={c.n} style={card}>
+            <div key={c.n} id={`sec-c${c.n}`} style={{ ...card, scrollMarginTop: 100 }}>
               <h2 style={h2}>Competency {c.n}: {c.name}</h2>
               <p style={small}>Definition: {c.definition}</p>
               {BEHAVIORS.filter((b) => b.comp === c.n).map((b) => {
@@ -1074,35 +1141,33 @@ export default function SessionObservation() {
                   </div>
                 )
               })}
+              {(() => {
+                const i = COMPETENCIES.findIndex((x) => x.n === c.n)
+                return (
+                  <div style={{ marginTop: 18, borderTop: `2px solid ${C.border}`, paddingTop: 14 }}>
+                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Observation feedback for Competency {c.n}</div>
+                    <p style={{ ...small, margin: '4px 0 0' }}>
+                      Support each with evidence (timestamps, quotes) and written feedback. Across all competencies the form needs at least 2 areas of strength and 2 areas for development.
+                    </p>
+                    {[['Areas of Strength', 'strengths'], ['Areas for Development', 'development']].map(([title, key]) => {
+                      const row = form[key][i]
+                      const upd = (patch) => set({ [key]: form[key].map((r, j) => (j === i ? { ...r, ...patch } : r)) })
+                      return (
+                        <div key={key} style={{ marginTop: 12, background: C.soft, borderRadius: 10, padding: 12 }}>
+                          <div style={{ fontWeight: 800, color: C.navy, fontSize: 13, marginBottom: 6 }}>{title}</div>
+                          {field('Statement for Feedback', row.statement, (v) => upd({ statement: v }))}
+                          <label style={{ ...label, marginTop: 8 }}>Feedback Comments</label>
+                          <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={row.comments} onChange={(e) => upd({ comments: e.target.value })} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </div>
           ))}
 
-          <div style={card}>
-            <h2 style={h2}>Observation Feedback</h2>
-            <p style={small}>
-              Provide detailed feedback with a minimum of 2&ndash;3 areas of strength and 2&ndash;3 areas for development. Support each with evidence
-              (timestamps, quotes) and written feedback. Use as many competency rows as you need.
-            </p>
-            {[['Areas of Strengths', 'strengths'], ['Areas for Development', 'development']].map(([title, key]) => (
-              <div key={key} style={{ marginTop: 16 }}>
-                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 6 }}>{title}</div>
-                {form[key].map((row, i) => {
-                  const c = COMPETENCIES[i]
-                  const upd = (patch) => set({ [key]: form[key].map((r, j) => (j === i ? { ...r, ...patch } : r)) })
-                  return (
-                    <div key={c.n} style={{ borderTop: `1px solid ${C.border}`, padding: '12px 0' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 6 }}>Competency {c.n}: {c.name}</div>
-                      {field('Statement for Feedback', row.statement, (v) => upd({ statement: v }))}
-                      <label style={{ ...label, marginTop: 8 }}>Feedback Comments</label>
-                      <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={row.comments} onChange={(e) => upd({ comments: e.target.value })} />
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-
-          <div style={card}>
+          <div id="sec-sign" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Mentor Coach Signature</h2>
             <p style={small}>By signing, I attest to the following:</p>
             <ul style={{ fontSize: 13, lineHeight: 1.55, paddingLeft: 20, margin: '8px 0 14px' }}>
