@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import CompetencyReview from './CompetencyReview'
+import GuidedTour from '../../components/GuidedTour'
+import { HOME_TOUR, FORM_TOUR } from '../../lib/tourSteps'
+import { tourSeen, markTourSeen } from '../../lib/tourSeen'
 import Layout from '../../components/Layout'
 import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
@@ -122,6 +125,8 @@ export default function SessionObservation() {
   const [draftId, setDraftId] = useState(null)
   // "What would you like to create?": the bottom half of the start screen is either the Session Observation Form
   // or the Competency Review Form, on this same page. ?form=review (the old Competency Review link) starts on the review.
+  const [tour, setTour] = useState(null) // 'home' | 'form' | null: the guided tour that is open
+  const [listsLoaded, setListsLoaded] = useState({ drafts: false, cohorts: false }) // the home tour waits for these
   const [mode, setMode] = useState(() => (new URLSearchParams(window.location.search).get('form') === 'review' ? 'review' : 'sof'))
   const [crfRequest, setCrfRequest] = useState(() => {
     const pid = new URLSearchParams(window.location.search).get('participant')
@@ -198,6 +203,24 @@ export default function SessionObservation() {
   // Only admins see the AI's suggested ratings and may start an observation that is not for a participant.
   // While the profile is still loading, treat the person as a mentor coach so nothing flashes up.
   const isAdmin = profile?.role === 'admin' || profile?.role === 'admin_tools'
+
+  // Guided tours: they start by themselves the first time a mentor coach or tool admin sees each screen. The buttons replay them.
+  const startHomeTour = () => { setMode('sof'); setTimeout(() => setTour('home'), 80) }
+  const closeTour = () => { if (profile?.id && tour) markTourSeen(profile.id, tour); setTour(null) }
+  useEffect(() => {
+    if (!profile?.id || (profile.role !== 'mentor' && profile.role !== 'admin_tools')) return undefined
+    const which = stage === 'input' && mode === 'sof' && listsLoaded.drafts && listsLoaded.cohorts ? 'home' : stage === 'form' ? 'form' : null
+    if (!which || tour || tourSeen(profile.id, which)) return undefined
+    const t = setTimeout(() => setTour(which), 700)
+    return () => clearTimeout(t)
+  }, [profile?.id, profile?.role, stage, mode, listsLoaded, tour])
+  // A link like /tools/session-observation?tour=home (used by FAQ / Guide) opens the home tour.
+  useEffect(() => {
+    if (profile?.id && listsLoaded.drafts && listsLoaded.cohorts && new URLSearchParams(window.location.search).get('tour') === 'home') {
+      window.history.replaceState(null, '', window.location.pathname)
+      startHomeTour()
+    }
+  }, [profile?.id, listsLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const pickRequired = !isAdmin && cohorts.length > 0
   const pickPerson = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id }))).find((p) => p.id === pick.participantId) || null
   const pickCohort = cohorts.find((c) => c.id === pickPerson?.cohortId) || null
@@ -400,7 +423,7 @@ export default function SessionObservation() {
       if (res.ok) setDrafts((await res.json()).data || [])
       const rv = await authFetch('/api/user-actions?action=crf-list', { method: 'POST' })
       if (rv.ok) setReviews((await rv.json()).data || [])
-    } catch { /* the list is a convenience; ignore */ }
+    } catch { /* the list is a convenience; ignore */ } finally { setListsLoaded((l) => ({ ...l, drafts: true })) }
   }
 
   // "Start Form #n" in the By participant panel: fill in the start card below and bring it into view.
@@ -421,7 +444,7 @@ export default function SessionObservation() {
       setViewPersonId((id) => (list.some((c) => c.participants.some((p) => p.id === id)) ? id : ''))
       setPick((p) => (list.some((c) => c.participants.some((x) => x.id === p.participantId)) ? p : { cohortId: '', participantId: '', formNumber: 0 }))
       setCohortFilter((id) => (list.some((c) => c.id === id) ? id : ''))
-    } catch { /* the picker is optional for most accounts; ignore */ }
+    } catch { /* the picker is optional for most accounts; ignore */ } finally { setListsLoaded((l) => ({ ...l, cohorts: true })) }
   }
 
   // Change the participant and form number of the observation that is open (also works for older, unlinked ones).
@@ -635,10 +658,14 @@ export default function SessionObservation() {
     const crfForm = mode === 'review' && crfStage === 'form' // an open review takes over the page, like an open observation
     return (
       <Layout active="observation" pageTitle={crfForm ? 'Competency Review Form Mentor Coaching' : 'Session Observation Form Mentor Coaching'}>
+        {tour === 'home' && <GuidedTour steps={HOME_TOUR} onClose={closeTour} font={font} />}
         <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           {!crfForm && (<>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <button style={{ ...btn(false), border: 'none', color: C.navy, textDecoration: 'underline', padding: '4px 6px' }} onClick={startHomeTour}>Take a quick tour</button>
+          </div>
           {cohorts.length > 1 && (
-            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div data-tour="home-cohort" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <label style={{ ...label, margin: 0, fontSize: 14 }} htmlFor="obs-cohort">Cohort</label>
               <select id="obs-cohort" style={{ ...input, maxWidth: 320 }} value={cohortFilter}
                 onChange={(e) => {
@@ -654,7 +681,7 @@ export default function SessionObservation() {
             </div>
           )}
           {(drafts.length > 0 || allPeople.length > 0) && (
-            <div style={card}>
+            <div style={card} data-tour="home-saved">
               <h2 style={h2}>Your saved observations</h2>
               {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
               {[
@@ -685,7 +712,7 @@ export default function SessionObservation() {
                 </details>
               ))}
               {peopleAZ.length > 0 && (
-                <details open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
+                <details data-tour="home-byparticipant" open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
                   <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
                     By participant
                     <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{peopleAZ.length}</span>
@@ -761,7 +788,7 @@ export default function SessionObservation() {
               )}
             </div>
           )}
-          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice">
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice" data-tour="home-choice">
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
               <div style={small}>A Session Observation Form for one coaching session, or the Competency Review Form that sums up a participant&rsquo;s Session Observation Forms.</div>
@@ -783,7 +810,7 @@ export default function SessionObservation() {
             <div style={{ height: 14 }} />
 
             {cohorts.length > 0 && (
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
+              <div data-tour="home-who" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
                 <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
                 <div style={{ ...small, marginBottom: 12 }}>
                   Choose the participant and which Session Observation Form this is. Their name fills in on the form for you.
@@ -850,6 +877,7 @@ export default function SessionObservation() {
             )}
 
             <div
+              data-tour="home-transcript"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
@@ -885,7 +913,7 @@ export default function SessionObservation() {
               The transcript text is sent to Claude (Anthropic) to find evidence. Recordings are never stored. If you press Save progress, CoachRICE keeps the transcript text and your answers so you can finish later.
             </p>
             {error && <div style={{ color: '#b42318', fontSize: 13, margin: '12px 0' }}>{error}</div>}
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 16 }} data-tour="home-continue">
               <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
               {!pickReady && (
                 <span style={{ ...small, marginLeft: 12 }}>
@@ -965,6 +993,7 @@ export default function SessionObservation() {
 
   return (
     <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
+      {tour === 'form' && <GuidedTour steps={FORM_TOUR} onClose={closeTour} font={font} />}
       <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ marginBottom: 14 }}>
         <label style={label} htmlFor="obs-title">Name of this observation</label>
@@ -1031,11 +1060,12 @@ export default function SessionObservation() {
           )}
         </div>
       )}
-      <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+      <div data-tour="form-toolbar" style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={goBack}>&larr; Back to my observations</button>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
         <button style={btn(false, exporting)} disabled={exporting} onClick={downloadAnnotated}>{exporting ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
+        <button style={{ ...btn(false), border: 'none', color: C.navy, textDecoration: 'underline' }} onClick={() => setTour('form')}>Take a quick tour</button>
         <span style={{ fontSize: 12, color: dirty ? C.orange : C.gray, fontWeight: 600 }}>
           {savingDraft ? 'Saving…' : dirty ? (draftId ? 'Unsaved changes (saves itself every 30 seconds)' : 'Saving soon…') : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
         </span>
@@ -1044,7 +1074,7 @@ export default function SessionObservation() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) 150px minmax(380px, 7fr)', gap: 14, alignItems: 'start' }}>
 
         {/* Transcript */}
-        <div style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
+        <div data-tour="form-transcript" style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
           <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Transcript</div>
             <div style={{ ...small, marginTop: 4 }}>
@@ -1062,7 +1092,7 @@ export default function SessionObservation() {
             </button>
           </div>
           <div style={{ overflowY: 'auto', padding: '8px 12px' }} onMouseUp={captureSelection} onKeyUp={captureSelection}>
-            {turns.map((t) => {
+            {turns.map((t, ti) => {
               const on = activeEvidence.some((e) => e.turn === t.id)
               const codes = [...(codesByTurn[t.id] || [])].filter((c) => c !== active)
               const role = roles[t.speaker]
@@ -1089,7 +1119,7 @@ export default function SessionObservation() {
                       </div>
                     )}
                   </div>
-                  <button title={on ? `Remove from ${active}` : `Add to ${active}`} onClick={() => toggleTurn(t)}
+                  <button data-tour={ti === 0 ? 'form-add-turn' : undefined} title={on ? `Remove from ${active}` : `Add to ${active}`} onClick={() => toggleTurn(t)}
                     style={{ border: `1px solid ${on ? C.sky : C.border}`, background: on ? C.sky : C.white, color: C.navy, width: 24, height: 24, borderRadius: 6, cursor: 'pointer', fontWeight: 800, fontFamily: font, alignSelf: 'flex-start' }}>
                     {on ? '✓' : '+'}
                   </button>
@@ -1100,7 +1130,7 @@ export default function SessionObservation() {
         </div>
 
         {/* Side bar: jump to a competency */}
-        <nav aria-label="Jump to a competency" style={{ position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
+        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 8px 8px' }}>Jump to</div>
           {[
             { id: 'sec-info', label: 'Form details', sub: '' },
