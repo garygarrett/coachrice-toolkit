@@ -14,8 +14,8 @@ export const HOME_TOUR = [
   },
   {
     target: '[data-tour="home-saved"]',
-    title: 'Your saved observations',
-    body: 'In progress holds forms you have started. Completed holds forms with every field filled in. Select Open to keep working on a form. Delete removes the saved copy for good.',
+    title: 'Your Saved Forms',
+    body: 'Your Session Observation Forms and Competency Review Forms (tagged CRF) are listed together here. In progress holds forms you have started. Completed holds forms with every field filled in. Select Open to keep working on a form. Delete removes the saved copy for good.',
   },
   {
     target: '[data-tour="home-byparticipant"]',

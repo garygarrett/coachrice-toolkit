@@ -46,7 +46,7 @@ If you mistyped your email, ask CoachRICE to correct it. An administrator can fi
     body: `Everything starts on the **Session Observation Form** page. From top to bottom:
 
 - **Cohort** (only if you work with more than one cohort). Pick a cohort to limit the lists below to that group.
-- **Your saved observations.** **In progress** holds forms you have started. **Completed** holds forms with every field filled in. Select **Open** to continue a form.
+- **Your Saved Forms.** Session Observation Forms and Competency Review Forms (tagged CRF) are listed together. **In progress** holds forms you have started. **Completed** holds forms with every field filled in. Select **Open** to continue a form.
 - **By participant.** Pick a participant to see their Form #1, #2, and #3 and their Competency Review Form, with the status of each. Select **Start Form #2**, for example, to begin the next one.
 - **What would you like to create?** Switch between a Session Observation Form and a Competency Review Form.
 

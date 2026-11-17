@@ -138,6 +138,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
 
   // The parent asks for a participant's review (By participant row): open it, or start it.
   useEffect(() => {
+    if (request?.id && handledRequest.current !== request.n && profile) { handledRequest.current = request.n; openSaved(request.id); return }
     if (!request?.participantId || handledRequest.current === request.n || !profile || !people.length) return
     const person = people.find((p) => p.id === request.participantId)
     if (!person) return
@@ -232,8 +233,6 @@ export default function CompetencyReview({ request = null, onStageChange = null,
 
   const missing = useMemo(() => missingReviewItems(review), [review])
   const isDone = (row) => !!row.review && missingReviewItems({ ...emptyReview(), ...row.review }).length === 0
-  const inProgress = saved.filter((s) => !isDone(s))
-  const done = saved.filter(isDone)
   const existingForPick = pickId ? saved.find((s) => s.participant_id === pickId) : null
 
   if (stage === 'form') {
@@ -298,17 +297,6 @@ export default function CompetencyReview({ request = null, onStageChange = null,
     )
   }
 
-  const Row = ({ s }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-      <div style={{ flex: 1, fontSize: 13 }}>
-        <div style={{ fontWeight: 700, color: C.navy }}>{s.title}</div>
-        <div style={small}>Last saved {new Date(s.updated_at).toLocaleString()}</div>
-      </div>
-      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openSaved(s.id)}>Open</button>
-      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => remove(s.id, s.title)}>Delete</button>
-    </div>
-  )
-
   return (
     <>
       <div style={{ fontFamily: font }}>
@@ -344,13 +332,6 @@ export default function CompetencyReview({ request = null, onStageChange = null,
               {busy === 'start' ? 'Starting…' : 'Start Competency Review Form'}
             </button>
           </div>
-        </div>
-
-        <div style={card}>
-          <h2 style={h2}>Your saved reviews</h2>
-          {saved.length === 0 && <p style={small}>Nothing saved yet.</p>}
-          {inProgress.length > 0 && <details open><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>In progress ({inProgress.length})</summary>{inProgress.map((s) => <Row key={s.id} s={s} />)}</details>}
-          {done.length > 0 && <details><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>Completed ({done.length})</summary>{done.map((s) => <Row key={s.id} s={s} />)}</details>}
         </div>
       </div>
     </>
