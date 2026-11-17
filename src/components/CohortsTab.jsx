@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { authFetch } from '../lib/authFetch'
 import { emptyForm, missingItems } from '../lib/sof/formSpec'
 import ObservationViewer from './ObservationViewer'
+import ReviewViewer from './ReviewViewer'
+import { emptyReview, missingReviewItems } from '../lib/crf/crfSpec'
 import LoadingBar from './LoadingBar'
 
 // Admin > Users / Access Codes > Cohorts.
@@ -46,6 +48,7 @@ export default function CohortsTab() {
   const [newMentorKey, setNewMentorKey] = useState('') // mentor coach for names typed in "Add participants": 'u:<account id>' or 'c:<access code id>'
   const [editingPerson, setEditingPerson] = useState(null) // { id, name }
   const [record, setRecord] = useState(null)
+  const [reviewRecord, setReviewRecord] = useState(null)
 
   async function load(keepSelected = true) {
     setError('')
@@ -164,6 +167,19 @@ export default function CohortsTab() {
     ? `${p.full_name} assigned to ${nameOfKey(key)}.${key.startsWith('c:') ? ' They move to that mentor coach\u2019s account when they sign up.' : ''}`
     : `${p.full_name} is now unassigned.`)
 
+  // Competency Review Forms by participant (one each).
+  const reviewsOf = useMemo(() => {
+    const m = {}
+    ;(data?.reviews || []).forEach((r) => { m[r.participant_id] = r })
+    return m
+  }, [data])
+
+  async function openReview(id) {
+    setBusy(`open-${id}`); setError('')
+    try { setReviewRecord(await call('crf-admin-get', { id })) } catch (e) { setError(e.message) }
+    setBusy('')
+  }
+
   async function openObservation(id) {
     setBusy(`open-${id}`); setError('')
     try { setRecord(await call('obs-admin-get', { id })) } catch (e) { setError(e.message) }
@@ -171,6 +187,7 @@ export default function CohortsTab() {
   }
 
   if (record) return <ObservationViewer record={record} onBack={() => setRecord(null)} />
+  if (reviewRecord) return <ReviewViewer record={reviewRecord} onBack={() => setReviewRecord(null)} />
 
   const completeCount = people.reduce((n, p) => n + [1, 2, 3].filter((k) => {
     const o = forms[`${p.id}:${k}`]
@@ -312,6 +329,7 @@ export default function CohortsTab() {
                     <th style={th}>Form #1</th>
                     <th style={th}>Form #2</th>
                     <th style={th}>Form #3</th>
+                    <th style={th}>Competency Review</th>
                     <th style={th}></th>
                   </tr>
                 </thead>
@@ -355,6 +373,23 @@ export default function CohortsTab() {
                           </td>
                         )
                       })}
+                      {(() => {
+                        const rv = reviewsOf[p.id]
+                        if (!rv) return <td style={{ ...td, color: C.gray }}>Not started</td>
+                        const done = missingReviewItems({ ...emptyReview(), ...(rv.review || {}) }).length === 0
+                        return (
+                          <td style={td}>
+                            <button onClick={() => openReview(rv.id)} disabled={busy === `open-${rv.id}`}
+                              style={{ ...ghost, padding: '0.3rem 0.6rem', textAlign: 'left', borderColor: done ? C.lime : C.orange }}
+                              title="Open this Competency Review Form (read only)">
+                              <span style={{ fontWeight: 700, color: done ? '#3f6212' : '#b45309' }}>{done ? 'Complete' : 'In progress'}</span>
+                              <span style={{ display: 'block', fontSize: 11, color: C.muted }}>
+                                {mentorName[rv.user_id] || 'Unknown mentor'} · {fmt(rv.updated_at)}
+                              </span>
+                            </button>
+                          </td>
+                        )
+                      })()}
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         <button style={{ ...ghost, marginRight: 6 }} onClick={() => setEditingPerson({ id: p.id, name: p.full_name })}>Rename</button>
                         <button style={danger} onClick={() => removePerson(p)}>Remove</button>
@@ -362,7 +397,7 @@ export default function CohortsTab() {
                     </tr>
                   ))}
                   {people.length === 0 && (
-                    <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: '#999' }}>No participants yet. Add names above.</td></tr>
+                    <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: '#999' }}>No participants yet. Add names above.</td></tr>
                   )}
                 </tbody>
               </table>

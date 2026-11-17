@@ -587,6 +587,164 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...data, owner: owner || null })
   }
 
+  // COMPETENCY REVIEW FORM - the ICF form that sums up a participant's Session Observation Forms #1-#3.
+  // One per participant. Same rules as observations: the participant's mentor coach (or a full admin) writes it,
+  // saved work belongs to the account, and the full-admin view only reads.
+  async function resolveReviewLink(supabase, auth, participantId) {
+    const { data: participant } = await supabase
+      .from('observation_participants')
+      .select('id, cohort_id, mentor_id, full_name')
+      .eq('id', participantId)
+      .maybeSingle()
+    if (!participant) return { status: 404, error: 'That participant was not found. Ask an admin to check the cohort.' }
+    if (auth.role !== 'admin' && participant.mentor_id !== auth.user.id) {
+      return { status: 403, error: 'That participant is not assigned to you. Ask an admin to assign them.' }
+    }
+    return { participant }
+  }
+
+  if (action === 'crf-save') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id, title, data, link } = req.body || {}
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data is required' })
+    if (JSON.stringify(data).length > 500000) return res.status(400).json({ error: 'This review is too large to save' })
+    const cleanTitle = String(title || 'Untitled competency review').slice(0, 200)
+    if (id) {
+      // Saves never change the participant link.
+      const { data: row, error } = await supabase
+        .from('competency_reviews')
+        .update({ title: cleanTitle, data, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq(auth.owner.column, auth.owner.value)
+        .is('deleted_at', null)
+        .select('id, updated_at')
+        .maybeSingle()
+      if (error) return res.status(500).json({ error: error.message })
+      if (!row) return res.status(404).json({ error: 'Saved review not found' })
+      return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
+    }
+    const insert = { [auth.owner.column]: auth.owner.value, title: cleanTitle, data }
+    if (link && link.participantId) {
+      const resolved = await resolveReviewLink(supabase, auth, link.participantId)
+      if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+      insert.cohort_id = resolved.participant.cohort_id
+      insert.participant_id = resolved.participant.id
+    }
+    const { data: row, error } = await supabase.from('competency_reviews').insert(insert).select('id, updated_at').single()
+    if (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'This participant already has a Competency Review Form. Open the saved one instead.' })
+      return res.status(500).json({ error: error.message })
+    }
+    return res.status(200).json({ success: true, id: row.id, updatedAt: row.updated_at })
+  }
+
+  if (action === 'crf-list') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { data, error } = await supabase
+      .from('competency_reviews')
+      .select('id, title, updated_at, cohort_id, participant_id, review:data->review')
+      .eq(auth.owner.column, auth.owner.value)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(100)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ data: data || [] })
+  }
+
+  if (action === 'crf-get') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('competency_reviews')
+      .select('id, title, data, updated_at, cohort_id, participant_id')
+      .eq('id', id)
+      .eq(auth.owner.column, auth.owner.value)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(404).json({ error: 'Saved review not found' })
+    let participantName = ''
+    if (data.participant_id) {
+      const { data: person } = await supabase.from('observation_participants').select('full_name').eq('id', data.participant_id).maybeSingle()
+      participantName = person?.full_name || ''
+    }
+    return res.status(200).json({ ...data, participant_name: participantName })
+  }
+
+  if (action === 'crf-delete') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { error } = await supabase.from('competency_reviews').delete().eq('id', id).eq(auth.owner.column, auth.owner.value)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true })
+  }
+
+  // The participant's saved Session Observation Forms (#1-#3, any mentor coach who did them), so the review can
+  // be pre-filled. Only for a participant assigned to the caller (full admins: any).
+  if (action === 'crf-sofs') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { participantId } = req.body || {}
+    if (!participantId) return res.status(400).json({ error: 'participantId is required' })
+    const resolved = await resolveReviewLink(supabase, auth, participantId)
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, form_number, updated_at, form:data->form')
+      .eq('participant_id', participantId)
+      .not('form_number', 'is', null)
+      .is('deleted_at', null)
+      .order('form_number')
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ participantName: resolved.participant.full_name, observations: data || [] })
+  }
+
+  // One Session Observation Form of a participant, to show beside the review (read only). Same access rule as crf-sofs.
+  // The AI's suggested ratings are removed for mentor coaches, as in the Session Observation Form itself.
+  if (action === 'crf-sof-get') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, participant_id, form_number, title, data, created_at, updated_at')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data || !data.participant_id) return res.status(404).json({ error: 'Saved observation not found' })
+    const resolved = await resolveReviewLink(supabase, auth, data.participant_id)
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+    const showAi = auth.role === 'admin' || auth.role === 'admin_tools'
+    const out = { ...data, data: { ...(data.data || {}) } }
+    if (!showAi) delete out.data.ai
+    return res.status(200).json(out)
+  }
+
+  if (action === 'crf-admin-get') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('competency_reviews')
+      .select('id, user_id, participant_id, title, data, created_at, updated_at')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data) return res.status(404).json({ error: 'Saved review not found' })
+    const { data: owner } = await supabase.from('users').select('full_name, email, role').eq('id', data.user_id).maybeSingle()
+    return res.status(200).json({ ...data, owner: owner || null })
+  }
+
   // COHORTS - Admin > Users / Access Codes > Cohorts. A cohort is a group of participant NAMES (no accounts)
   // plus the mentor coaches assigned to it. Mentor coaches pick a participant and Form #1/2/3 when they start
   // a Session Observation Form. Everything below except cohort-mine is full admins only.
@@ -598,7 +756,7 @@ export default async function handler(req, res) {
   if (action === 'cohort-admin-load') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments] = await Promise.all([
+    const [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments, reviews] = await Promise.all([
       supabase.from('observation_cohorts').select('id, name, created_at').order('name'),
       supabase.from('observation_participants').select('id, cohort_id, full_name, mentor_id, mentor_code_id, created_at').order('full_name'),
       supabase.from('observation_cohort_mentors').select('cohort_id, user_id'),
@@ -612,8 +770,14 @@ export default async function handler(req, res) {
       // Mentor Coach / Admin access codes nobody has used yet: these people can be given participants before they sign up.
       supabase.from('access_codes').select('id, label, role, active, expires_at').in('role', ['mentor', 'admin']).is('used_at', null),
       supabase.from('observation_cohort_mentor_codes').select('cohort_id, code_id'),
+      supabase
+        .from('competency_reviews')
+        .select('id, user_id, participant_id, title, created_at, updated_at, review:data->review')
+        .not('participant_id', 'is', null)
+        .is('deleted_at', null)
+        .limit(2000),
     ])
-    const failed = [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments].find((r) => r.error)
+    const failed = [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments, reviews].find((r) => r.error)
     if (failed) return res.status(500).json({ error: failed.error.message })
     return res.status(200).json({
       cohorts: cohorts.data || [],
@@ -621,6 +785,7 @@ export default async function handler(req, res) {
       assignments: assignments.data || [],
       mentors: mentors.data || [],
       observations: drafts.data || [],
+      reviews: reviews.data || [],
       pendingCodes: (codes.data || [])
         .filter((c) => c.active !== false && !(c.expires_at && new Date(c.expires_at) < new Date()))
         .map((c) => ({ id: c.id, label: c.label, role: c.role })),
@@ -808,6 +973,17 @@ export default async function handler(req, res) {
       .in('participant_id', people.map((p) => p.id))
       .is('deleted_at', null)
     if (draftError) return res.status(500).json({ error: draftError.message })
+    const { data: reviewRows, error: reviewError } = await supabase
+      .from('competency_reviews')
+      .select('id, user_id, participant_id')
+      .in('participant_id', people.map((p) => p.id))
+      .is('deleted_at', null)
+    if (reviewError) return res.status(500).json({ error: reviewError.message })
+    const reviewOf = {}
+    ;(reviewRows || []).forEach((r) => {
+      const mineReview = r.user_id === auth.user.id
+      reviewOf[r.participant_id] = { mine: mineReview, id: mineReview ? r.id : null }
+    })
     const byParticipant = {}
     ;(draftRows || []).forEach((d) => {
       const mineDraft = d.user_id === auth.user.id
@@ -827,7 +1003,7 @@ export default async function handler(req, res) {
           participants: people
             .filter((p) => p.cohort_id === c.id)
             .sort((a, b) => az(a.full_name, b.full_name))
-            .map((p) => ({ id: p.id, name: p.full_name, forms: byParticipant[p.id] || [] })),
+            .map((p) => ({ id: p.id, name: p.full_name, forms: byParticipant[p.id] || [], review: reviewOf[p.id] || null })),
         })),
     })
   }

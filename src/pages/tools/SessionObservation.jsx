@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
@@ -10,6 +11,7 @@ import {
   RATINGS, LEVELS, SELF_REVIEW, QUALIFIERS, COMPETENCIES, BEHAVIORS, ATTESTATIONS,
   emptyForm, missingItems,
 } from '../../lib/sof/formSpec'
+import { emptyReview, missingReviewItems } from '../../lib/crf/crfSpec'
 
 const C = {
   navy: '#00205B', gray: '#7C7E7F', white: '#FFFFFF', sky: '#69cce6', blue: '#78b3e0',
@@ -118,7 +120,9 @@ export default function SessionObservation() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [draftId, setDraftId] = useState(null)
+  const navigate = useNavigate()
   const [drafts, setDrafts] = useState([])
+  const [reviews, setReviews] = useState([]) // this account's saved Competency Review Forms
   const [savingDraft, setSavingDraft] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const { profile } = useAuth()
@@ -387,6 +391,8 @@ export default function SessionObservation() {
     try {
       const res = await authFetch('/api/user-actions?action=obs-list', { method: 'POST' })
       if (res.ok) setDrafts((await res.json()).data || [])
+      const rv = await authFetch('/api/user-actions?action=crf-list', { method: 'POST' })
+      if (rv.ok) setReviews((await rv.json()).data || [])
     } catch { /* the list is a convenience; ignore */ }
   }
 
@@ -713,10 +719,47 @@ export default function SessionObservation() {
                       </div>
                     )
                   })}
+                  {viewPerson && (() => {
+                    const mineReview = reviews.find((r) => r.participant_id === viewPerson.id)
+                    const elsewhereReview = !mineReview && viewPerson.review
+                    const doneReview = mineReview ? missingReviewItems({ ...emptyReview(), ...(mineReview.review || {}) }).length === 0 : false
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                        <div style={{ flex: 1, fontSize: 13 }}>
+                          <div style={{ fontWeight: 700, color: C.navy }}>
+                            Competency Review Form · {viewPerson.name}
+                            {mineReview && (
+                              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: doneReview ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
+                                {doneReview ? 'Complete' : 'In progress'}
+                              </span>
+                            )}
+                          </div>
+                          <div style={small}>
+                            {mineReview ? `Last saved ${new Date(mineReview.updated_at).toLocaleString()}`
+                              : elsewhereReview ? 'Saved by another mentor coach.'
+                              : 'Not started. It is pre-filled from this participant’s Session Observation Forms.'}
+                          </div>
+                        </div>
+                        {!elsewhereReview && (
+                          <button style={{ ...btn(!!mineReview), padding: '7px 14px' }} onClick={() => navigate(`/tools/competency-review?participant=${viewPerson.id}`)}>
+                            {mineReview ? 'Open' : 'Start Competency Review'}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </details>
               )}
             </div>
           )}
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice">
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
+              <div style={small}>A Session Observation Form for one coaching session, or the Competency Review Form that sums up a participant&rsquo;s Session Observation Forms.</div>
+            </div>
+            <button style={btn(true)} onClick={() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Session Observation Form</button>
+            <button style={btn(false)} onClick={() => navigate('/tools/competency-review')}>Competency Review Form</button>
+          </div>
           <div style={card} ref={startCardRef}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
