@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import Layout from '../../components/Layout'
 import ReviewFields from '../../components/ReviewFields'
 import ObservationViewer from '../../components/ObservationViewer'
 import { missingItems, emptyForm } from '../../lib/sof/formSpec'
@@ -21,15 +19,16 @@ const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 800 }
 const small = { fontSize: 12, color: C.gray, lineHeight: 1.5 }
 const input = { fontFamily: font, fontSize: 13, padding: '9px 11px', border: `1px solid ${C.border}`, borderRadius: 8, width: '100%', boxSizing: 'border-box' }
 const label = { fontSize: 12, fontWeight: 700, color: C.navy, display: 'block', marginBottom: 4 }
-const PAGE = 'Competency Review Form Mentor Coaching'
 
 const reviewTitle = (name) => (name ? `${name} - Competency Review Form` : 'Untitled competency review')
 const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 
-export default function CompetencyReview() {
+// Lives inside the Session Observation page (same page, bottom half). The parent supplies the Layout.
+// request: { participantId, n } opens (or starts) that participant's review whenever n changes.
+// onStageChange('start' | 'form'): lets the parent hide its own top half while a review is open.
+// onChanged(): called after a review is created, left, or deleted so the parent can refresh its lists.
+export default function CompetencyReview({ request = null, onStageChange = null, onChanged = null }) {
   const { profile } = useAuth()
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'admin_tools'
 
   const [stage, setStage] = useState('start') // start | form
@@ -46,7 +45,7 @@ export default function CompetencyReview() {
   const [busy, setBusy] = useState('')
   const [dirty, setDirty] = useState(false)
   const snapshot = useRef(null)
-  const autoStarted = useRef(false)
+  const handledRequest = useRef(0)
 
   const people = useMemo(
     () => cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id, cohortName: c.name }))).sort(az),
@@ -117,7 +116,7 @@ export default function CompetencyReview() {
       setLink(person ? { participantId: person.id, participantName: person.name } : null)
       setReview(r); snapshot.current = JSON.stringify(r); setDirty(false)
       setStage('form')
-      loadAll()
+      loadAll(); onChanged?.()
     } catch (e) { setError(e.message) }
     setBusy('')
   }
@@ -136,16 +135,18 @@ export default function CompetencyReview() {
     setBusy('')
   }
 
-  // A link such as /tools/competency-review?participant=<id> (from the Session Observation page) opens or starts it.
+  // The parent asks for a participant's review (By participant row): open it, or start it.
   useEffect(() => {
-    const pid = params.get('participant')
-    if (!pid || autoStarted.current || !profile || !people.length) return
-    const person = people.find((p) => p.id === pid)
+    if (!request?.participantId || handledRequest.current === request.n || !profile || !people.length) return
+    const person = people.find((p) => p.id === request.participantId)
     if (!person) return
-    autoStarted.current = true
-    const existing = saved.find((s) => s.participant_id === pid)
+    handledRequest.current = request.n
+    const existing = saved.find((s) => s.participant_id === person.id)
     if (existing) openSaved(existing.id); else startFor(person)
-  }, [params, profile, people, saved])
+  }, [request, profile, people, saved])
+
+  useEffect(() => { onStageChange?.(stage) }, [stage])
+  useEffect(() => () => onStageChange?.('start'), [])
 
   const save = useCallback(async (quiet) => {
     if (!recordId) return false
@@ -174,7 +175,7 @@ export default function CompetencyReview() {
       if (!ok && !window.confirm('Your latest changes could not be saved. Leave anyway?')) return
     }
     setStage('start'); setRecordId(null); setLink(null); setNotice(''); setDirty(false); setSofs([]); setPanel(null)
-    loadAll()
+    loadAll(); onChanged?.()
   }
 
   async function refreshFromSofs() {
@@ -197,7 +198,7 @@ export default function CompetencyReview() {
 
   async function remove(id, title) {
     if (!window.confirm(`Delete "${title}" for good? This cannot be undone.`)) return
-    try { await call('crf-delete', { id }); await loadAll() } catch (e) { setError(e.message) }
+    try { await call('crf-delete', { id }); await loadAll(); onChanged?.() } catch (e) { setError(e.message) }
   }
 
   const missing = useMemo(() => missingReviewItems(review), [review])
@@ -208,7 +209,7 @@ export default function CompetencyReview() {
 
   if (stage === 'form') {
     return (
-      <Layout active="competency-review" pageTitle={PAGE}>
+      <>
         <div style={{ paddingRight: panel ? 'min(560px, 40vw)' : 0, transition: 'padding-right 0.15s' }}>
         <div style={{ maxWidth: 960, margin: '0 auto', fontFamily: font }}>
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -262,7 +263,7 @@ export default function CompetencyReview() {
             </div>
           </aside>
         )}
-      </Layout>
+      </>
     )
   }
 
@@ -278,8 +279,8 @@ export default function CompetencyReview() {
   )
 
   return (
-    <Layout active="competency-review" pageTitle={PAGE}>
-      <div style={{ maxWidth: 960, margin: '0 auto', fontFamily: font }}>
+    <>
+      <div style={{ fontFamily: font }}>
         {error && <div role="alert" style={{ background: '#fdecec', border: '1px solid #e8a0a0', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#8a1c1c', marginBottom: 12 }}>{error}</div>}
         <div style={card}>
           <h2 style={h2}>Start a competency review</h2>
@@ -320,8 +321,7 @@ export default function CompetencyReview() {
           {inProgress.length > 0 && <details open><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>In progress ({inProgress.length})</summary>{inProgress.map((s) => <Row key={s.id} s={s} />)}</details>}
           {done.length > 0 && <details><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>Completed ({done.length})</summary>{done.map((s) => <Row key={s.id} s={s} />)}</details>}
         </div>
-        <button style={btn(false)} onClick={() => navigate('/tools/session-observation')}>← Session Observation Forms</button>
       </div>
-    </Layout>
+    </>
   )
 }
