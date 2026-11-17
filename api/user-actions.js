@@ -705,6 +705,29 @@ export default async function handler(req, res) {
     return res.status(200).json({ participantName: resolved.participant.full_name, observations: data || [] })
   }
 
+  // One Session Observation Form of a participant, to show beside the review (read only). Same access rule as crf-sofs.
+  // The AI's suggested ratings are removed for mentor coaches, as in the Session Observation Form itself.
+  if (action === 'crf-sof-get') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    const { data, error } = await supabase
+      .from('observation_drafts')
+      .select('id, participant_id, form_number, title, data, created_at, updated_at')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return res.status(500).json({ error: error.message })
+    if (!data || !data.participant_id) return res.status(404).json({ error: 'Saved observation not found' })
+    const resolved = await resolveReviewLink(supabase, auth, data.participant_id)
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+    const showAi = auth.role === 'admin' || auth.role === 'admin_tools'
+    const out = { ...data, data: { ...(data.data || {}) } }
+    if (!showAi) delete out.data.ai
+    return res.status(200).json(out)
+  }
+
   if (action === 'crf-admin-get') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return

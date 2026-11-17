@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import ReviewFields from '../../components/ReviewFields'
+import ObservationViewer from '../../components/ObservationViewer'
+import { missingItems, emptyForm } from '../../lib/sof/formSpec'
 import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
 import { emptyReview, prefillFromObservations, missingReviewItems } from '../../lib/crf/crfSpec'
@@ -38,6 +40,8 @@ export default function CompetencyReview() {
   const [recordId, setRecordId] = useState(null)
   const [link, setLink] = useState(null) // { participantId, participantName }
   const [notice, setNotice] = useState('')
+  const [sofs, setSofs] = useState([]) // the participant's saved Session Observation Forms [{ formNumber, id, form }]
+  const [panel, setPanel] = useState(null) // side panel: { sof, focusId, record, error } or null
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
   const [dirty, setDirty] = useState(false)
@@ -80,12 +84,26 @@ export default function CompetencyReview() {
 
   async function sofsFor(participantId) {
     const { observations } = await call('crf-sofs', { participantId })
-    return (observations || []).map((o) => ({ formNumber: o.form_number, form: o.form })).filter((o) => o.form)
+    const list = (observations || []).map((o) => ({ formNumber: o.form_number, id: o.id, form: o.form })).filter((o) => o.form)
+    setSofs(list)
+    return list
+  }
+
+  // Opens one Session Observation Form in the side panel (read only), scrolled to a behavior if given.
+  async function openSof(sof, focusId = '') {
+    setPanel({ sof, focusId, record: null, error: '' })
+    try {
+      const record = await call('crf-sof-get', { id: sof.id })
+      setPanel((p) => (p && p.sof.id === sof.id ? { ...p, record } : p))
+    } catch (e) {
+      setPanel((p) => (p && p.sof.id === sof.id ? { ...p, error: e.message } : p))
+    }
   }
 
   async function startFor(person) {
     setBusy('start'); setError(''); setNotice('')
     try {
+      setSofs([]); setPanel(null)
       let r = withAutofill(emptyReview(), person?.name)
       if (person) {
         const sofs = await sofsFor(person.id)
@@ -105,7 +123,7 @@ export default function CompetencyReview() {
   }
 
   async function openSaved(id) {
-    setBusy('open'); setError(''); setNotice('')
+    setBusy('open'); setError(''); setNotice(''); setPanel(null); setSofs([])
     try {
       const rec = await call('crf-get', { id })
       const r = withAutofill({ ...emptyReview(), ...(rec.data?.review || {}) }, rec.participant_name)
@@ -113,6 +131,7 @@ export default function CompetencyReview() {
       setLink(rec.participant_id ? { participantId: rec.participant_id, participantName: rec.participant_name } : null)
       setReview(r); snapshot.current = JSON.stringify(rec.data?.review || {}); setDirty(JSON.stringify(r) !== snapshot.current)
       setStage('form')
+      if (rec.participant_id) sofsFor(rec.participant_id).catch(() => setSofs([]))
     } catch (e) { setError(e.message) }
     setBusy('')
   }
@@ -154,7 +173,7 @@ export default function CompetencyReview() {
       const ok = await save(true)
       if (!ok && !window.confirm('Your latest changes could not be saved. Leave anyway?')) return
     }
-    setStage('start'); setRecordId(null); setLink(null); setNotice(''); setDirty(false)
+    setStage('start'); setRecordId(null); setLink(null); setNotice(''); setDirty(false); setSofs([]); setPanel(null)
     loadAll()
   }
 
@@ -190,6 +209,7 @@ export default function CompetencyReview() {
   if (stage === 'form') {
     return (
       <Layout active="competency-review" pageTitle={PAGE}>
+        <div style={{ paddingRight: panel ? 'min(560px, 40vw)' : 0, transition: 'padding-right 0.15s' }}>
         <div style={{ maxWidth: 960, margin: '0 auto', fontFamily: font }}>
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button style={btn(false)} onClick={goBack}>← Back to my reviews</button>
@@ -197,6 +217,21 @@ export default function CompetencyReview() {
             {link && <button style={btn(false, !!busy)} disabled={!!busy} onClick={refreshFromSofs}>Refresh from Session Observation Forms</button>}
             <button style={btn(false, busy === 'docx')} disabled={busy === 'docx'} onClick={download}>{busy === 'docx' ? 'Preparing…' : 'Download form (Word)'}</button>
             <span style={{ ...small, marginLeft: 'auto' }}>{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+            {sofs.length > 0 && (
+              <div style={{ flexBasis: '100%', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={small}>View a Session Observation Form beside this review:</span>
+                {sofs.map((x) => {
+                  const done = missingItems({ ...emptyForm(), ...x.form }).length === 0
+                  const on = panel?.sof.id === x.id
+                  return (
+                    <button key={x.id} type="button" onClick={() => (on ? setPanel(null) : openSof(x))}
+                      style={{ ...btn(on), padding: '5px 12px', fontSize: 12 }}>
+                      Form #{x.formNumber} · {done ? 'Complete' : 'In progress'}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
           <div style={{ marginBottom: 14 }}>
             <h1 style={{ fontSize: 20, color: C.navy, margin: 0 }}>{link ? `${link.participantName} – ` : ''}Competency Review Form</h1>
@@ -204,7 +239,7 @@ export default function CompetencyReview() {
           </div>
           {notice && <div role="status" style={{ background: '#eef7fb', border: '1px solid #69cce6', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: C.navy, marginBottom: 12 }}>{notice}</div>}
           {error && <div role="alert" style={{ background: '#fdecec', border: '1px solid #e8a0a0', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#8a1c1c', marginBottom: 12 }}>{error}</div>}
-          <ReviewFields review={review} setReview={setForm} />
+          <ReviewFields review={review} setReview={setForm} sofs={sofs} onOpenSof={openSof} />
           <div style={{ ...card, background: missing.length ? '#fff8f0' : '#f6fae6' }}>
             <h2 style={h2}>{missing.length ? `Still open (${missing.length})` : 'Everything is filled in'}</h2>
             {missing.length > 0 ? (
@@ -212,6 +247,21 @@ export default function CompetencyReview() {
             ) : <p style={small}>Download the Word form, sign it, and save it as a PDF for your client.</p>}
           </div>
         </div>
+        </div>
+        {panel && (
+          <aside role="complementary" aria-label={`Session Observation Form #${panel.sof.formNumber}`}
+            style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(560px, 40vw)', minWidth: 340, background: '#fff', borderLeft: `1px solid ${C.border}`, boxShadow: '-6px 0 24px rgba(0,32,91,0.12)', zIndex: 30, display: 'flex', flexDirection: 'column', fontFamily: font }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>Session Observation Form #{panel.sof.formNumber}</div>
+              <button type="button" aria-label="Close side panel" onClick={() => setPanel(null)} style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }}>Close ✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+              {panel.error && <div role="alert" style={{ color: '#8a1c1c', fontSize: 13 }}>{panel.error}</div>}
+              {!panel.record && !panel.error && <div style={small}>Loading…</div>}
+              {panel.record && <ObservationViewer record={panel.record} embedded focusId={panel.focusId} onBack={() => setPanel(null)} />}
+            </div>
+          </aside>
+        )}
       </Layout>
     )
   }

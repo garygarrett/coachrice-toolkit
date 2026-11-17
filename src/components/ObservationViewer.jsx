@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { emptyForm, missingItems, COMPETENCIES, BEHAVIORS, RATINGS, QUALIFIERS, SELF_REVIEW } from '../lib/sof/formSpec'
 import { segmentTurn } from '../lib/sof/annotatedTranscriptPdf'
 import { downloadAnnotatedTranscript, downloadFilledForm, observationTitle } from '../lib/sof/annotatedExport'
@@ -22,7 +22,9 @@ function Field({ name, value }) {
   )
 }
 
-export default function ObservationViewer({ record, onBack }) {
+// embedded: used in the side panel of the Competency Review Form (no back button, no downloads, no owner line).
+// focusId: a behavior code (such as A3.1) to scroll to when it opens.
+export default function ObservationViewer({ record, onBack, embedded = false, focusId = '' }) {
   const d = record.data || {}
   const form = { ...emptyForm(), ...(d.form || {}) }
   const turns = d.turns || []
@@ -31,6 +33,11 @@ export default function ObservationViewer({ record, onBack }) {
   const missing = missingItems(form)
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
+  useEffect(() => {
+    if (!focusId) return
+    const el = document.getElementById(`sof-b-${focusId}`)
+    if (el) el.scrollIntoView({ block: 'start' })
+  }, [focusId, record?.id])
 
   async function run(kind, fn) {
     setBusy(kind); setErr('')
@@ -50,20 +57,20 @@ export default function ObservationViewer({ record, onBack }) {
 
   return (
     <div style={{ fontFamily: font }}>
-      <button style={{ ...btn, marginBottom: 12 }} onClick={onBack}>← Back to the list</button>
+      {!embedded && <button style={{ ...btn, marginBottom: 12 }} onClick={onBack}>← Back to the list</button>}
       <div style={{ ...box, background: C.soft }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>{observationTitle(form)}</div>
         <div style={{ fontSize: 12, color: C.muted, margin: '4px 0 10px' }}>
-          Mentor coach: {record.owner?.full_name || record.owner?.email || 'Unknown'} · Started {fmt(record.created_at)} · Last saved {fmt(record.updated_at)}
+          {embedded ? '' : `Mentor coach: ${record.owner?.full_name || record.owner?.email || 'Unknown'} · `}Started {fmt(record.created_at)} · Last saved {fmt(record.updated_at)}
         </div>
         <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 10, background: missing.length ? '#fff1de' : '#edf7d0', color: missing.length ? '#a45a00' : '#4d5b00' }}>
           {missing.length ? `In progress · ${missing.length} item${missing.length === 1 ? '' : 's'} still blank` : 'Complete'}
         </span>
         <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Read only. This view cannot change the saved record.</div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+        {!embedded && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
           <button style={btn} disabled={!!busy} onClick={() => run('docx', () => downloadFilledForm(form))}>{busy === 'docx' ? 'Building…' : 'Download ICF form (.docx)'}</button>
           <button style={btn} disabled={!!busy || !turns.length} onClick={() => run('pdf', () => downloadAnnotatedTranscript({ form, turns, roles }))}>{busy === 'pdf' ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
-        </div>
+        </div>}
         {err && <div style={{ color: '#b42318', fontSize: 12, marginTop: 8 }}>{err}</div>}
         {missing.length > 0 && (
           <details style={{ marginTop: 10, fontSize: 12, color: C.muted }}>
@@ -99,10 +106,10 @@ export default function ObservationViewer({ record, onBack }) {
         <div key={c.n} style={box}>
           <h3 style={h3}>Competency {c.n}: {c.name}</h3>
           {BEHAVIORS.filter((b) => b.comp === c.n).map((b) => {
-            const s = ai?.behaviors?.[b.id]
+            const s = embedded ? null : ai?.behaviors?.[b.id]
             const items = form.evidence[b.id] || []
             return (
-              <div key={b.id} style={{ borderTop: `1px solid ${C.soft}`, padding: '10px 0' }}>
+              <div key={b.id} id={`sof-b-${b.id}`} style={{ borderTop: `1px solid ${C.soft}`, padding: '10px 0', scrollMarginTop: 8 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{b.id} {b.text}</div>
                 <div style={{ fontSize: 12.5, margin: '4px 0' }}>Rating: <strong>{RATINGS.find((r) => r.id === form.ratings[b.id])?.label || 'Not rated'}</strong></div>
                 {s && <div style={{ fontSize: 12, color: C.muted }}>AI suggested: {RATINGS.find((r) => r.id === s.suggested)?.label || 'None'}. {s.note}</div>}

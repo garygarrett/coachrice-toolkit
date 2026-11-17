@@ -40,7 +40,10 @@ function Choice({ name, options, value, onChange, disabled }) {
 const DEMO = [{ id: 'demonstrated', label: 'Proficiency Demonstrated' }, { id: 'not_yet', label: 'Proficiency Not Yet Demonstrated' }]
 const YESNO = [{ id: 'yes', label: 'Yes. Proficiency has been demonstrated' }, { id: 'no', label: 'No. Proficiency has not yet been demonstrated' }]
 
-export default function ReviewFields({ review, setReview, readOnly = false }) {
+const SHORT_RATING = { exceeds: 'Exceeds', meets: 'Meets', below: 'Below', does_not_meet: 'Does not meet', na: 'N/A' }
+
+// sofs: [{ formNumber, id, form }] the participant's Session Observation Forms. onOpenSof(sof, behaviorId) opens one beside the review.
+export default function ReviewFields({ review, setReview, readOnly = false, sofs = [], onOpenSof = null }) {
   const r = review
   const up = (patch) => setReview({ ...r, ...patch })
   const admin = (k, v) => up({ admin: { ...r.admin, [k]: v } })
@@ -142,6 +145,26 @@ export default function ReviewFields({ review, setReview, readOnly = false }) {
             {items.map((b) => (
               <div key={b.id} style={{ borderTop: `1px solid ${C.border}`, padding: '12px 0' }}>
                 <div style={{ fontSize: 13, marginBottom: 8 }}><strong style={{ color: C.navy }}>{b.id}</strong> {b.text}</div>
+                {onOpenSof && sofs.some((x) => x.form?.ratings?.[b.id]) && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', margin: '-2px 0 8px' }}>
+                    <span style={{ fontSize: 11, color: C.gray }}>Session Observation Forms:</span>
+                    {sofs.filter((x) => x.form?.ratings?.[b.id]).map((x) => {
+                      const rt = x.form.ratings[b.id]
+                      const good = rt === 'meets' || rt === 'exceeds'
+                      return (
+                        <button
+                          key={x.formNumber}
+                          type="button"
+                          aria-label={`Open Session Observation Form #${x.formNumber} at ${b.id}`}
+                          onClick={() => onOpenSof(x, b.id)}
+                          style={{ fontFamily: font, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, cursor: 'pointer', border: `1px solid ${good ? C.green : C.border}`, background: good ? '#f3f8d6' : C.soft, color: C.navy }}
+                        >
+                          #{x.formNumber} · {SHORT_RATING[rt] || rt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
                 <Choice name={b.id} options={DEMO} value={r.statements[b.id] || null} onChange={(v) => setStatement(b.id, c.n, v)} disabled={lock} />
               </div>
             ))}
