@@ -76,6 +76,13 @@ function evidenceLine(turn, roles, quote) {
   return `${where} ${who}: “${quote}”`
 }
 
+// The name of an observation linked to a cohort participant. Complete/Incomplete follows the form as it is filled in.
+function autoNameFor(link, form) {
+  if (!link || !link.participantName || !link.formNumber) return ''
+  const status = missingItems(form).length === 0 ? 'Complete' : 'Incomplete'
+  return `${link.participantName} - Session Observation Form #${link.formNumber} (${status})`
+}
+
 export default function SessionObservation() {
   const fileRef = useRef(null)
   const audioFileRef = useRef(null)
@@ -106,7 +113,9 @@ export default function SessionObservation() {
   const { profile } = useAuth()
   const [cohorts, setCohorts] = useState([]) // cohorts this account is assigned to, with participants and which forms exist
   const [pick, setPick] = useState({ cohortId: '', participantId: '', formNumber: 0 }) // choice on the start screen
-  const [link, setLink] = useState(null) // { cohortId, participantId, formNumber } for the observation being worked on
+  const [link, setLink] = useState(null) // { cohortId, participantId, formNumber, participantName } for the observation being worked on
+  const [relink, setRelink] = useState({ participantId: '', formNumber: 0 }) // choice in the "Participant and form" panel
+  const [relinking, setRelinking] = useState(false)
   const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
@@ -125,9 +134,29 @@ export default function SessionObservation() {
   const pickRequired = profile?.role === 'mentor' && cohorts.length > 0
   const pickCohort = cohorts.find((c) => c.id === pick.cohortId) || null
   const pickPerson = pickCohort?.participants.find((p) => p.id === pick.participantId) || null
-  const pickReady = pickPerson ? pick.formNumber > 0 : !pickRequired
+  const pickTaken = pickPerson?.forms.find((f) => f.formNumber === pick.formNumber) || null // the chosen form number already has a saved observation
+  const pickReady = pickPerson ? pick.formNumber > 0 && !pickTaken : !pickRequired
 
-  const snapshot = useMemo(() => JSON.stringify({ form, roles, active }), [form, roles, active])
+  // "Participant and form" panel on the form screen: change who a saved observation is for.
+  const allPeople = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id })))
+  const relinkPerson = allPeople.find((p) => p.id === relink.participantId)
+    || (link && link.participantId === relink.participantId ? { id: link.participantId, name: link.participantName, cohortId: link.cohortId, forms: [] } : null)
+  // A form number is taken if that participant has it saved, unless it is this very observation.
+  const relinkTaken = (n) => {
+    const e = relinkPerson?.forms.find((f) => f.formNumber === n)
+    return !!e && !(e.mine && e.id === draftId)
+  }
+  const relinkChanged = relink.participantId !== (link?.participantId || '') || relink.formNumber !== (link?.formNumber || 0)
+  const relinkValid = relink.participantId ? relink.formNumber > 0 && !relinkTaken(relink.formNumber) : !pickRequired
+  useEffect(() => {
+    setRelink({ participantId: link?.participantId || '', formNumber: link?.formNumber || 0 })
+  }, [link])
+
+  // Linked observations are named automatically. The saved copy (and every download) carries that name.
+  const autoName = useMemo(() => autoNameFor(link, form), [link, form])
+  const savedForm = autoName ? { ...form, title: autoName } : form
+
+  const snapshot = useMemo(() => JSON.stringify({ form, roles, active, name: autoName }), [form, roles, active, autoName])
   const dirty = stage === 'form' && snapshot !== lastSaved.current
   useEffect(() => {
     if (!dirty) return undefined
@@ -186,14 +215,13 @@ export default function SessionObservation() {
     setRoles(initial)
     if (audioUrl) URL.revokeObjectURL(audioUrl)
     setAudioUrl(audioFile ? URL.createObjectURL(audioFile) : '')
-    // If this observation is for a cohort participant, fill in their name and a starting title.
-    // The mentor coach can still change both.
+    // If this observation is for a cohort participant, fill in their name on the form.
+    // The observation's own name is generated from the participant and form number.
     if (pickPerson && pick.formNumber) {
-      setLink({ cohortId: pickCohort.id, participantId: pickPerson.id, formNumber: pick.formNumber })
+      setLink({ cohortId: pickCohort.id, participantId: pickPerson.id, formNumber: pick.formNumber, participantName: pickPerson.name })
       setForm((f) => ({
         ...f,
         noTimestamps: !t.some((x) => x.time),
-        title: f.title || `${pickPerson.name} – Session Observation Form #${pick.formNumber}`,
         admin: { ...f.admin, clientName: f.admin.clientName || pickPerson.name },
       }))
     } else {
@@ -314,12 +342,50 @@ export default function SessionObservation() {
     } catch { /* the picker is optional for most accounts; ignore */ }
   }
 
-  const draftTitle = () => observationTitle(form)
+  // Change the participant and form number of the observation that is open (also works for older, unlinked ones).
+  async function applyRelink() {
+    const person = relink.participantId ? relinkPerson : null
+    const newLink = person ? { cohortId: person.cohortId, participantId: person.id, formNumber: relink.formNumber, participantName: person.name } : null
+    const oldName = link?.participantName || ''
+    // Keep the form's Client name in step: fill it if empty, or swap it if it still holds the old participant's name.
+    const nextForm = (() => {
+      const admin = { ...form.admin }
+      const current = (admin.clientName || '').trim()
+      if (newLink && (!current || current === oldName)) admin.clientName = newLink.participantName
+      return { ...form, admin, title: newLink ? form.title : '' }
+    })()
+    setRelinking(true); setNotice('')
+    try {
+      if (draftId) {
+        const res = await authFetch('/api/user-actions?action=obs-link', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: draftId,
+            participantId: newLink?.participantId || null,
+            formNumber: newLink?.formNumber,
+            title: newLink ? autoNameFor(newLink, nextForm) : observationTitle(nextForm),
+          }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error || `status ${res.status}`)
+      }
+      setLink(newLink)
+      setForm(nextForm)
+      setNotice(newLink ? `This observation is now for ${newLink.participantName}, Form #${newLink.formNumber}.` : 'This observation is no longer linked to a participant.')
+      loadCohorts(); loadDrafts()
+    } catch (e) {
+      setNotice(`Could not change the participant: ${e.message}`)
+    } finally {
+      setRelinking(false)
+    }
+  }
+
+  const draftTitle = () => observationTitle(savedForm)
 
   // Transcript PDF with the selected evidence highlighted (same look as the Audio to Transcript PDF)
   async function downloadAnnotated() {
     setExporting(true); setNotice('')
-    try { await downloadAnnotatedTranscript({ form, turns, roles }) }
+    try { await downloadAnnotatedTranscript({ form: savedForm, turns, roles }) }
     catch (e) { setNotice(e.message || 'The PDF could not be made.') }
     setExporting(false)
   }
@@ -331,7 +397,7 @@ export default function SessionObservation() {
     try {
       const res = await authFetch('/api/user-actions?action=obs-save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form, turns, roles, ai, active }, link }),
+        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form: savedForm, turns, roles, ai, active }, link }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || `status ${res.status}`)
@@ -359,12 +425,16 @@ export default function SessionObservation() {
       setTurns(d.turns || [])
       setRoles(d.roles || {})
       setAi(d.ai || null)
+      const openedLink = row.participant_id
+        ? { cohortId: row.cohort_id, participantId: row.participant_id, formNumber: row.form_number, participantName: row.participant_name || '' }
+        : null
+      setLink(openedLink)
       setForm(f)
       setActive(d.active || 'A3.1')
       setDraftId(row.id)
       if (audioUrl) URL.revokeObjectURL(audioUrl)
       setAudioUrl('')
-      lastSaved.current = JSON.stringify({ form: f, roles: d.roles || {}, active: d.active || 'A3.1' })
+      lastSaved.current = JSON.stringify({ form: f, roles: d.roles || {}, active: d.active || 'A3.1', name: autoNameFor(openedLink, f) })
       setSavedAt(new Date(row.updated_at))
       setNotice('')
       setStage('form')
@@ -399,7 +469,7 @@ export default function SessionObservation() {
     setSaving(true)
     setNotice('')
     try {
-      await downloadFilledForm(form)
+      await downloadFilledForm(savedForm)
       setNotice(missing.length ? `Saved. ${missing.length} item${missing.length === 1 ? ' is' : 's are'} still blank on the form (see the list at the bottom).` : 'Saved. The completed form is in your downloads.')
     } catch (e) {
       setNotice(`Could not save: ${e.message}`)
@@ -533,32 +603,35 @@ export default function SessionObservation() {
                       {[1, 2, 3].map((n) => {
                         const existing = pickPerson.forms.find((f) => f.formNumber === n)
                         const chosen = pick.formNumber === n
-                        if (existing) {
-                          return (
-                            <div key={n} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', background: C.white, minWidth: 150 }}>
-                              <div style={{ fontWeight: 800, color: C.gray, fontSize: 13 }}>Form #{n}</div>
-                              {existing.mine ? (
-                                <>
-                                  <div style={{ ...small, marginBottom: 6 }}>Already started by you</div>
-                                  <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(existing.id)}>Open saved form</button>
-                                </>
-                              ) : (
-                                <div style={small}>Already started by another mentor coach</div>
-                              )}
-                            </div>
-                          )
-                        }
                         return (
                           <button key={n} type="button" onClick={() => setPick((p) => ({ ...p, formNumber: n }))} aria-pressed={chosen}
                             style={{
-                              fontFamily: font, fontWeight: 800, fontSize: 14, padding: '12px 22px', borderRadius: 10, cursor: 'pointer', minWidth: 150,
-                              border: `2px solid ${chosen ? C.navy : C.border}`, background: chosen ? C.navy : C.white, color: chosen ? C.white : C.navy,
+                              fontFamily: font, fontWeight: 800, fontSize: 14, padding: '10px 22px', borderRadius: 10, cursor: 'pointer', minWidth: 150, textAlign: 'center',
+                              border: `2px solid ${chosen ? (existing ? C.orange : C.navy) : C.border}`, background: chosen ? (existing ? '#fff7ed' : C.navy) : C.white,
+                              color: chosen ? (existing ? '#9a3412' : C.white) : C.navy,
                             }}>
                             Form #{n}
+                            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, marginTop: 2, color: chosen && !existing ? '#dbe4f5' : C.muted }}>
+                              {existing ? 'Already saved' : 'Not started'}
+                            </span>
                           </button>
                         )
                       })}
                     </div>
+                    {pickTaken && (
+                      <div role="alert" style={{ marginTop: 12, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, lineHeight: 1.5 }}>
+                        <strong>Form #{pick.formNumber} for {pickPerson.name} has already been saved</strong>
+                        {pickTaken.mine ? ' by you.' : ' by another mentor coach.'} A participant can have only one of each form, so you cannot start another Form #{pick.formNumber}.
+                        {pickTaken.mine
+                          ? ' Open the saved one to keep working on it, or choose a different form number.'
+                          : ' Choose a different form number, or ask an admin if this one needs to be redone.'}
+                        {pickTaken.mine && (
+                          <div style={{ marginTop: 8 }}>
+                            <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(pickTaken.id)}>Open saved Form #{pick.formNumber}</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -604,7 +677,7 @@ export default function SessionObservation() {
               <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
               {!pickReady && (
                 <span style={{ ...small, marginLeft: 12 }}>
-                  {pickPerson ? 'Choose Form #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
+                  {pickTaken ? `Form #${pick.formNumber} is already saved. Choose a different form to continue.` : pickPerson ? 'Choose Form #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
                 </span>
               )}
             </div>
@@ -681,9 +754,69 @@ export default function SessionObservation() {
       <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ marginBottom: 14 }}>
         <label style={label} htmlFor="obs-title">Name of this observation</label>
-        <input id="obs-title" style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 560 }} value={form.title || ''}
-          onChange={(e) => set({ title: e.target.value })} placeholder="For example: Jordan R. – Session 2" maxLength={120} />
+        {autoName ? (
+          <>
+            <input id="obs-title" readOnly style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 640, background: C.soft }} value={autoName} />
+            <div style={{ ...small, marginTop: 4 }}>Named automatically from the participant and form number. Complete or Incomplete updates as you fill in the form.</div>
+          </>
+        ) : (
+          <input id="obs-title" style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 560 }} value={form.title || ''}
+            onChange={(e) => set({ title: e.target.value })} placeholder="For example: Jordan R. – Session 2" maxLength={120} />
+        )}
       </div>
+      {(cohorts.length > 0 || link) && (
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 14, background: C.soft }}>
+          <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Participant and form</div>
+          <div style={{ ...small, marginBottom: 10 }}>
+            {link ? 'Change who this observation is for, or which form number it is.' : 'This observation is not linked to a participant yet. Choose one to link it.'}
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ minWidth: 240 }}>
+              <label style={label} htmlFor="relink-participant">Participant</label>
+              <select id="relink-participant" style={input} value={relink.participantId}
+                onChange={(e) => setRelink({ participantId: e.target.value, formNumber: e.target.value === link?.participantId ? link.formNumber : 0 })}>
+                <option value="">{pickRequired ? 'Choose a participant…' : 'Not linked to a participant'}</option>
+                {link && !allPeople.some((p) => p.id === link.participantId) && <option value={link.participantId}>{link.participantName}</option>}
+                {cohorts.map((c) => (
+                  <optgroup key={c.id} label={c.name}>
+                    {c.participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            {relink.participantId && (
+              <div>
+                <div style={label}>Form</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[1, 2, 3].map((n) => {
+                    const chosen = relink.formNumber === n
+                    const taken = relinkTaken(n)
+                    return (
+                      <button key={n} type="button" aria-pressed={chosen} onClick={() => setRelink((r) => ({ ...r, formNumber: n }))}
+                        style={{
+                          fontFamily: font, fontWeight: 800, fontSize: 13, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                          border: `2px solid ${chosen ? (taken ? C.orange : C.navy) : C.border}`, background: chosen ? (taken ? '#fff7ed' : C.navy) : C.white,
+                          color: chosen ? (taken ? '#9a3412' : C.white) : C.navy,
+                        }}>
+                        Form #{n}
+                        <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: chosen && !taken ? '#dbe4f5' : C.muted }}>{taken ? 'Already saved' : link && link.participantId === relink.participantId && link.formNumber === n ? 'Current' : 'Available'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            <button style={btn(true, !relinkChanged || !relinkValid || relinking)} disabled={!relinkChanged || !relinkValid || relinking} onClick={applyRelink}>
+              {relinking ? 'Updating…' : 'Update participant and form'}
+            </button>
+          </div>
+          {relink.participantId && relink.formNumber > 0 && relinkTaken(relink.formNumber) && (
+            <div role="alert" style={{ marginTop: 10, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
+              <strong>Form #{relink.formNumber} for {relinkPerson?.name} has already been saved.</strong> A participant can have only one of each form. Choose a different form number.
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>

@@ -393,6 +393,64 @@ export default async function handler(req, res) {
 
   // OBSERVATION DRAFTS - Session Observation Form work in progress (text and answers only, never audio).
   // Deleting one removes it for good.
+  // Checks that this caller may link an observation to this participant and form number (1 to 3).
+  // Returns { columns } to write, or { status, error } to send back.
+  async function resolveObservationLink(supabase, auth, link) {
+    const formNumber = Number(link.formNumber)
+    if (!Number.isInteger(formNumber) || formNumber < 1 || formNumber > 3) {
+      return { status: 400, error: 'Choose Session Observation Form #1, #2, or #3' }
+    }
+    const { data: participant } = await supabase
+      .from('observation_participants')
+      .select('id, cohort_id')
+      .eq('id', link.participantId)
+      .maybeSingle()
+    if (!participant) return { status: 404, error: 'That participant was not found. Ask an admin to check the cohort.' }
+    if (auth.role !== 'admin') {
+      const { data: assigned } = await supabase
+        .from('observation_cohort_mentors')
+        .select('cohort_id')
+        .eq('cohort_id', participant.cohort_id)
+        .eq('user_id', auth.user.id)
+        .maybeSingle()
+      if (!assigned) return { status: 403, error: 'You are not assigned to that participant’s cohort' }
+    }
+    return { columns: { cohort_id: participant.cohort_id, participant_id: participant.id, form_number: formNumber } }
+  }
+
+  // Change which participant and form number a saved observation is for (or unlink it with no participantId).
+  // Only the person who owns the observation can do this. A form number the participant already has is refused (409).
+  if (action === 'obs-link') {
+    const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
+    if (!auth) return
+    const { id, participantId, formNumber, title } = req.body || {}
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    let patch = { cohort_id: null, participant_id: null, form_number: null }
+    if (participantId) {
+      const resolved = await resolveObservationLink(supabase, auth, { participantId, formNumber })
+      if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+      patch = resolved.columns
+    }
+    if (title) patch.title = String(title).slice(0, 200)
+    patch.updated_at = new Date().toISOString()
+    const { data: row, error } = await supabase
+      .from('observation_drafts')
+      .update(patch)
+      .eq('id', id)
+      .eq(auth.owner.column, auth.owner.value)
+      .is('deleted_at', null)
+      .select('id, cohort_id, participant_id, form_number, updated_at')
+      .maybeSingle()
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({ error: `Session Observation Form #${patch.form_number} already exists for that participant. Choose a different form number.` })
+      }
+      return res.status(500).json({ error: error.message })
+    }
+    if (!row) return res.status(404).json({ error: 'Saved observation not found' })
+    return res.status(200).json({ success: true, link: row })
+  }
+
   if (action === 'obs-save') {
     const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
@@ -401,7 +459,7 @@ export default async function handler(req, res) {
     if (JSON.stringify(data).length > 3000000) return res.status(400).json({ error: 'This observation is too large to save' })
     const cleanTitle = String(title || 'Untitled observation').slice(0, 200)
     if (id) {
-      // The participant link is chosen once, when the observation is first saved. Later saves never change it.
+      // Saves never change the participant link. To change it, use obs-link.
       const { data: row, error } = await supabase
         .from('observation_drafts')
         .update({ title: cleanTitle, data, updated_at: new Date().toISOString() })
@@ -417,28 +475,9 @@ export default async function handler(req, res) {
     // New observation. If it is for a cohort participant, check the caller may use that participant and form number.
     const insert = { [auth.owner.column]: auth.owner.value, title: cleanTitle, data }
     if (link && link.participantId) {
-      const formNumber = Number(link.formNumber)
-      if (!Number.isInteger(formNumber) || formNumber < 1 || formNumber > 3) {
-        return res.status(400).json({ error: 'Choose Session Observation Form #1, #2, or #3' })
-      }
-      const { data: participant } = await supabase
-        .from('observation_participants')
-        .select('id, cohort_id')
-        .eq('id', link.participantId)
-        .maybeSingle()
-      if (!participant) return res.status(404).json({ error: 'That participant was not found. Ask an admin to check the cohort.' })
-      if (auth.role !== 'admin') {
-        const { data: assigned } = await supabase
-          .from('observation_cohort_mentors')
-          .select('cohort_id')
-          .eq('cohort_id', participant.cohort_id)
-          .eq('user_id', auth.user.id)
-          .maybeSingle()
-        if (!assigned) return res.status(403).json({ error: 'You are not assigned to that participant’s cohort' })
-      }
-      insert.cohort_id = participant.cohort_id
-      insert.participant_id = participant.id
-      insert.form_number = formNumber
+      const resolved = await resolveObservationLink(supabase, auth, link)
+      if (resolved.error) return res.status(resolved.status).json({ error: resolved.error })
+      Object.assign(insert, resolved.columns)
     }
     const { data: row, error } = await supabase
       .from('observation_drafts')
@@ -482,7 +521,14 @@ export default async function handler(req, res) {
       .maybeSingle()
     if (error) return res.status(500).json({ error: error.message })
     if (!data) return res.status(404).json({ error: 'Saved observation not found' })
-    return res.status(200).json(data)
+    // The participant's name, so the observation can be named "<name> - Session Observation Form #n (...)"
+    // even if this mentor coach is no longer assigned to that cohort.
+    let participantName = ''
+    if (data.participant_id) {
+      const { data: person } = await supabase.from('observation_participants').select('full_name').eq('id', data.participant_id).maybeSingle()
+      participantName = person?.full_name || ''
+    }
+    return res.status(200).json({ ...data, participant_name: participantName })
   }
 
   if (action === 'obs-delete') {
