@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
@@ -24,25 +24,6 @@ const input = { fontFamily: font, fontSize: 14, padding: '10px 12px', borderRadi
 export default function FAQGuide() {
   const { profile } = useAuth()
   const navigate = useNavigate()
-  const pageRef = useRef(null)
-  const scroller = useRef(null)
-  const [showTop, setShowTop] = useState(false)
-  // The page scrolls inside the layout's content box, not the browser window, so find whichever one scrolls.
-  useEffect(() => {
-    let el = pageRef.current?.parentElement
-    while (el && el !== document.body) {
-      const oy = window.getComputedStyle(el).overflowY
-      if (oy === 'auto' || oy === 'scroll') break
-      el = el.parentElement
-    }
-    const target = el && el !== document.body ? el : window
-    scroller.current = target
-    const read = () => setShowTop((target === window ? window.scrollY : target.scrollTop) > 400)
-    target.addEventListener('scroll', read, { passive: true })
-    read()
-    return () => target.removeEventListener('scroll', read)
-  }, [])
-  const backToTop = () => scroller.current?.scrollTo({ top: 0, behavior: 'smooth' })
   const isAdmin = profile?.role === 'admin'
   const [sections, setSections] = useState(null)
   const [error, setError] = useState('')
@@ -114,7 +95,7 @@ export default function FAQGuide() {
 
   return (
     <Layout active="guide" pageTitle="FAQ / Guide">
-      <div ref={pageRef} style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+      <div style={{ fontFamily: font, maxWidth: editing ? 960 : 1180, margin: '0 auto', padding: 32 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <h1 style={{ margin: 0, fontSize: 26, color: C.navy }}>FAQ / Guide</h1>
@@ -145,13 +126,18 @@ export default function FAQGuide() {
 
         {/* ---- Reading view ---- */}
         {sections && sections.length > 0 && !editing && (
-          <>
-            <div style={card}>
-              <div style={{ fontWeight: 800, color: C.navy, marginBottom: 8, fontSize: 14 }}>In this guide</div>
-              <ol style={{ margin: 0, paddingLeft: 22, columns: sections.length > 6 ? 2 : 1, fontSize: 14, lineHeight: 1.9 }}>
-                {toc.map((t) => <li key={t.id}><a href={`#guide-${t.id}`} onClick={(e) => { e.preventDefault(); scrollTo(t.id) }} style={{ color: C.navy, fontWeight: 600, textDecoration: 'none' }}>{t.title}</a></li>)}
-              </ol>
-            </div>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <nav aria-label="In this guide" style={{ flex: '0 0 230px', position: 'sticky', top: 16, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 10px' }}>
+              <div style={{ fontWeight: 800, color: C.navy, margin: '0 8px 8px', fontSize: 13, letterSpacing: '0.03em', textTransform: 'uppercase' }}>In this guide</div>
+              {toc.map((t, i) => (
+                <a key={t.id} href={`#guide-${t.id}`} onClick={(e) => { e.preventDefault(); scrollTo(t.id) }}
+                  style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, color: C.navy, fontWeight: 600, fontSize: 13, lineHeight: 1.35, textDecoration: 'none' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#eef6ff' }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                  <span style={{ color: C.muted, minWidth: 16 }}>{i + 1}.</span><span>{t.title}</span>
+                </a>
+              ))}
+            </nav>
+            <div style={{ flex: '1 1 480px', minWidth: 0 }}>
             {sections.map((s, i) => (
               <section key={s.id} id={`guide-${s.id}`} style={card}>
                 <h2 style={{ margin: '0 0 10px', fontSize: 19, color: C.navy, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -163,7 +149,8 @@ export default function FAQGuide() {
                 <GuideBody text={s.body} font={font} />
               </section>
             ))}
-          </>
+            </div>
+          </div>
         )}
 
         {/* ---- Editing view (full admins) ---- */}
@@ -218,12 +205,6 @@ export default function FAQGuide() {
           <div style={{ marginTop: 8, padding: '14px 18px', borderRadius: 10, background: '#eef7fb', borderLeft: `5px solid ${C.teal}`, color: C.navy, fontWeight: 600, fontSize: 14 }}>
             For any questions, email <a href="mailto:CoachRICE@rice.edu" style={{ color: C.navy }}>CoachRICE@rice.edu</a>
           </div>
-        )}
-        {showTop && (
-          <button type="button" onClick={backToTop} aria-label="Back to top"
-            style={{ position: 'fixed', right: 28, bottom: 24, zIndex: 40, fontFamily: font, fontWeight: 700, fontSize: 13, padding: '10px 16px', borderRadius: 999, cursor: 'pointer', border: `1.5px solid ${C.navy}`, background: C.navy, color: '#fff', boxShadow: '0 4px 14px rgba(0,32,91,0.3)' }}>
-            ↑ Back to top
-          </button>
         )}
       </div>
     </Layout>

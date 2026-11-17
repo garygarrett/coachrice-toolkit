@@ -51,7 +51,7 @@ export const HOME_TOUR = [
 export const FORM_TOUR = [
   {
     title: 'Welcome to the observation form',
-    body: 'The transcript is on the left, a Jump to bar is in the middle, and the ICF form is on the right. This short tour walks through each part.',
+    body: 'The transcript is on the left, the ICF form is in the middle, and a narrow Jump bar is on the right. This short tour walks through each part.',
   },
   {
     target: '[data-tour="form-toolbar"]',
@@ -71,7 +71,7 @@ export const FORM_TOUR = [
   {
     target: '[data-tour="form-jump"]',
     title: 'Jump to a section',
-    body: 'Use these buttons to move between Form details, Competency 1, Competencies 3 to 8, and Signature & save. Each one shows how many behaviors you have rated.',
+    body: 'Use these buttons to move between Form details (Info), Competency 1, Competencies 3 to 8, and Signature (Sign). Hover over a button to see its full name. The small number, like 3/4, shows how many behaviors you have rated.',
   },
   {
     target: '#sec-c3',
