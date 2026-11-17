@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useVisibility } from '../context/VisibilityContext'
 import { isToolOnlyRole } from '../lib/roles'
+import { useGuideAvailable } from '../lib/guideAvailability'
 import logo from '../CoachRICE_White.png'
 
 const COLORS = {
@@ -73,6 +74,13 @@ function ToolIcon({ id, size = 16, color = 'currentColor' }) {
         <circle cx="6.5" cy="12" r="1.5" fill="#00205B" />
       </svg>
     ),
+    help: (
+      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
+        <circle cx="8" cy="8" r="6.2" />
+        <path d="M6.2 6.2 C6.2 5 7 4.4 8 4.4 C9 4.4 9.8 5 9.8 6 C9.8 7.3 8 7.3 8 8.8" />
+        <circle cx="8" cy="11.3" r="0.5" fill={color} />
+      </svg>
+    ),
     analytics: (
       <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
         <rect x="2" y="10" width="2" height="4" rx="0.5" />
@@ -88,6 +96,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
   const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true }
+  const hasGuide = useGuideAvailable(profile) // the FAQ / Guide link shows only when this account has a section to read
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -127,6 +136,7 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
       { id: 'admin-users', label: 'Users / Access Codes', path: '/admin', icon: 'users' },
       { id: 'admin-history', label: 'History / Data', path: '/admin/history', icon: 'history' },
       { id: 'admin-config', label: 'Tool Configuration', path: '/admin/config', icon: 'settings' },
+      { id: 'guide', label: 'FAQ / Guide', path: '/guide', icon: 'help' },
     ] },
   ]
 
@@ -172,6 +182,19 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
               <span style={{ fontSize: 10 }}>{n.label}</span>
             </div>
           ))}
+          {!isAdmin && hasGuide && (
+            <>
+              <div style={styles.navDivider}></div>
+              <div style={styles.navLabel}>Help</div>
+              <div
+                style={{ ...styles.navItem, ...(active === 'guide' ? styles.navItemActive : {}), cursor: 'pointer' }}
+                onClick={() => navigate('/guide')}
+              >
+                <ToolIcon id="help" size={14} color={active === 'guide' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
+                <span style={{ fontSize: 10 }}>FAQ / Guide</span>
+              </div>
+            </>
+          )}
         </div>
         <div style={styles.avatarRow}>
           <div style={styles.avatar}>{profile?.full_name?.[0] || 'C'}</div>

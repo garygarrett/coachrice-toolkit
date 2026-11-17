@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { VisibilityProvider } from './context/VisibilityContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import FAQGuide from './pages/FAQGuide'
 import GuestRoute from './components/GuestRoute'
 import Login from './pages/Login'
 import LoginHome from './pages/LoginHome'
@@ -68,6 +69,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="any">
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/guide"
+          element={
+            <ProtectedRoute allowedRole={['coach', 'mentor', 'admin_tools', 'admin']}>
+              <FAQGuide />
             </ProtectedRoute>
           }
         />
