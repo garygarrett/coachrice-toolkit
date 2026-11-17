@@ -474,8 +474,10 @@ export default function SessionObservation() {
       lastSaved.current = sent
       setSavedAt(new Date())
       loadDrafts()
+      return true
     } catch (e) {
       setNotice(`Could not save your progress: ${e.message}. Your work is still on this page. Use "Download form" to keep a copy.`)
+      return false
     } finally {
       setSavingDraft(false)
     }
@@ -547,6 +549,16 @@ export default function SessionObservation() {
     }
   }
 
+  // "Back to my observations": save what is unsaved, then return to the start screen (the saved list refreshes).
+  async function goBack() {
+    if (dirty) {
+      const saved = await saveDraft(true)
+      if (!saved && !window.confirm('Your latest changes could not be saved. Leave this observation anyway?')) return
+    }
+    resetAll()
+    loadDrafts()
+  }
+
   function startOver() {
     if (!window.confirm(draftId ? 'Close this observation and start a new one? Your saved progress stays in your list.' : 'Start over? Everything on this form will be cleared.')) return
     resetAll()
@@ -554,7 +566,7 @@ export default function SessionObservation() {
 
   function resetAll() {
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
-    setPasted(''); setConsent(false); setNotice(''); setError('')
+    setPasted(''); setNotice(''); setError('')
     setDraftId(null); setSavedAt(null); lastSaved.current = ''; autoCreated.current = false
     setLink(null); setPick((p) => ({ cohortId: p.cohortId, participantId: '', formNumber: 0 }))
     loadCohorts()
@@ -961,6 +973,7 @@ export default function SessionObservation() {
         </div>
       )}
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+        <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={goBack}>&larr; Back to my observations</button>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
         <button style={btn(false, exporting)} disabled={exporting} onClick={downloadAnnotated}>{exporting ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
