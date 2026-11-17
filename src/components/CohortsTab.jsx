@@ -42,7 +42,8 @@ export default function CohortsTab() {
   const [renameValue, setRenameValue] = useState(null) // null = not renaming
   const [namesText, setNamesText] = useState('')
   const [mentorIds, setMentorIds] = useState([])
-  const [newMentorId, setNewMentorId] = useState('') // mentor coach for names typed in "Add participants"
+  const [codeIds, setCodeIds] = useState([]) // access codes (people who have not signed up yet) checked for this cohort
+  const [newMentorKey, setNewMentorKey] = useState('') // mentor coach for names typed in "Add participants": 'u:<account id>' or 'c:<access code id>'
   const [editingPerson, setEditingPerson] = useState(null) // { id, name }
   const [record, setRecord] = useState(null)
 
@@ -61,20 +62,34 @@ export default function CohortsTab() {
   const cohortsAZ = useMemo(() => [...(data?.cohorts || [])].sort((a, b) => az(a.name, b.name)), [data])
   const mentorsAZ = useMemo(() => [...(data?.mentors || [])].sort((a, b) => az(a.full_name || a.email, b.full_name || b.email)), [data])
   const mentorName = useMemo(() => Object.fromEntries((data?.mentors || []).map((m) => [m.id, m.full_name || m.email])), [data])
+  const codesAZ = useMemo(() => [...(data?.pendingCodes || [])].sort((a, b) => az(a.label, b.label)), [data])
+  const codeName = useMemo(() => Object.fromEntries((data?.pendingCodes || []).map((c) => [c.id, c.label])), [data])
+  // 'u:<id>' = a signed-up mentor coach, 'c:<id>' = a mentor coach who has an access code but has not signed up yet.
+  const keyOf = (p) => (p.mentor_id ? `u:${p.mentor_id}` : p.mentor_code_id ? `c:${p.mentor_code_id}` : '')
+  const nameOfKey = (key) => (key.startsWith('u:') ? mentorName[key.slice(2)] : codeName[key.slice(2)]) || 'the mentor coach'
+  const splitKey = (key) => ({ mentorId: key.startsWith('u:') ? key.slice(2) : null, mentorCodeId: key.startsWith('c:') ? key.slice(2) : null })
 
   const savedMentorIds = useMemo(() => (data ? data.assignments.filter((a) => a.cohort_id === selectedId).map((a) => a.user_id) : []), [data, selectedId])
   const savedMentorKey = [...savedMentorIds].sort().join(',')
   // Only mentor coaches assigned to this cohort can be given its participants.
-  const cohortMentors = useMemo(() => mentorsAZ.filter((m) => savedMentorIds.includes(m.id)), [mentorsAZ, savedMentorIds])
-  const unassignedCount = people.filter((p) => !p.mentor_id).length
+  const savedCodeIds = useMemo(() => (data ? data.codeAssignments.filter((a) => a.cohort_id === selectedId).map((a) => a.code_id) : []), [data, selectedId])
+  const savedCodeKey = [...savedCodeIds].sort().join(',')
+  // Everyone a participant can be given to in this cohort, A to Z: signed-up mentor coaches and people still waiting to sign up.
+  const mentorOptions = useMemo(() => [
+    ...mentorsAZ.filter((m) => savedMentorIds.includes(m.id)).map((m) => ({ key: `u:${m.id}`, label: m.full_name || m.email })),
+    ...codesAZ.filter((c) => savedCodeIds.includes(c.id)).map((c) => ({ key: `c:${c.id}`, label: `${c.label} (not signed up yet)` })),
+  ].sort((a, b) => az(a.label, b.label)), [mentorsAZ, codesAZ, savedMentorIds, savedCodeIds])
+  const unassignedCount = people.filter((p) => !p.mentor_id && !p.mentor_code_id).length
 
   // Switching cohorts clears any half-finished edits.
-  useEffect(() => { setRenameValue(null); setEditingPerson(null); setNamesText(''); setNewMentorId('') }, [selectedId])
+  useEffect(() => { setRenameValue(null); setEditingPerson(null); setNamesText(''); setNewMentorKey('') }, [selectedId])
   // The mentor checklist follows what is saved. It resets only when you switch cohorts or the saved list changes,
   // so unsaved checkbox changes survive other reloads (like adding a participant).
   useEffect(() => { setMentorIds(savedMentorKey ? savedMentorKey.split(',') : []) }, [selectedId, savedMentorKey])
+  useEffect(() => { setCodeIds(savedCodeKey ? savedCodeKey.split(',') : []) }, [selectedId, savedCodeKey])
 
   const mentorsChanged = mentorIds.length !== savedMentorIds.length || mentorIds.some((id) => !savedMentorIds.includes(id))
+    || codeIds.length !== savedCodeIds.length || codeIds.some((id) => !savedCodeIds.includes(id))
 
   // Observations by participant and form number.
   const forms = useMemo(() => {
@@ -114,7 +129,7 @@ export default function CohortsTab() {
   const addNames = () => {
     const names = namesText.split(/\r?\n|;/).map((n) => n.trim()).filter(Boolean)
     run('add', async () => {
-      const j = await call('participants-add', { cohortId: cohort.id, names, mentorId: newMentorId || null })
+      const j = await call('participants-add', { cohortId: cohort.id, names, ...splitKey(newMentorKey) })
       setNamesText('')
       await load()
       setNotice(`Added ${j.added.length} participant${j.added.length === 1 ? '' : 's'}${j.skipped ? ` (${j.skipped} skipped: blank or already in this cohort)` : ''}.`)
@@ -135,17 +150,19 @@ export default function CohortsTab() {
   }
 
   const saveMentors = () => run('mentors', async () => {
-    const j = await call('cohort-mentors-set', { cohortId: cohort.id, userIds: mentorIds })
+    const j = await call('cohort-mentors-set', { cohortId: cohort.id, userIds: mentorIds, codeIds })
     await load()
     setNotice(j.unassigned
       ? `Mentor coaches saved. ${j.unassigned} participant${j.unassigned === 1 ? '' : 's'} lost their mentor coach and ${j.unassigned === 1 ? 'is' : 'are'} now unassigned. Assign them in the table below.`
       : 'Mentor coaches saved.')
   })
 
-  const setMentor = (p, mentorId) => run(`mentor-${p.id}`, async () => {
-    await call('participants-mentor-set', { ids: [p.id], mentorId: mentorId || null })
+  const setMentor = (p, key) => run(`mentor-${p.id}`, async () => {
+    await call('participants-mentor-set', { ids: [p.id], ...splitKey(key) })
     await load()
-  }, mentorId ? `${p.full_name} assigned to ${mentorName[mentorId] || 'the mentor coach'}.` : `${p.full_name} is now unassigned.`)
+  }, key
+    ? `${p.full_name} assigned to ${nameOfKey(key)}.${key.startsWith('c:') ? ' They move to that mentor coach\u2019s account when they sign up.' : ''}`
+    : `${p.full_name} is now unassigned.`)
 
   async function openObservation(id) {
     setBusy(`open-${id}`); setError('')
@@ -218,7 +235,7 @@ export default function CohortsTab() {
               <div style={card}>
                 <h2 style={h2}>Mentor coaches for this cohort</h2>
                 <p style={{ ...small, margin: '0 0 10px' }}>Check the mentor coaches who work with this cohort, then save. You then give each participant to one of them in the table below. A mentor coach sees only the participants assigned to them.</p>
-                {data.mentors.length === 0 && <p style={small}>No mentor coach accounts yet. Create a Mentor Coach access code in the Access Codes tab, then have them sign in once.</p>}
+                {data.mentors.length === 0 && codesAZ.length === 0 && <p style={small}>No mentor coaches yet. Create a Mentor Coach access code in the Access Codes tab. You can assign participants to it right away.</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
                   {mentorsAZ.map((m) => (
                     <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontFamily: font, color: '#0f1c3a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', background: mentorIds.includes(m.id) ? '#eef6ff' : '#fff' }}>
@@ -231,7 +248,28 @@ export default function CohortsTab() {
                     </label>
                   ))}
                 </div>
-                {data.mentors.length > 0 && (
+                {codesAZ.length > 0 && (
+                  <>
+                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 13, margin: '16px 0 4px' }}>Has an access code, not signed up yet</div>
+                    <p style={{ ...small, margin: '0 0 8px' }}>
+                      Check someone here to give them this cohort&rsquo;s participants before they sign up. When they sign up with their access code,
+                      the cohort and their participants move to their account automatically.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
+                      {codesAZ.map((c) => (
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontFamily: font, color: '#0f1c3a', border: `1px dashed ${C.gray}`, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', background: codeIds.includes(c.id) ? '#fff7ed' : '#fff' }}>
+                          <input type="checkbox" checked={codeIds.includes(c.id)}
+                            onChange={(e) => setCodeIds((ids) => (e.target.checked ? [...ids, c.id] : ids.filter((x) => x !== c.id)))} />
+                          <span>
+                            <strong>{c.label}</strong>
+                            <span style={{ display: 'block', fontSize: 11.5, color: C.muted }}>{c.role === 'admin' ? 'Admin access code' : 'Mentor coach access code'} · Not signed up yet</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {(data.mentors.length > 0 || codesAZ.length > 0) && (
                   <div style={{ marginTop: 12 }}>
                     <button style={primary(!mentorsChanged || busy === 'mentors')} disabled={!mentorsChanged || busy === 'mentors'} onClick={saveMentors}>
                       {busy === 'mentors' ? 'Saving…' : 'Save mentor coaches'}
@@ -248,16 +286,16 @@ export default function CohortsTab() {
                 <div style={{ marginTop: 10, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                   <label style={{ ...small, display: 'flex', alignItems: 'center', gap: 8 }}>
                     Mentor coach for these names
-                    <select style={{ ...input, minWidth: 220 }} value={newMentorId} onChange={(e) => setNewMentorId(e.target.value)} aria-label="Mentor coach for new participants">
+                    <select style={{ ...input, minWidth: 220 }} value={newMentorKey} onChange={(e) => setNewMentorKey(e.target.value)} aria-label="Mentor coach for new participants">
                       <option value="">Assign later</option>
-                      {cohortMentors.map((m) => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                      {mentorOptions.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                     </select>
                   </label>
                   <button style={primary(!namesText.trim() || busy === 'add')} disabled={!namesText.trim() || busy === 'add'} onClick={addNames}>
                     {busy === 'add' ? 'Adding…' : 'Add participants'}
                   </button>
                 </div>
-                {cohortMentors.length === 0 && <p style={{ ...small, margin: '8px 0 0' }}>Check and save at least one mentor coach above to assign participants to them.</p>}
+                {mentorOptions.length === 0 && <p style={{ ...small, margin: '8px 0 0' }}>Check and save at least one mentor coach above to assign participants to them.</p>}
               </div>
 
               <div style={{ marginBottom: 8, ...h2 }}>Participants and their observation forms</div>
@@ -292,12 +330,12 @@ export default function CohortsTab() {
                         ) : p.full_name}
                       </td>
                       <td style={td}>
-                        <select style={{ ...input, padding: '0.35rem 0.5rem', minWidth: 170, borderColor: p.mentor_id ? '#d1d5db' : C.orange }}
-                          value={p.mentor_id || ''} disabled={busy === `mentor-${p.id}`}
+                        <select style={{ ...input, padding: '0.35rem 0.5rem', minWidth: 170, borderColor: keyOf(p) ? '#d1d5db' : C.orange }}
+                          value={keyOf(p)} disabled={busy === `mentor-${p.id}`}
                           onChange={(e) => setMentor(p, e.target.value)} aria-label={`Mentor coach for ${p.full_name}`}>
                           <option value="">Unassigned</option>
-                          {p.mentor_id && !cohortMentors.some((m) => m.id === p.mentor_id) && <option value={p.mentor_id}>{mentorName[p.mentor_id] || 'Unknown'}</option>}
-                          {cohortMentors.map((m) => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                          {keyOf(p) && !mentorOptions.some((m) => m.key === keyOf(p)) && <option value={keyOf(p)}>{nameOfKey(keyOf(p))}</option>}
+                          {mentorOptions.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                         </select>
                       </td>
                       {[1, 2, 3].map((n) => {

@@ -18,6 +18,13 @@ const C = {
 const font = "'Montserrat', sans-serif"
 // Short names for the competency side bar.
 const SHORT = { 3: 'Agreements', 4: 'Trust & Safety', 5: 'Presence', 6: 'Active Listening', 7: 'Evokes Awareness', 8: 'Client Growth' }
+// Mentor coaches do not get the AI's suggested ratings. Keep only the evidence (what the transcript highlights use).
+function withoutSuggestions(ai) {
+  if (!ai) return ai
+  const behaviors = {}
+  Object.entries(ai.behaviors || {}).forEach(([id, b]) => { behaviors[id] = { evidence: b?.evidence || [] } })
+  return { behaviors }
+}
 // A to Z by participant name, ignoring capital letters.
 const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 const MAX_BYTES = 500 * 1024 * 1024
@@ -138,6 +145,21 @@ export default function SessionObservation() {
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
   useEffect(() => { loadDrafts(); loadCohorts() }, [])
 
+  // Fill in what we already know: the mentor coach's own name and email, and the participant's name as the client.
+  // Only empty boxes are filled, so anything typed (or saved earlier) is never overwritten.
+  useEffect(() => {
+    if (stage !== 'setup' && stage !== 'form') return
+    setForm((f) => {
+      const a = f.admin || {}
+      const next = { ...a }
+      if (!(a.name || '').trim() && profile?.full_name) next.name = profile.full_name
+      if (!(a.email || '').trim() && profile?.email) next.email = profile.email
+      if (!(a.clientName || '').trim() && link?.participantName) next.clientName = link.participantName
+      const same = next.name === a.name && next.email === a.email && next.clientName === a.clientName
+      return same ? f : { ...f, admin: next }
+    })
+  }, [stage, profile, link])
+
   // Side bar: highlight the form section that is on screen.
   useEffect(() => {
     if (stage !== 'form' || typeof IntersectionObserver === 'undefined') return undefined
@@ -162,7 +184,10 @@ export default function SessionObservation() {
 
   // A mentor coach who is assigned to a cohort must say who the observation is for.
   // Admins who are not mentor coaches may skip it.
-  const pickRequired = profile?.role === 'mentor' && cohorts.length > 0
+  // Only admins see the AI's suggested ratings and may start an observation that is not for a participant.
+  // While the profile is still loading, treat the person as a mentor coach so nothing flashes up.
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'admin_tools'
+  const pickRequired = !isAdmin && cohorts.length > 0
   const pickPerson = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id }))).find((p) => p.id === pick.participantId) || null
   const pickCohort = cohorts.find((c) => c.id === pickPerson?.cohortId) || null
   const shownCohorts = cohortFilter ? cohorts.filter((c) => c.id === cohortFilter) : cohorts
@@ -293,7 +318,7 @@ export default function SessionObservation() {
         { system: EVIDENCE_SYSTEM, messages: [{ role: 'user', content: buildEvidenceInput(turns, roles) }] },
         { validate: validateEvidence },
       )
-      setAi(parsed)
+      setAi(isAdmin ? parsed : withoutSuggestions(parsed))
       const evidence = {}
       let nextId = 1
       BEHAVIORS.forEach((b) => {
@@ -468,7 +493,7 @@ export default function SessionObservation() {
       const f = { ...emptyForm(), ...d.form }
       setTurns(d.turns || [])
       setRoles(d.roles || {})
-      setAi(d.ai || null)
+      setAi(isAdmin ? (d.ai || null) : withoutSuggestions(d.ai || null))
       const openedLink = row.participant_id
         ? { cohortId: row.cohort_id, participantId: row.participant_id, formNumber: row.form_number, participantName: row.participant_name || '' }
         : null
@@ -701,7 +726,7 @@ export default function SessionObservation() {
                       const person = allPeople.find((x) => x.id === e.target.value)
                       setPick({ cohortId: person?.cohortId || '', participantId: e.target.value, formNumber: 0 })
                     }}>
-                    <option value="">{pickRequired ? 'Choose a participant…' : 'Not for a cohort participant'}</option>
+                    <option value="">{isAdmin ? 'Not for a cohort participant' : 'Choose a participant…'}</option>
                     {shownCohorts.length === 1
                       ? shownCohorts[0].participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)
                       : shownCohorts.map((c) => (
@@ -893,7 +918,7 @@ export default function SessionObservation() {
               <label style={label} htmlFor="relink-participant">Participant</label>
               <select id="relink-participant" style={input} value={relink.participantId}
                 onChange={(e) => setRelink({ participantId: e.target.value, formNumber: e.target.value === link?.participantId ? link.formNumber : 0 })}>
-                <option value="">{pickRequired ? 'Choose a participant…' : 'Not linked to a participant'}</option>
+                <option value="">{isAdmin ? 'Not linked to a participant' : 'Choose a participant…'}</option>
                 {link && !allPeople.some((p) => p.id === link.participantId) && <option value={link.participantId}>{link.participantName}</option>}
                 {cohorts.map((c) => (
                   <optgroup key={c.id} label={c.name}>
@@ -1077,7 +1102,7 @@ export default function SessionObservation() {
                     {radio(form.q[q.id] === 'observed', () => set({ q: { ...form.q, [q.id]: 'observed' } }), 'Observed', 'o')}
                     {radio(form.q[q.id] === 'not_observed', () => set({ q: { ...form.q, [q.id]: 'not_observed' } }), 'Not Observed', 'n')}
                   </div>
-                  {s && (
+                  {s?.suggested && (
                     <div style={{ ...small, marginTop: 6, background: C.soft, borderRadius: 8, padding: '8px 10px' }}>
                       <strong>AI suggestion:</strong> {s.suggested === 'observed' ? 'Observed' : 'Not Observed'}. {s.note}
                       {(s.turns || []).filter((n) => turnById[n]).map((n) => (
@@ -1113,7 +1138,7 @@ export default function SessionObservation() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
                       {RATINGS.map((r) => radio(form.ratings[b.id] === r.id, () => set({ ratings: { ...form.ratings, [b.id]: r.id } }), <span title={r.hint}>{r.label}</span>, r.id))}
                     </div>
-                    {s && (
+                    {s?.suggested && (
                       <div style={{ ...small, marginTop: 8, background: C.soft, borderRadius: 8, padding: '8px 10px' }}>
                         <strong>AI suggestion:</strong> {RATINGS.find((r) => r.id === s.suggested)?.label || 'None'}. {s.note}
                         {form.ratings[b.id] !== s.suggested && RATINGS.some((r) => r.id === s.suggested) && (

@@ -114,6 +114,18 @@ export default async function handler(req, res) {
     for (const table of ['observation_drafts', 'audio_transcripts', 'internal_assessments']) {
       await supabase.from(table).update({ user_id: userId, access_code_id: null }).eq('access_code_id', found.code.id)
     }
+    // Cohorts and participants an admin pre-assigned to this code now belong to the new account.
+    // If this step fails the account still works; an admin can assign the participants by hand.
+    try {
+      const { data: pendingCohorts } = await supabase.from('observation_cohort_mentor_codes').select('cohort_id').eq('code_id', found.code.id)
+      if ((pendingCohorts || []).length) {
+        await supabase.from('observation_cohort_mentors').insert(pendingCohorts.map((r) => ({ cohort_id: r.cohort_id, user_id: userId })))
+        await supabase.from('observation_cohort_mentor_codes').delete().eq('code_id', found.code.id)
+      }
+      await supabase.from('observation_participants').update({ mentor_id: userId, mentor_code_id: null }).eq('mentor_code_id', found.code.id)
+    } catch (e) {
+      console.error('[code-signup] could not move pre-assigned participants:', e?.message || e)
+    }
     return res.status(200).json({ success: true, role })
   }
 
@@ -586,9 +598,9 @@ export default async function handler(req, res) {
   if (action === 'cohort-admin-load') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const [cohorts, participants, assignments, mentors, drafts] = await Promise.all([
+    const [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments] = await Promise.all([
       supabase.from('observation_cohorts').select('id, name, created_at').order('name'),
-      supabase.from('observation_participants').select('id, cohort_id, full_name, mentor_id, created_at').order('full_name'),
+      supabase.from('observation_participants').select('id, cohort_id, full_name, mentor_id, mentor_code_id, created_at').order('full_name'),
       supabase.from('observation_cohort_mentors').select('cohort_id, user_id'),
       supabase.from('users').select('id, full_name, email, role, is_active').in('role', COHORT_MENTOR_ROLES).order('full_name'),
       supabase
@@ -597,8 +609,11 @@ export default async function handler(req, res) {
         .not('participant_id', 'is', null)
         .is('deleted_at', null)
         .limit(2000),
+      // Mentor Coach / Admin access codes nobody has used yet: these people can be given participants before they sign up.
+      supabase.from('access_codes').select('id, label, role, active, expires_at').in('role', ['mentor', 'admin']).is('used_at', null),
+      supabase.from('observation_cohort_mentor_codes').select('cohort_id, code_id'),
     ])
-    const failed = [cohorts, participants, assignments, mentors, drafts].find((r) => r.error)
+    const failed = [cohorts, participants, assignments, mentors, drafts, codes, codeAssignments].find((r) => r.error)
     if (failed) return res.status(500).json({ error: failed.error.message })
     return res.status(200).json({
       cohorts: cohorts.data || [],
@@ -606,6 +621,10 @@ export default async function handler(req, res) {
       assignments: assignments.data || [],
       mentors: mentors.data || [],
       observations: drafts.data || [],
+      pendingCodes: (codes.data || [])
+        .filter((c) => c.active !== false && !(c.expires_at && new Date(c.expires_at) < new Date()))
+        .map((c) => ({ id: c.id, label: c.label, role: c.role })),
+      codeAssignments: codeAssignments.data || [],
     })
   }
 
@@ -642,10 +661,12 @@ export default async function handler(req, res) {
   if (action === 'participants-add') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const { cohortId, names, mentorId } = req.body || {}
+    const { cohortId, names, mentorId, mentorCodeId } = req.body || {}
     if (!cohortId || !Array.isArray(names)) return res.status(400).json({ error: 'cohortId and names are required' })
     if (names.length > 200) return res.status(400).json({ error: 'Add up to 200 names at a time' })
+    if (mentorId && mentorCodeId) return res.status(400).json({ error: 'Choose one mentor coach' })
     if (mentorId && !(await mentorInCohort(cohortId, mentorId))) return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
+    if (mentorCodeId && !(await codeInCohort(cohortId, mentorCodeId))) return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
     const { data: existing, error: existingError } = await supabase.from('observation_participants').select('full_name').eq('cohort_id', cohortId)
     if (existingError) return res.status(500).json({ error: existingError.message })
     const seen = new Set((existing || []).map((p) => p.full_name.toLowerCase()))
@@ -654,10 +675,10 @@ export default async function handler(req, res) {
       const full_name = cleanName(raw)
       if (!full_name || seen.has(full_name.toLowerCase())) continue
       seen.add(full_name.toLowerCase())
-      rows.push({ cohort_id: cohortId, full_name, mentor_id: mentorId || null })
+      rows.push({ cohort_id: cohortId, full_name, mentor_id: mentorId || null, mentor_code_id: mentorCodeId || null })
     }
     if (!rows.length) return res.status(200).json({ success: true, added: [], skipped: names.length })
-    const { data, error } = await supabase.from('observation_participants').insert(rows).select('id, cohort_id, full_name, mentor_id, created_at')
+    const { data, error } = await supabase.from('observation_participants').insert(rows).select('id, cohort_id, full_name, mentor_id, mentor_code_id, created_at')
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ success: true, added: data || [], skipped: names.length - rows.length })
   }
@@ -668,13 +689,20 @@ export default async function handler(req, res) {
     return !!data
   }
 
+  // Is this (not yet used) access code assigned to this cohort?
+  async function codeInCohort(cohortId, codeId) {
+    const { data } = await supabase.from('observation_cohort_mentor_codes').select('code_id').eq('cohort_id', cohortId).eq('code_id', codeId).maybeSingle()
+    return !!data
+  }
+
   // Assign participants to a mentor coach (or clear it with no mentorId). All participants must be in one cohort,
   // and the mentor coach must be assigned to that cohort.
   if (action === 'participants-mentor-set') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const { ids, mentorId } = req.body || {}
+    const { ids, mentorId, mentorCodeId } = req.body || {}
     if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids are required' })
+    if (mentorId && mentorCodeId) return res.status(400).json({ error: 'Choose one mentor coach' })
     const { data: found, error: foundError } = await supabase.from('observation_participants').select('id, cohort_id').in('id', ids)
     if (foundError) return res.status(500).json({ error: foundError.message })
     if (!found || found.length !== new Set(ids).size) return res.status(404).json({ error: 'Participant not found' })
@@ -683,7 +711,10 @@ export default async function handler(req, res) {
     if (mentorId && !(await mentorInCohort(cohortIds[0], mentorId))) {
       return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
     }
-    const { error } = await supabase.from('observation_participants').update({ mentor_id: mentorId || null }).in('id', ids)
+    if (mentorCodeId && !(await codeInCohort(cohortIds[0], mentorCodeId))) {
+      return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
+    }
+    const { error } = await supabase.from('observation_participants').update({ mentor_id: mentorId || null, mentor_code_id: mentorCodeId || null }).in('id', ids)
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ success: true, updated: found.length })
   }
@@ -694,7 +725,7 @@ export default async function handler(req, res) {
     const { id } = req.body || {}
     const full_name = cleanName(req.body?.full_name)
     if (!id || !full_name) return res.status(400).json({ error: 'id and a name are required' })
-    const { data, error } = await supabase.from('observation_participants').update({ full_name }).eq('id', id).select('id, cohort_id, full_name, mentor_id, created_at').maybeSingle()
+    const { data, error } = await supabase.from('observation_participants').update({ full_name }).eq('id', id).select('id, cohort_id, full_name, mentor_id, mentor_code_id, created_at').maybeSingle()
     if (error) return res.status(500).json({ error: error.message })
     if (!data) return res.status(404).json({ error: 'Participant not found' })
     return res.status(200).json({ success: true, participant: data })
@@ -714,9 +745,16 @@ export default async function handler(req, res) {
   if (action === 'cohort-mentors-set') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const { cohortId, userIds } = req.body || {}
+    const { cohortId, userIds, codeIds } = req.body || {}
     if (!cohortId || !Array.isArray(userIds)) return res.status(400).json({ error: 'cohortId and userIds are required' })
     const wanted = [...new Set(userIds)]
+    // Access codes whose person has not signed up yet. Left alone when the caller does not send codeIds.
+    const wantedCodes = Array.isArray(codeIds) ? [...new Set(codeIds)] : null
+    if (wantedCodes && wantedCodes.length) {
+      const { data: okCodes, error: codeError } = await supabase.from('access_codes').select('id').in('id', wantedCodes).in('role', ['mentor', 'admin']).is('used_at', null)
+      if (codeError) return res.status(500).json({ error: codeError.message })
+      if ((okCodes || []).length !== wantedCodes.length) return res.status(400).json({ error: 'Only unused Mentor Coach or Admin access codes can be assigned before sign-up' })
+    }
     if (wanted.length) {
       const { data: found, error: foundError } = await supabase.from('users').select('id').in('id', wanted).in('role', COHORT_MENTOR_ROLES)
       if (foundError) return res.status(500).json({ error: foundError.message })
@@ -728,12 +766,22 @@ export default async function handler(req, res) {
       const { error: addError } = await supabase.from('observation_cohort_mentors').insert(wanted.map((user_id) => ({ cohort_id: cohortId, user_id })))
       if (addError) return res.status(500).json({ error: addError.message })
     }
+    if (wantedCodes) {
+      const { error: clearCodesError } = await supabase.from('observation_cohort_mentor_codes').delete().eq('cohort_id', cohortId)
+      if (clearCodesError) return res.status(500).json({ error: clearCodesError.message })
+      if (wantedCodes.length) {
+        const { error: addCodesError } = await supabase.from('observation_cohort_mentor_codes').insert(wantedCodes.map((code_id) => ({ cohort_id: cohortId, code_id })))
+        if (addCodesError) return res.status(500).json({ error: addCodesError.message })
+      }
+    }
     // A mentor coach who leaves the cohort no longer has its participants. They become unassigned.
-    const { data: assigned, error: assignedError } = await supabase.from('observation_participants').select('id, mentor_id').eq('cohort_id', cohortId).not('mentor_id', 'is', null)
+    const { data: assigned, error: assignedError } = await supabase.from('observation_participants').select('id, mentor_id, mentor_code_id').eq('cohort_id', cohortId)
     if (assignedError) return res.status(500).json({ error: assignedError.message })
-    const orphaned = (assigned || []).filter((p) => !wanted.includes(p.mentor_id)).map((p) => p.id)
+    const orphaned = (assigned || [])
+      .filter((p) => (p.mentor_id && !wanted.includes(p.mentor_id)) || (p.mentor_code_id && wantedCodes && !wantedCodes.includes(p.mentor_code_id)))
+      .map((p) => p.id)
     if (orphaned.length) {
-      const { error: clearMentorError } = await supabase.from('observation_participants').update({ mentor_id: null }).in('id', orphaned)
+      const { error: clearMentorError } = await supabase.from('observation_participants').update({ mentor_id: null, mentor_code_id: null }).in('id', orphaned)
       if (clearMentorError) return res.status(500).json({ error: clearMentorError.message })
     }
     return res.status(200).json({ success: true, unassigned: orphaned.length })
