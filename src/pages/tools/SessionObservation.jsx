@@ -635,7 +635,7 @@ export default function SessionObservation() {
     const crfForm = mode === 'review' && crfStage === 'form' // an open review takes over the page, like an open observation
     return (
       <Layout active="observation" pageTitle={crfForm ? 'Competency Review Form Mentor Coaching' : 'Session Observation Form Mentor Coaching'}>
-        <div style={crfForm ? { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+        <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
           {!crfForm && (<>
           {cohorts.length > 1 && (
             <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
