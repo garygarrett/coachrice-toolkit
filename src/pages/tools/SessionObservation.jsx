@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Layout from '../../components/Layout'
+import { useAuth } from '../../context/AuthContext'
 import { authFetch } from '../../lib/authFetch'
 import { aiJson } from '../../lib/ai'
 import { parseTranscriptText, stamp } from '../../lib/sof/transcript'
@@ -15,6 +16,17 @@ const C = {
   orange: '#ff8200', green: '#c9d647', border: '#e2e6ec', soft: '#f0f2f5',
 }
 const font = "'Montserrat', sans-serif"
+// Short names for the competency side bar.
+const SHORT = { 3: 'Agreements', 4: 'Trust & Safety', 5: 'Presence', 6: 'Active Listening', 7: 'Evokes Awareness', 8: 'Client Growth' }
+// Mentor coaches do not get the AI's suggested ratings. Keep only the evidence (what the transcript highlights use).
+function withoutSuggestions(ai) {
+  if (!ai) return ai
+  const behaviors = {}
+  Object.entries(ai.behaviors || {}).forEach(([id, b]) => { behaviors[id] = { evidence: b?.evidence || [] } })
+  return { behaviors }
+}
+// A to Z by participant name, ignoring capital letters.
+const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 const MAX_BYTES = 500 * 1024 * 1024
 
 const btn = (primary, disabled) => ({
@@ -75,6 +87,13 @@ function evidenceLine(turn, roles, quote) {
   return `${where} ${who}: “${quote}”`
 }
 
+// The name of an observation linked to a cohort participant. Complete/Incomplete follows the form as it is filled in.
+function autoNameFor(link, form) {
+  if (!link || !link.participantName || !link.formNumber) return ''
+  const status = missingItems(form).length === 0 ? 'Complete' : 'Incomplete'
+  return `${link.participantName} - Session Observation Form #${link.formNumber} (${status})`
+}
+
 export default function SessionObservation() {
   const fileRef = useRef(null)
   const audioFileRef = useRef(null)
@@ -102,6 +121,17 @@ export default function SessionObservation() {
   const [drafts, setDrafts] = useState([])
   const [savingDraft, setSavingDraft] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const { profile } = useAuth()
+  const [cohorts, setCohorts] = useState([]) // cohorts this account is assigned to, with participants and which forms exist
+  const [pick, setPick] = useState({ cohortId: '', participantId: '', formNumber: 0 }) // choice on the start screen
+  const [link, setLink] = useState(null) // { cohortId, participantId, formNumber, participantName } for the observation being worked on
+  const [relink, setRelink] = useState({ participantId: '', formNumber: 0 }) // choice in the "Participant and form" panel
+  const [relinking, setRelinking] = useState(false)
+  const [viewPersonId, setViewPersonId] = useState('') // participant chosen in the "By participant" dropdown
+  const startCardRef = useRef(null)
+  const [navActive, setNavActive] = useState('sec-info') // section highlighted in the side bar between transcript and form
+  const navLockUntil = useRef(0) // after a side bar click, ignore scroll tracking until the smooth scroll ends
+  const [cohortFilter, setCohortFilter] = useState('') // cohort chosen at the top of the page ('' = all cohorts)
   const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
@@ -113,9 +143,79 @@ export default function SessionObservation() {
   }, [])
   useEffect(() => () => { xhrRef.current?.abort() }, [])
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
-  useEffect(() => { loadDrafts() }, [])
+  useEffect(() => { loadDrafts(); loadCohorts() }, [])
 
-  const snapshot = useMemo(() => JSON.stringify({ form, roles, active }), [form, roles, active])
+  // Fill in what we already know: the mentor coach's own name and email, and the participant's name as the client.
+  // Only empty boxes are filled, so anything typed (or saved earlier) is never overwritten.
+  useEffect(() => {
+    if (stage !== 'setup' && stage !== 'form') return
+    setForm((f) => {
+      const a = f.admin || {}
+      const next = { ...a }
+      if (!(a.name || '').trim() && profile?.full_name) next.name = profile.full_name
+      if (!(a.email || '').trim() && profile?.email) next.email = profile.email
+      if (!(a.clientName || '').trim() && link?.participantName) next.clientName = link.participantName
+      const same = next.name === a.name && next.email === a.email && next.clientName === a.clientName
+      return same ? f : { ...f, admin: next }
+    })
+  }, [stage, profile, link])
+
+  // Side bar: highlight the form section that is on screen.
+  useEffect(() => {
+    if (stage !== 'form' || typeof IntersectionObserver === 'undefined') return undefined
+    const ids = ['sec-info', 'sec-c1', ...COMPETENCIES.map((c) => `sec-c${c.n}`), 'sec-sign']
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean)
+    const seen = new Set()
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => (e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id)))
+      const first = ids.find((id) => seen.has(id))
+      if (first && Date.now() > navLockUntil.current) setNavActive(first)
+    }, { rootMargin: '-150px 0px -50% 0px' })
+    els.forEach((el) => obs.observe(el))
+    return () => obs.disconnect()
+  }, [stage])
+
+  // Saved observations split by the same rule used everywhere else: Complete = nothing left to fill in.
+  const isCompleteDraft = (d) => missingItems({ ...emptyForm(), ...(d.form || {}) }).length === 0
+  // The cohort selector at the top limits the lists below it. "All cohorts" shows everything, including forms not linked to a cohort.
+  const shownDrafts = cohortFilter ? drafts.filter((d) => d.cohort_id === cohortFilter) : drafts
+  const completedDrafts = shownDrafts.filter(isCompleteDraft)
+  const inProgressDrafts = shownDrafts.filter((d) => !isCompleteDraft(d))
+
+  // A mentor coach who is assigned to a cohort must say who the observation is for.
+  // Admins who are not mentor coaches may skip it.
+  // Only admins see the AI's suggested ratings and may start an observation that is not for a participant.
+  // While the profile is still loading, treat the person as a mentor coach so nothing flashes up.
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'admin_tools'
+  const pickRequired = !isAdmin && cohorts.length > 0
+  const pickPerson = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id }))).find((p) => p.id === pick.participantId) || null
+  const pickCohort = cohorts.find((c) => c.id === pickPerson?.cohortId) || null
+  const shownCohorts = cohortFilter ? cohorts.filter((c) => c.id === cohortFilter) : cohorts
+  const pickTaken = pickPerson?.forms.find((f) => f.formNumber === pick.formNumber) || null // the chosen form number already has a saved observation
+  const pickReady = pickPerson ? pick.formNumber > 0 && !pickTaken : !pickRequired
+
+  // "Participant and form" panel on the form screen: change who a saved observation is for.
+  const allPeople = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id })))
+  const peopleAZ = allPeople.filter((p) => !cohortFilter || p.cohortId === cohortFilter).sort(az) // participants in the chosen cohort(s), A to Z
+  const viewPerson = peopleAZ.find((p) => p.id === viewPersonId) || null
+  const relinkPerson = allPeople.find((p) => p.id === relink.participantId)
+    || (link && link.participantId === relink.participantId ? { id: link.participantId, name: link.participantName, cohortId: link.cohortId, forms: [] } : null)
+  // A form number is taken if that participant has it saved, unless it is this very observation.
+  const relinkTaken = (n) => {
+    const e = relinkPerson?.forms.find((f) => f.formNumber === n)
+    return !!e && !(e.mine && e.id === draftId)
+  }
+  const relinkChanged = relink.participantId !== (link?.participantId || '') || relink.formNumber !== (link?.formNumber || 0)
+  const relinkValid = relink.participantId ? relink.formNumber > 0 && !relinkTaken(relink.formNumber) : !pickRequired
+  useEffect(() => {
+    setRelink({ participantId: link?.participantId || '', formNumber: link?.formNumber || 0 })
+  }, [link])
+
+  // Linked observations are named automatically. The saved copy (and every download) carries that name.
+  const autoName = useMemo(() => autoNameFor(link, form), [link, form])
+  const savedForm = autoName ? { ...form, title: autoName } : form
+
+  const snapshot = useMemo(() => JSON.stringify({ form, roles, active, name: autoName }), [form, roles, active, autoName])
   const dirty = stage === 'form' && snapshot !== lastSaved.current
   useEffect(() => {
     if (!dirty) return undefined
@@ -174,7 +274,19 @@ export default function SessionObservation() {
     setRoles(initial)
     if (audioUrl) URL.revokeObjectURL(audioUrl)
     setAudioUrl(audioFile ? URL.createObjectURL(audioFile) : '')
-    set({ noTimestamps: !t.some((x) => x.time) })
+    // If this observation is for a cohort participant, fill in their name on the form.
+    // The observation's own name is generated from the participant and form number.
+    if (pickPerson && pick.formNumber) {
+      setLink({ cohortId: pickPerson.cohortId, participantId: pickPerson.id, formNumber: pick.formNumber, participantName: pickPerson.name })
+      setForm((f) => ({
+        ...f,
+        noTimestamps: !t.some((x) => x.time),
+        admin: { ...f.admin, clientName: f.admin.clientName || pickPerson.name },
+      }))
+    } else {
+      setLink(null)
+      set({ noTimestamps: !t.some((x) => x.time) })
+    }
     setStage('setup')
   }
 
@@ -206,7 +318,7 @@ export default function SessionObservation() {
         { system: EVIDENCE_SYSTEM, messages: [{ role: 'user', content: buildEvidenceInput(turns, roles) }] },
         { validate: validateEvidence },
       )
-      setAi(parsed)
+      setAi(isAdmin ? parsed : withoutSuggestions(parsed))
       const evidence = {}
       let nextId = 1
       BEHAVIORS.forEach((b) => {
@@ -278,12 +390,71 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ }
   }
 
-  const draftTitle = () => observationTitle(form)
+  // "Start Form #n" in the By participant panel: fill in the start card below and bring it into view.
+  function startFormFor(person, n) {
+    setPick({ cohortId: person.cohortId, participantId: person.id, formNumber: n })
+    setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+
+  // The participants assigned to this account (grouped by cohort), and which form numbers already exist.
+  async function loadCohorts() {
+    try {
+      const res = await authFetch('/api/user-actions?action=cohort-mine', { method: 'POST' })
+      if (!res.ok) return
+      const list = ((await res.json()).cohorts || [])
+        .map((c) => ({ ...c, participants: [...c.participants].sort(az) }))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+      setCohorts(list)
+      setViewPersonId((id) => (list.some((c) => c.participants.some((p) => p.id === id)) ? id : ''))
+      setPick((p) => (list.some((c) => c.participants.some((x) => x.id === p.participantId)) ? p : { cohortId: '', participantId: '', formNumber: 0 }))
+      setCohortFilter((id) => (list.some((c) => c.id === id) ? id : ''))
+    } catch { /* the picker is optional for most accounts; ignore */ }
+  }
+
+  // Change the participant and form number of the observation that is open (also works for older, unlinked ones).
+  async function applyRelink() {
+    const person = relink.participantId ? relinkPerson : null
+    const newLink = person ? { cohortId: person.cohortId, participantId: person.id, formNumber: relink.formNumber, participantName: person.name } : null
+    const oldName = link?.participantName || ''
+    // Keep the form's Client name in step: fill it if empty, or swap it if it still holds the old participant's name.
+    const nextForm = (() => {
+      const admin = { ...form.admin }
+      const current = (admin.clientName || '').trim()
+      if (newLink && (!current || current === oldName)) admin.clientName = newLink.participantName
+      return { ...form, admin, title: newLink ? form.title : '' }
+    })()
+    setRelinking(true); setNotice('')
+    try {
+      if (draftId) {
+        const res = await authFetch('/api/user-actions?action=obs-link', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: draftId,
+            participantId: newLink?.participantId || null,
+            formNumber: newLink?.formNumber,
+            title: newLink ? autoNameFor(newLink, nextForm) : observationTitle(nextForm),
+          }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error || `status ${res.status}`)
+      }
+      setLink(newLink)
+      setForm(nextForm)
+      setNotice(newLink ? `This observation is now for ${newLink.participantName}, Form #${newLink.formNumber}.` : 'This observation is no longer linked to a participant.')
+      loadCohorts(); loadDrafts()
+    } catch (e) {
+      setNotice(`Could not change the participant: ${e.message}`)
+    } finally {
+      setRelinking(false)
+    }
+  }
+
+  const draftTitle = () => observationTitle(savedForm)
 
   // Transcript PDF with the selected evidence highlighted (same look as the Audio to Transcript PDF)
   async function downloadAnnotated() {
     setExporting(true); setNotice('')
-    try { await downloadAnnotatedTranscript({ form, turns, roles }) }
+    try { await downloadAnnotatedTranscript({ form: savedForm, turns, roles }) }
     catch (e) { setNotice(e.message || 'The PDF could not be made.') }
     setExporting(false)
   }
@@ -295,7 +466,7 @@ export default function SessionObservation() {
     try {
       const res = await authFetch('/api/user-actions?action=obs-save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form, turns, roles, ai, active } }),
+        body: JSON.stringify({ id: draftId, title: draftTitle(), data: { form: savedForm, turns, roles, ai, active }, link }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || `status ${res.status}`)
@@ -303,8 +474,10 @@ export default function SessionObservation() {
       lastSaved.current = sent
       setSavedAt(new Date())
       loadDrafts()
+      return true
     } catch (e) {
       setNotice(`Could not save your progress: ${e.message}. Your work is still on this page. Use "Download form" to keep a copy.`)
+      return false
     } finally {
       setSavingDraft(false)
     }
@@ -322,13 +495,17 @@ export default function SessionObservation() {
       const f = { ...emptyForm(), ...d.form }
       setTurns(d.turns || [])
       setRoles(d.roles || {})
-      setAi(d.ai || null)
+      setAi(isAdmin ? (d.ai || null) : withoutSuggestions(d.ai || null))
+      const openedLink = row.participant_id
+        ? { cohortId: row.cohort_id, participantId: row.participant_id, formNumber: row.form_number, participantName: row.participant_name || '' }
+        : null
+      setLink(openedLink)
       setForm(f)
       setActive(d.active || 'A3.1')
       setDraftId(row.id)
       if (audioUrl) URL.revokeObjectURL(audioUrl)
       setAudioUrl('')
-      lastSaved.current = JSON.stringify({ form: f, roles: d.roles || {}, active: d.active || 'A3.1' })
+      lastSaved.current = JSON.stringify({ form: f, roles: d.roles || {}, active: d.active || 'A3.1', name: autoNameFor(openedLink, f) })
       setSavedAt(new Date(row.updated_at))
       setNotice('')
       setStage('form')
@@ -346,6 +523,7 @@ export default function SessionObservation() {
       if (!res.ok) throw new Error('Could not delete it')
       if (id === draftId) resetAll()
       loadDrafts()
+      loadCohorts() // deleting frees that participant's form number again
     } catch (e) {
       setError(e.message)
     }
@@ -362,13 +540,23 @@ export default function SessionObservation() {
     setSaving(true)
     setNotice('')
     try {
-      await downloadFilledForm(form)
+      await downloadFilledForm(savedForm)
       setNotice(missing.length ? `Saved. ${missing.length} item${missing.length === 1 ? ' is' : 's are'} still blank on the form (see the list at the bottom).` : 'Saved. The completed form is in your downloads.')
     } catch (e) {
       setNotice(`Could not save: ${e.message}`)
     } finally {
       setSaving(false)
     }
+  }
+
+  // "Back to my observations": save what is unsaved, then return to the start screen (the saved list refreshes).
+  async function goBack() {
+    if (dirty) {
+      const saved = await saveDraft(true)
+      if (!saved && !window.confirm('Your latest changes could not be saved. Leave this observation anyway?')) return
+    }
+    resetAll()
+    loadDrafts()
   }
 
   function startOver() {
@@ -378,8 +566,10 @@ export default function SessionObservation() {
 
   function resetAll() {
     setStage('input'); setTurns([]); setRoles({}); setAi(null); setForm(emptyForm()); setFile(null); setPlayFile(null)
-    setPasted(''); setConsent(false); setNotice(''); setError('')
+    setPasted(''); setNotice(''); setError('')
     setDraftId(null); setSavedAt(null); lastSaved.current = ''; autoCreated.current = false
+    setLink(null); setPick((p) => ({ cohortId: p.cohortId, participantId: '', formNumber: 0 }))
+    loadCohorts()
   }
 
   // ---------- Pieces ----------
@@ -428,33 +618,179 @@ export default function SessionObservation() {
 
   // ---------- Screens ----------
   if (stage === 'input') {
-    const ready = file || pasted.trim().length > 20
+    const ready = (file || pasted.trim().length > 20) && pickReady
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
-          {drafts.length > 0 && (
-            <div style={card}>
-              <h2 style={h2}>Continue a saved observation</h2>
-              {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
-              {drafts.map((d) => (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ flex: 1, fontSize: 13 }}>
-                    <div style={{ fontWeight: 700, color: C.navy }}>{d.title}</div>
-                    <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
-                  </div>
-                  <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
-                  <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
-                </div>
-              ))}
+          {cohorts.length > 1 && (
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <label style={{ ...label, margin: 0, fontSize: 14 }} htmlFor="obs-cohort">Cohort</label>
+              <select id="obs-cohort" style={{ ...input, maxWidth: 320 }} value={cohortFilter}
+                onChange={(e) => {
+                  const id = e.target.value
+                  setCohortFilter(id)
+                  setViewPersonId('')
+                  setPick((p) => (!id || allPeople.some((x) => x.id === p.participantId && x.cohortId === id) ? p : { cohortId: '', participantId: '', formNumber: 0 }))
+                }}>
+                <option value="">All cohorts</option>
+                {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <span style={small}>Your saved observations and participants below show this cohort only.</span>
             </div>
           )}
-          <div style={card}>
+          {(drafts.length > 0 || allPeople.length > 0) && (
+            <div style={card}>
+              <h2 style={h2}>Your saved observations</h2>
+              {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
+              {[
+                { key: 'progress', label: 'In progress', rows: inProgressDrafts, open: true, color: C.orange },
+                { key: 'complete', label: 'Completed', rows: completedDrafts, open: false, color: '#7a8a16' },
+              ].map((group) => (
+                <details key={group.key} open={group.open} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                    {group.label}
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: group.color, borderRadius: 10, padding: '2px 9px' }}>{group.rows.length}</span>
+                  </summary>
+                  {group.rows.length === 0 && (
+                    <div style={{ ...small, padding: '0 0 12px' }}>{group.key === 'progress' ? 'Nothing in progress.' : 'No completed observations yet.'}</div>
+                  )}
+                  {group.rows.map((d) => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ flex: 1, fontSize: 13 }}>
+                        <div style={{ fontWeight: 700, color: C.navy }}>
+                          {d.title}
+                          {d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>Form #{d.form_number}</span> : null}
+                        </div>
+                        <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
+                      </div>
+                      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
+                      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
+                    </div>
+                  ))}
+                </details>
+              ))}
+              {peopleAZ.length > 0 && (
+                <details open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                    By participant
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{peopleAZ.length}</span>
+                  </summary>
+                  <div style={{ paddingBottom: 12 }}>
+                    <label style={label} htmlFor="obs-by-participant">Choose a participant to see just their reports</label>
+                    <select id="obs-by-participant" style={{ ...input, maxWidth: 420 }} value={viewPersonId} onChange={(e) => setViewPersonId(e.target.value)}>
+                      <option value="">Choose a participant…</option>
+                      {peopleAZ.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{cohorts.length > 1 && !cohortFilter ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {viewPerson && [1, 2, 3].map((n) => {
+                    const mine = drafts.find((d) => d.participant_id === viewPerson.id && d.form_number === n)
+                    const elsewhere = !mine && viewPerson.forms.find((f) => f.formNumber === n)
+                    const done = mine ? isCompleteDraft(mine) : false
+                    return (
+                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                        <div style={{ flex: 1, fontSize: 13 }}>
+                          <div style={{ fontWeight: 700, color: C.navy }}>
+                            Form #{n} · {viewPerson.name}
+                            {mine && (
+                              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: done ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
+                                {done ? 'Complete' : 'In progress'}
+                              </span>
+                            )}
+                          </div>
+                          <div style={small}>
+                            {mine ? `Last saved ${new Date(mine.updated_at).toLocaleString()}`
+                              : elsewhere ? 'Saved by another mentor coach.'
+                              : 'Not started.'}
+                          </div>
+                        </div>
+                        {mine && <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(mine.id)}>Open</button>}
+                        {mine && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(mine.id, mine.title)}>Delete</button>}
+                        {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start Form #{n}</button>}
+                      </div>
+                    )
+                  })}
+                </details>
+              )}
+            </div>
+          )}
+          <div style={card} ref={startCardRef}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.
             </p>
             <div style={{ height: 14 }} />
+
+            {cohorts.length > 0 && (
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
+                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
+                <div style={{ ...small, marginBottom: 12 }}>
+                  Choose the participant and which Session Observation Form this is. Their name fills in on the form for you.
+                </div>
+                <div>
+                  <label style={label} htmlFor="obs-participant">Participant{shownCohorts.length === 1 ? ` (${shownCohorts[0].name})` : ''}</label>
+                  <select id="obs-participant" style={{ ...input, maxWidth: 420 }} value={pick.participantId}
+                    onChange={(e) => {
+                      const person = allPeople.find((x) => x.id === e.target.value)
+                      setPick({ cohortId: person?.cohortId || '', participantId: e.target.value, formNumber: 0 })
+                    }}>
+                    <option value="">{isAdmin ? 'Not for a cohort participant' : 'Choose a participant…'}</option>
+                    {shownCohorts.length === 1
+                      ? shownCohorts[0].participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)
+                      : shownCohorts.map((c) => (
+                        <optgroup key={c.id} label={c.name}>
+                          {c.participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </optgroup>
+                      ))}
+                  </select>
+                </div>
+                {shownCohorts.length > 0 && shownCohorts.every((c) => c.participants.length === 0) && (
+                  <div style={{ ...small, marginTop: 8 }}>No participants are assigned to you yet. Ask an admin to assign participants to you in Users / Access Codes &gt; Cohorts.</div>
+                )}
+                {pickPerson && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={label}>Session Observation Form</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {[1, 2, 3].map((n) => {
+                        const existing = pickPerson.forms.find((f) => f.formNumber === n)
+                        const chosen = pick.formNumber === n
+                        return (
+                          <button key={n} type="button" onClick={() => setPick((p) => ({ ...p, formNumber: n }))} aria-pressed={chosen}
+                            style={{
+                              fontFamily: font, fontWeight: 800, fontSize: 14, padding: '10px 22px', borderRadius: 10, cursor: 'pointer', minWidth: 150, textAlign: 'center',
+                              border: `2px solid ${chosen ? (existing ? C.orange : C.navy) : C.border}`, background: chosen ? (existing ? '#fff7ed' : C.navy) : C.white,
+                              color: chosen ? (existing ? '#9a3412' : C.white) : C.navy,
+                            }}>
+                            Form #{n}
+                            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, marginTop: 2, color: chosen && !existing ? '#dbe4f5' : C.muted }}>
+                              {existing ? 'Already saved' : 'Not started'}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {pickTaken && (
+                      <div role="alert" style={{ marginTop: 12, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, lineHeight: 1.5 }}>
+                        <strong>Form #{pick.formNumber} for {pickPerson.name} has already been saved</strong>
+                        {pickTaken.mine ? ' by you.' : ' by another mentor coach.'} A participant can have only one of each form, so you cannot start another Form #{pick.formNumber}.
+                        {pickTaken.mine
+                          ? ' Open the saved one to keep working on it, or choose a different form number.'
+                          : ' Choose a different form number, or ask an admin if this one needs to be redone.'}
+                        {pickTaken.mine && (
+                          <div style={{ marginTop: 8 }}>
+                            <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(pickTaken.id)}>Open saved Form #{pick.formNumber}</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div
               onClick={() => fileRef.current?.click()}
@@ -494,6 +830,11 @@ export default function SessionObservation() {
             {error && <div style={{ color: '#b42318', fontSize: 13, margin: '12px 0' }}>{error}</div>}
             <div style={{ marginTop: 16 }}>
               <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
+              {!pickReady && (
+                <span style={{ ...small, marginLeft: 12 }}>
+                  {pickTaken ? `Form #${pick.formNumber} is already saved. Choose a different form to continue.` : pickPerson ? 'Choose Form #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -568,10 +909,71 @@ export default function SessionObservation() {
       <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
       <div style={{ marginBottom: 14 }}>
         <label style={label} htmlFor="obs-title">Name of this observation</label>
-        <input id="obs-title" style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 560 }} value={form.title || ''}
-          onChange={(e) => set({ title: e.target.value })} placeholder="For example: Jordan R. – Session 2" maxLength={120} />
+        {autoName ? (
+          <>
+            <input id="obs-title" readOnly style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 640, background: C.soft }} value={autoName} />
+            <div style={{ ...small, marginTop: 4 }}>Named automatically from the participant and form number. Complete or Incomplete updates as you fill in the form.</div>
+          </>
+        ) : (
+          <input id="obs-title" style={{ ...input, fontSize: 16, fontWeight: 700, color: C.navy, maxWidth: 560 }} value={form.title || ''}
+            onChange={(e) => set({ title: e.target.value })} placeholder="For example: Jordan R. – Session 2" maxLength={120} />
+        )}
       </div>
+      {(cohorts.length > 0 || link) && (
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 14, background: C.soft }}>
+          <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Participant and form</div>
+          <div style={{ ...small, marginBottom: 10 }}>
+            {link ? 'Change who this observation is for, or which form number it is.' : 'This observation is not linked to a participant yet. Choose one to link it.'}
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ minWidth: 240 }}>
+              <label style={label} htmlFor="relink-participant">Participant</label>
+              <select id="relink-participant" style={input} value={relink.participantId}
+                onChange={(e) => setRelink({ participantId: e.target.value, formNumber: e.target.value === link?.participantId ? link.formNumber : 0 })}>
+                <option value="">{isAdmin ? 'Not linked to a participant' : 'Choose a participant…'}</option>
+                {link && !allPeople.some((p) => p.id === link.participantId) && <option value={link.participantId}>{link.participantName}</option>}
+                {cohorts.map((c) => (
+                  <optgroup key={c.id} label={c.name}>
+                    {c.participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            {relink.participantId && (
+              <div>
+                <div style={label}>Form</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[1, 2, 3].map((n) => {
+                    const chosen = relink.formNumber === n
+                    const taken = relinkTaken(n)
+                    return (
+                      <button key={n} type="button" aria-pressed={chosen} onClick={() => setRelink((r) => ({ ...r, formNumber: n }))}
+                        style={{
+                          fontFamily: font, fontWeight: 800, fontSize: 13, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                          border: `2px solid ${chosen ? (taken ? C.orange : C.navy) : C.border}`, background: chosen ? (taken ? '#fff7ed' : C.navy) : C.white,
+                          color: chosen ? (taken ? '#9a3412' : C.white) : C.navy,
+                        }}>
+                        Form #{n}
+                        <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: chosen && !taken ? '#dbe4f5' : C.muted }}>{taken ? 'Already saved' : link && link.participantId === relink.participantId && link.formNumber === n ? 'Current' : 'Available'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            <button style={btn(true, !relinkChanged || !relinkValid || relinking)} disabled={!relinkChanged || !relinkValid || relinking} onClick={applyRelink}>
+              {relinking ? 'Updating…' : 'Update participant and form'}
+            </button>
+          </div>
+          {relink.participantId && relink.formNumber > 0 && relinkTaken(relink.formNumber) && (
+            <div role="alert" style={{ marginTop: 10, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
+              <strong>Form #{relink.formNumber} for {relinkPerson?.name} has already been saved.</strong> A participant can have only one of each form. Choose a different form number.
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+        <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={goBack}>&larr; Back to my observations</button>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
         <button style={btn(false, exporting)} disabled={exporting} onClick={downloadAnnotated}>{exporting ? 'Making PDF…' : 'Download annotated transcript (PDF)'}</button>
@@ -580,7 +982,7 @@ export default function SessionObservation() {
         </span>
         {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 5fr) minmax(380px, 7fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) 150px minmax(380px, 7fr)', gap: 14, alignItems: 'start' }}>
 
         {/* Transcript */}
         <div style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
@@ -638,6 +1040,35 @@ export default function SessionObservation() {
           </div>
         </div>
 
+        {/* Side bar: jump to a competency */}
+        <nav aria-label="Jump to a competency" style={{ position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 8px 8px' }}>Jump to</div>
+          {[
+            { id: 'sec-info', label: 'Form details', sub: '' },
+            { id: 'sec-c1', label: '1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2 answered` },
+            ...COMPETENCIES.map((c) => {
+              const mine = BEHAVIORS.filter((b) => b.comp === c.n)
+              return { id: `sec-c${c.n}`, label: `${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length} rated`, first: mine[0]?.id }
+            }),
+            { id: 'sec-sign', label: 'Signature & save', sub: '' },
+          ].map((it) => {
+            const on = navActive === it.id
+            return (
+              <button key={it.id} type="button" aria-current={on ? 'true' : undefined}
+                onClick={() => {
+                  setNavActive(it.id)
+                  navLockUntil.current = Date.now() + 1200
+                  if (it.first) setActive(it.first)
+                  document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', fontFamily: font, cursor: 'pointer', border: 'none', borderLeft: `4px solid ${on ? C.sky : 'transparent'}`, background: on ? '#eef6ff' : 'transparent', borderRadius: 6, padding: '8px 8px', marginBottom: 2, color: C.navy }}>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>{it.label}</span>
+                {it.sub && <span style={{ display: 'block', fontSize: 11, color: C.gray, marginTop: 1 }}>{it.sub}</span>}
+              </button>
+            )
+          })}
+        </nav>
+
         {/* Form */}
         <div>
           <div style={{ ...card, background: C.navy, color: C.white, border: 'none' }}>
@@ -647,7 +1078,7 @@ export default function SessionObservation() {
             </div>
           </div>
 
-          <div style={card}>
+          <div id="sec-info" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Administrative Information</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
               {field('1. Mentor Coach Name', form.admin.name, (v) => setAdmin('name', v))}
@@ -669,7 +1100,7 @@ export default function SessionObservation() {
             {SELF_REVIEW.map((text, i) => check(form.selfReview[i], (v) => set({ selfReview: form.selfReview.map((b, j) => (j === i ? v : b)) }), text, i))}
           </div>
 
-          <div style={card}>
+          <div id="sec-c1" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Competency 1: Demonstrates Ethical Practice</h2>
             <p style={small}>
               Listen to and evaluate the entire recording first. Select &ldquo;Observed&rdquo; when there was sufficient evidence that a qualifier was demonstrated, and
@@ -684,7 +1115,7 @@ export default function SessionObservation() {
                     {radio(form.q[q.id] === 'observed', () => set({ q: { ...form.q, [q.id]: 'observed' } }), 'Observed', 'o')}
                     {radio(form.q[q.id] === 'not_observed', () => set({ q: { ...form.q, [q.id]: 'not_observed' } }), 'Not Observed', 'n')}
                   </div>
-                  {s && (
+                  {s?.suggested && (
                     <div style={{ ...small, marginTop: 6, background: C.soft, borderRadius: 8, padding: '8px 10px' }}>
                       <strong>AI suggestion:</strong> {s.suggested === 'observed' ? 'Observed' : 'Not Observed'}. {s.note}
                       {(s.turns || []).filter((n) => turnById[n]).map((n) => (
@@ -706,7 +1137,7 @@ export default function SessionObservation() {
           </div>
 
           {COMPETENCIES.map((c) => (
-            <div key={c.n} style={card}>
+            <div key={c.n} id={`sec-c${c.n}`} style={{ ...card, scrollMarginTop: 100 }}>
               <h2 style={h2}>Competency {c.n}: {c.name}</h2>
               <p style={small}>Definition: {c.definition}</p>
               {BEHAVIORS.filter((b) => b.comp === c.n).map((b) => {
@@ -720,7 +1151,7 @@ export default function SessionObservation() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
                       {RATINGS.map((r) => radio(form.ratings[b.id] === r.id, () => set({ ratings: { ...form.ratings, [b.id]: r.id } }), <span title={r.hint}>{r.label}</span>, r.id))}
                     </div>
-                    {s && (
+                    {s?.suggested && (
                       <div style={{ ...small, marginTop: 8, background: C.soft, borderRadius: 8, padding: '8px 10px' }}>
                         <strong>AI suggestion:</strong> {RATINGS.find((r) => r.id === s.suggested)?.label || 'None'}. {s.note}
                         {form.ratings[b.id] !== s.suggested && RATINGS.some((r) => r.id === s.suggested) && (
@@ -748,35 +1179,33 @@ export default function SessionObservation() {
                   </div>
                 )
               })}
+              {(() => {
+                const i = COMPETENCIES.findIndex((x) => x.n === c.n)
+                return (
+                  <div style={{ marginTop: 18, borderTop: `2px solid ${C.border}`, paddingTop: 14 }}>
+                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Observation feedback for Competency {c.n}</div>
+                    <p style={{ ...small, margin: '4px 0 0' }}>
+                      Support each with evidence (timestamps, quotes) and written feedback. Across all competencies the form needs at least 2 areas of strength and 2 areas for development.
+                    </p>
+                    {[['Areas of Strength', 'strengths'], ['Areas for Development', 'development']].map(([title, key]) => {
+                      const row = form[key][i]
+                      const upd = (patch) => set({ [key]: form[key].map((r, j) => (j === i ? { ...r, ...patch } : r)) })
+                      return (
+                        <div key={key} style={{ marginTop: 12, background: C.soft, borderRadius: 10, padding: 12 }}>
+                          <div style={{ fontWeight: 800, color: C.navy, fontSize: 13, marginBottom: 6 }}>{title}</div>
+                          {field('Statement for Feedback', row.statement, (v) => upd({ statement: v }))}
+                          <label style={{ ...label, marginTop: 8 }}>Feedback Comments</label>
+                          <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={row.comments} onChange={(e) => upd({ comments: e.target.value })} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </div>
           ))}
 
-          <div style={card}>
-            <h2 style={h2}>Observation Feedback</h2>
-            <p style={small}>
-              Provide detailed feedback with a minimum of 2&ndash;3 areas of strength and 2&ndash;3 areas for development. Support each with evidence
-              (timestamps, quotes) and written feedback. Use as many competency rows as you need.
-            </p>
-            {[['Areas of Strengths', 'strengths'], ['Areas for Development', 'development']].map(([title, key]) => (
-              <div key={key} style={{ marginTop: 16 }}>
-                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 6 }}>{title}</div>
-                {form[key].map((row, i) => {
-                  const c = COMPETENCIES[i]
-                  const upd = (patch) => set({ [key]: form[key].map((r, j) => (j === i ? { ...r, ...patch } : r)) })
-                  return (
-                    <div key={c.n} style={{ borderTop: `1px solid ${C.border}`, padding: '12px 0' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 6 }}>Competency {c.n}: {c.name}</div>
-                      {field('Statement for Feedback', row.statement, (v) => upd({ statement: v }))}
-                      <label style={{ ...label, marginTop: 8 }}>Feedback Comments</label>
-                      <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={row.comments} onChange={(e) => upd({ comments: e.target.value })} />
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-
-          <div style={card}>
+          <div id="sec-sign" style={{ ...card, scrollMarginTop: 100 }}>
             <h2 style={h2}>Mentor Coach Signature</h2>
             <p style={small}>By signing, I attest to the following:</p>
             <ul style={{ fontSize: 13, lineHeight: 1.55, paddingLeft: 20, margin: '8px 0 14px' }}>
