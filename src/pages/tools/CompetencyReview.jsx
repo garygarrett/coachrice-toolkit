@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import ReviewFields from '../../components/ReviewFields'
 import ObservationViewer from '../../components/ObservationViewer'
 import { missingItems, emptyForm } from '../../lib/sof/formSpec'
@@ -40,6 +40,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
   const [link, setLink] = useState(null) // { participantId, participantName }
   const [notice, setNotice] = useState('')
   const [sofs, setSofs] = useState([]) // the participant's saved Session Observation Forms [{ formNumber, id, form }]
+  const [panelW, setPanelW] = useState(400) // width of the side panel in px; the coach can drag its left edge
   const [panel, setPanel] = useState(null) // side panel: { sof, focusId, record, error } or null
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -201,6 +202,34 @@ export default function CompetencyReview({ request = null, onStageChange = null,
     try { await call('crf-delete', { id }); await loadAll(); onChanged?.() } catch (e) { setError(e.message) }
   }
 
+  // The side panel is fixed to the right edge of the window. The form makes room for it by padding its right side,
+  // using the real distance from the form to the window edge (page padding differs by screen).
+  const rootRef = useRef(null)
+  const [slack, setSlack] = useState({ left: 228, right: 0 })
+  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1400)
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  useLayoutEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setSlack({ left: r.left, right: Math.max(0, window.innerWidth - r.right) })
+  }, [panel, vw])
+  const FORM_MIN = 560
+  const maxPanel = Math.max(300, vw - slack.left - FORM_MIN)
+  const shownW = Math.max(300, Math.min(panelW, maxPanel))
+  // Drag the left edge of the side panel to make it wider or narrower (the form keeps at least FORM_MIN px).
+  const startDrag = (e) => {
+    e.preventDefault()
+    const move = (ev) => setPanelW(Math.max(300, Math.min(window.innerWidth - ev.clientX, Math.max(300, window.innerWidth - slack.left - FORM_MIN))))
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   const missing = useMemo(() => missingReviewItems(review), [review])
   const isDone = (row) => !!row.review && missingReviewItems({ ...emptyReview(), ...row.review }).length === 0
   const inProgress = saved.filter((s) => !isDone(s))
@@ -210,8 +239,8 @@ export default function CompetencyReview({ request = null, onStageChange = null,
   if (stage === 'form') {
     return (
       <>
-        <div style={{ paddingRight: panel ? 'min(560px, 40vw)' : 0, transition: 'padding-right 0.15s' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', fontFamily: font }}>
+        <div ref={rootRef} style={{ paddingRight: panel ? Math.max(0, shownW + 12 - slack.right) : 0 }}>
+        <div style={{ maxWidth: 960, margin: panel ? 0 : '0 auto', fontFamily: font }}>
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button style={btn(false)} onClick={goBack}>← Back to my reviews</button>
             <button style={btn(true, busy === 'save')} disabled={busy === 'save'} onClick={() => save(false)}>{busy === 'save' ? 'Saving…' : 'Save progress'}</button>
@@ -251,7 +280,9 @@ export default function CompetencyReview({ request = null, onStageChange = null,
         </div>
         {panel && (
           <aside role="complementary" aria-label={`Session Observation Form #${panel.sof.formNumber}`}
-            style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(560px, 40vw)', minWidth: 340, background: '#fff', borderLeft: `1px solid ${C.border}`, boxShadow: '-6px 0 24px rgba(0,32,91,0.12)', zIndex: 30, display: 'flex', flexDirection: 'column', fontFamily: font }}>
+            style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: shownW, background: '#fff', borderLeft: `1px solid ${C.border}`, boxShadow: '-6px 0 24px rgba(0,32,91,0.12)', zIndex: 30, display: 'flex', flexDirection: 'column', fontFamily: font }}>
+            <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the side panel" title="Drag to resize" onPointerDown={startDrag}
+              style={{ position: 'absolute', left: -5, top: 0, bottom: 0, width: 10, cursor: 'col-resize', zIndex: 31 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
               <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>Session Observation Form #{panel.sof.formNumber}</div>
               <button type="button" aria-label="Close side panel" onClick={() => setPanel(null)} style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }}>Close ✕</button>
