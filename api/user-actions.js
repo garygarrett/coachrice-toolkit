@@ -402,18 +402,13 @@ export default async function handler(req, res) {
     }
     const { data: participant } = await supabase
       .from('observation_participants')
-      .select('id, cohort_id')
+      .select('id, cohort_id, mentor_id')
       .eq('id', link.participantId)
       .maybeSingle()
     if (!participant) return { status: 404, error: 'That participant was not found. Ask an admin to check the cohort.' }
-    if (auth.role !== 'admin') {
-      const { data: assigned } = await supabase
-        .from('observation_cohort_mentors')
-        .select('cohort_id')
-        .eq('cohort_id', participant.cohort_id)
-        .eq('user_id', auth.user.id)
-        .maybeSingle()
-      if (!assigned) return { status: 403, error: 'You are not assigned to that participant’s cohort' }
+    // Each participant belongs to one mentor coach. Only that mentor coach (or a full admin) may link to them.
+    if (auth.role !== 'admin' && participant.mentor_id !== auth.user.id) {
+      return { status: 403, error: 'That participant is not assigned to you. Ask an admin to assign them.' }
     }
     return { columns: { cohort_id: participant.cohort_id, participant_id: participant.id, form_number: formNumber } }
   }
@@ -498,7 +493,7 @@ export default async function handler(req, res) {
     if (!auth) return
     const { data, error } = await supabase
       .from('observation_drafts')
-      .select('id, title, updated_at, participant_id, form_number')
+      .select('id, title, updated_at, participant_id, form_number, form:data->form')
       .eq(auth.owner.column, auth.owner.value)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
@@ -593,7 +588,7 @@ export default async function handler(req, res) {
     if (!auth) return
     const [cohorts, participants, assignments, mentors, drafts] = await Promise.all([
       supabase.from('observation_cohorts').select('id, name, created_at').order('name'),
-      supabase.from('observation_participants').select('id, cohort_id, full_name, created_at').order('full_name'),
+      supabase.from('observation_participants').select('id, cohort_id, full_name, mentor_id, created_at').order('full_name'),
       supabase.from('observation_cohort_mentors').select('cohort_id, user_id'),
       supabase.from('users').select('id, full_name, email, role, is_active').in('role', COHORT_MENTOR_ROLES).order('full_name'),
       supabase
@@ -647,9 +642,10 @@ export default async function handler(req, res) {
   if (action === 'participants-add') {
     const auth = await requireAdmin(req, res, supabase)
     if (!auth) return
-    const { cohortId, names } = req.body || {}
+    const { cohortId, names, mentorId } = req.body || {}
     if (!cohortId || !Array.isArray(names)) return res.status(400).json({ error: 'cohortId and names are required' })
     if (names.length > 200) return res.status(400).json({ error: 'Add up to 200 names at a time' })
+    if (mentorId && !(await mentorInCohort(cohortId, mentorId))) return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
     const { data: existing, error: existingError } = await supabase.from('observation_participants').select('full_name').eq('cohort_id', cohortId)
     if (existingError) return res.status(500).json({ error: existingError.message })
     const seen = new Set((existing || []).map((p) => p.full_name.toLowerCase()))
@@ -658,12 +654,38 @@ export default async function handler(req, res) {
       const full_name = cleanName(raw)
       if (!full_name || seen.has(full_name.toLowerCase())) continue
       seen.add(full_name.toLowerCase())
-      rows.push({ cohort_id: cohortId, full_name })
+      rows.push({ cohort_id: cohortId, full_name, mentor_id: mentorId || null })
     }
     if (!rows.length) return res.status(200).json({ success: true, added: [], skipped: names.length })
-    const { data, error } = await supabase.from('observation_participants').insert(rows).select('id, cohort_id, full_name, created_at')
+    const { data, error } = await supabase.from('observation_participants').insert(rows).select('id, cohort_id, full_name, mentor_id, created_at')
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ success: true, added: data || [], skipped: names.length - rows.length })
+  }
+
+  // Is this mentor coach assigned to this cohort? A participant's mentor must always be one of the cohort's mentors.
+  async function mentorInCohort(cohortId, userId) {
+    const { data } = await supabase.from('observation_cohort_mentors').select('user_id').eq('cohort_id', cohortId).eq('user_id', userId).maybeSingle()
+    return !!data
+  }
+
+  // Assign participants to a mentor coach (or clear it with no mentorId). All participants must be in one cohort,
+  // and the mentor coach must be assigned to that cohort.
+  if (action === 'participants-mentor-set') {
+    const auth = await requireAdmin(req, res, supabase)
+    if (!auth) return
+    const { ids, mentorId } = req.body || {}
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids are required' })
+    const { data: found, error: foundError } = await supabase.from('observation_participants').select('id, cohort_id').in('id', ids)
+    if (foundError) return res.status(500).json({ error: foundError.message })
+    if (!found || found.length !== new Set(ids).size) return res.status(404).json({ error: 'Participant not found' })
+    const cohortIds = [...new Set(found.map((p) => p.cohort_id))]
+    if (cohortIds.length !== 1) return res.status(400).json({ error: 'Assign participants from one cohort at a time' })
+    if (mentorId && !(await mentorInCohort(cohortIds[0], mentorId))) {
+      return res.status(400).json({ error: 'Choose a mentor coach who is assigned to this cohort' })
+    }
+    const { error } = await supabase.from('observation_participants').update({ mentor_id: mentorId || null }).in('id', ids)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ success: true, updated: found.length })
   }
 
   if (action === 'participant-update') {
@@ -672,7 +694,7 @@ export default async function handler(req, res) {
     const { id } = req.body || {}
     const full_name = cleanName(req.body?.full_name)
     if (!id || !full_name) return res.status(400).json({ error: 'id and a name are required' })
-    const { data, error } = await supabase.from('observation_participants').update({ full_name }).eq('id', id).select('id, cohort_id, full_name, created_at').maybeSingle()
+    const { data, error } = await supabase.from('observation_participants').update({ full_name }).eq('id', id).select('id, cohort_id, full_name, mentor_id, created_at').maybeSingle()
     if (error) return res.status(500).json({ error: error.message })
     if (!data) return res.status(404).json({ error: 'Participant not found' })
     return res.status(200).json({ success: true, participant: data })
@@ -706,38 +728,40 @@ export default async function handler(req, res) {
       const { error: addError } = await supabase.from('observation_cohort_mentors').insert(wanted.map((user_id) => ({ cohort_id: cohortId, user_id })))
       if (addError) return res.status(500).json({ error: addError.message })
     }
-    return res.status(200).json({ success: true })
+    // A mentor coach who leaves the cohort no longer has its participants. They become unassigned.
+    const { data: assigned, error: assignedError } = await supabase.from('observation_participants').select('id, mentor_id').eq('cohort_id', cohortId).not('mentor_id', 'is', null)
+    if (assignedError) return res.status(500).json({ error: assignedError.message })
+    const orphaned = (assigned || []).filter((p) => !wanted.includes(p.mentor_id)).map((p) => p.id)
+    if (orphaned.length) {
+      const { error: clearMentorError } = await supabase.from('observation_participants').update({ mentor_id: null }).in('id', orphaned)
+      if (clearMentorError) return res.status(500).json({ error: clearMentorError.message })
+    }
+    return res.status(200).json({ success: true, unassigned: orphaned.length })
   }
 
-  // COHORT MINE - For the Session Observation Form start screen. Returns only the cohorts this account is
-  // assigned to, each with its participants, and for each participant which form numbers already have a
-  // saved observation. It never returns another mentor's observation id, title, or content.
+  // COHORT MINE - For the Session Observation Form start screen. Returns only the participants assigned to this
+  // account (grouped by cohort, A to Z), and for each participant which form numbers already have a saved
+  // observation. It never returns another mentor's observation id, title, or content.
   if (action === 'cohort-mine') {
     const auth = await requireCaller(req, res, supabase, { accountRoles: ['admin', 'admin_tools', 'mentor'] })
     if (!auth) return
-    const { data: mine, error: mineError } = await supabase.from('observation_cohort_mentors').select('cohort_id').eq('user_id', auth.user.id)
-    if (mineError) return res.status(500).json({ error: mineError.message })
-    const cohortIds = (mine || []).map((m) => m.cohort_id)
-    if (!cohortIds.length) return res.status(200).json({ cohorts: [] })
-    const [cohorts, participants] = await Promise.all([
-      supabase.from('observation_cohorts').select('id, name').in('id', cohortIds).order('name'),
-      supabase.from('observation_participants').select('id, cohort_id, full_name').in('cohort_id', cohortIds).order('full_name'),
-    ])
-    const failed = [cohorts, participants].find((r) => r.error)
-    if (failed) return res.status(500).json({ error: failed.error.message })
-    const participantIds = (participants.data || []).map((p) => p.id)
-    let drafts = []
-    if (participantIds.length) {
-      const { data, error } = await supabase
-        .from('observation_drafts')
-        .select('id, user_id, participant_id, form_number')
-        .in('participant_id', participantIds)
-        .is('deleted_at', null)
-      if (error) return res.status(500).json({ error: error.message })
-      drafts = data || []
-    }
+    const { data: people, error: peopleError } = await supabase
+      .from('observation_participants')
+      .select('id, cohort_id, full_name')
+      .eq('mentor_id', auth.user.id)
+    if (peopleError) return res.status(500).json({ error: peopleError.message })
+    if (!(people || []).length) return res.status(200).json({ cohorts: [] })
+    const cohortIds = [...new Set(people.map((p) => p.cohort_id))]
+    const { data: cohortRows, error: cohortError } = await supabase.from('observation_cohorts').select('id, name').in('id', cohortIds)
+    if (cohortError) return res.status(500).json({ error: cohortError.message })
+    const { data: draftRows, error: draftError } = await supabase
+      .from('observation_drafts')
+      .select('id, user_id, participant_id, form_number')
+      .in('participant_id', people.map((p) => p.id))
+      .is('deleted_at', null)
+    if (draftError) return res.status(500).json({ error: draftError.message })
     const byParticipant = {}
-    drafts.forEach((d) => {
+    ;(draftRows || []).forEach((d) => {
       const mineDraft = d.user_id === auth.user.id
       ;(byParticipant[d.participant_id] = byParticipant[d.participant_id] || []).push({
         formNumber: d.form_number,
@@ -745,14 +769,18 @@ export default async function handler(req, res) {
         id: mineDraft ? d.id : null,
       })
     })
+    const az = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })
     return res.status(200).json({
-      cohorts: (cohorts.data || []).map((c) => ({
-        id: c.id,
-        name: c.name,
-        participants: (participants.data || [])
-          .filter((p) => p.cohort_id === c.id)
-          .map((p) => ({ id: p.id, name: p.full_name, forms: byParticipant[p.id] || [] })),
-      })),
+      cohorts: [...(cohortRows || [])]
+        .sort((a, b) => az(a.name, b.name))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          participants: people
+            .filter((p) => p.cohort_id === c.id)
+            .sort((a, b) => az(a.full_name, b.full_name))
+            .map((p) => ({ id: p.id, name: p.full_name, forms: byParticipant[p.id] || [] })),
+        })),
     })
   }
 

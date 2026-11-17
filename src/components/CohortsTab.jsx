@@ -20,6 +20,8 @@ const th = { textAlign: 'left', padding: '0.7rem 0.9rem', background: '#f9fafb',
 const td = { padding: '0.7rem 0.9rem', color: '#374151', verticalAlign: 'middle', fontSize: '0.88rem', fontFamily: font, borderBottom: '1px solid #f0f2f5' }
 const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 const ROLE_LABEL = { mentor: 'Mentor coach', admin_tools: 'Admin (tools)', admin: 'Admin' }
+// A to Z, ignoring capital letters.
+const az = (a, b) => String(a || '').localeCompare(String(b || ''), undefined, { sensitivity: 'base' })
 
 async function call(action, body) {
   const res = await authFetch(`/api/user-actions?action=${action}`, {
@@ -40,6 +42,7 @@ export default function CohortsTab() {
   const [renameValue, setRenameValue] = useState(null) // null = not renaming
   const [namesText, setNamesText] = useState('')
   const [mentorIds, setMentorIds] = useState([])
+  const [newMentorId, setNewMentorId] = useState('') // mentor coach for names typed in "Add participants"
   const [editingPerson, setEditingPerson] = useState(null) // { id, name }
   const [record, setRecord] = useState(null)
 
@@ -48,20 +51,25 @@ export default function CohortsTab() {
     try {
       const j = await call('cohort-admin-load')
       setData(j)
-      setSelectedId((cur) => (keepSelected && j.cohorts.some((c) => c.id === cur) ? cur : j.cohorts[0]?.id || ''))
+      setSelectedId((cur) => (keepSelected && j.cohorts.some((c) => c.id === cur) ? cur : [...j.cohorts].sort((a, b) => az(a.name, b.name))[0]?.id || ''))
     } catch (e) { setError(e.message) }
   }
   useEffect(() => { load(false) }, [])
 
   const cohort = data?.cohorts.find((c) => c.id === selectedId) || null
-  const people = useMemo(() => (data ? data.participants.filter((p) => p.cohort_id === selectedId) : []), [data, selectedId])
+  const people = useMemo(() => (data ? data.participants.filter((p) => p.cohort_id === selectedId).sort((a, b) => az(a.full_name, b.full_name)) : []), [data, selectedId])
+  const cohortsAZ = useMemo(() => [...(data?.cohorts || [])].sort((a, b) => az(a.name, b.name)), [data])
+  const mentorsAZ = useMemo(() => [...(data?.mentors || [])].sort((a, b) => az(a.full_name || a.email, b.full_name || b.email)), [data])
   const mentorName = useMemo(() => Object.fromEntries((data?.mentors || []).map((m) => [m.id, m.full_name || m.email])), [data])
 
   const savedMentorIds = useMemo(() => (data ? data.assignments.filter((a) => a.cohort_id === selectedId).map((a) => a.user_id) : []), [data, selectedId])
   const savedMentorKey = [...savedMentorIds].sort().join(',')
+  // Only mentor coaches assigned to this cohort can be given its participants.
+  const cohortMentors = useMemo(() => mentorsAZ.filter((m) => savedMentorIds.includes(m.id)), [mentorsAZ, savedMentorIds])
+  const unassignedCount = people.filter((p) => !p.mentor_id).length
 
   // Switching cohorts clears any half-finished edits.
-  useEffect(() => { setRenameValue(null); setEditingPerson(null); setNamesText('') }, [selectedId])
+  useEffect(() => { setRenameValue(null); setEditingPerson(null); setNamesText(''); setNewMentorId('') }, [selectedId])
   // The mentor checklist follows what is saved. It resets only when you switch cohorts or the saved list changes,
   // so unsaved checkbox changes survive other reloads (like adding a participant).
   useEffect(() => { setMentorIds(savedMentorKey ? savedMentorKey.split(',') : []) }, [selectedId, savedMentorKey])
@@ -106,7 +114,7 @@ export default function CohortsTab() {
   const addNames = () => {
     const names = namesText.split(/\r?\n|;/).map((n) => n.trim()).filter(Boolean)
     run('add', async () => {
-      const j = await call('participants-add', { cohortId: cohort.id, names })
+      const j = await call('participants-add', { cohortId: cohort.id, names, mentorId: newMentorId || null })
       setNamesText('')
       await load()
       setNotice(`Added ${j.added.length} participant${j.added.length === 1 ? '' : 's'}${j.skipped ? ` (${j.skipped} skipped: blank or already in this cohort)` : ''}.`)
@@ -127,9 +135,17 @@ export default function CohortsTab() {
   }
 
   const saveMentors = () => run('mentors', async () => {
-    await call('cohort-mentors-set', { cohortId: cohort.id, userIds: mentorIds })
+    const j = await call('cohort-mentors-set', { cohortId: cohort.id, userIds: mentorIds })
     await load()
-  }, 'Mentor coaches saved.')
+    setNotice(j.unassigned
+      ? `Mentor coaches saved. ${j.unassigned} participant${j.unassigned === 1 ? '' : 's'} lost their mentor coach and ${j.unassigned === 1 ? 'is' : 'are'} now unassigned. Assign them in the table below.`
+      : 'Mentor coaches saved.')
+  })
+
+  const setMentor = (p, mentorId) => run(`mentor-${p.id}`, async () => {
+    await call('participants-mentor-set', { ids: [p.id], mentorId: mentorId || null })
+    await load()
+  }, mentorId ? `${p.full_name} assigned to ${mentorName[mentorId] || 'the mentor coach'}.` : `${p.full_name} is now unassigned.`)
 
   async function openObservation(id) {
     setBusy(`open-${id}`); setError('')
@@ -150,8 +166,9 @@ export default function CohortsTab() {
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: C.navy, margin: 0 }}>Cohorts</h1>
       </div>
       <p style={{ ...small, marginTop: 0 }}>
-        Build a cohort, type in the participant names, and assign mentor coaches. When an assigned mentor coach starts a
-        Session Observation Form, they pick a participant and Form #1, #2, or #3. Participants are names only. They do not sign in.
+        Build a cohort, type in the participant names, check the mentor coaches who work with it, then assign each participant to
+        one mentor coach. A mentor coach sees only their own participants when they start a Session Observation Form, and picks
+        Form #1, #2, or #3. Participants are names only. They do not sign in.
       </p>
 
       {error && <div style={{ background: '#fef2f2', color: '#b42318', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 12 }}>{error}</div>}
@@ -165,7 +182,7 @@ export default function CohortsTab() {
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               {data.cohorts.length > 0 && (
                 <select style={{ ...input, minWidth: 260 }} value={selectedId} onChange={(e) => setSelectedId(e.target.value)} aria-label="Cohort">
-                  {data.cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {cohortsAZ.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
               <input style={{ ...input, flex: '1 1 240px', maxWidth: 360 }} value={newName} onChange={(e) => setNewName(e.target.value)}
@@ -200,10 +217,10 @@ export default function CohortsTab() {
 
               <div style={card}>
                 <h2 style={h2}>Mentor coaches for this cohort</h2>
-                <p style={{ ...small, margin: '0 0 10px' }}>Only the mentor coaches checked here see this cohort&rsquo;s participants on the Session Observation Form.</p>
+                <p style={{ ...small, margin: '0 0 10px' }}>Check the mentor coaches who work with this cohort, then save. You then give each participant to one of them in the table below. A mentor coach sees only the participants assigned to them.</p>
                 {data.mentors.length === 0 && <p style={small}>No mentor coach accounts yet. Create a Mentor Coach access code in the Access Codes tab, then have them sign in once.</p>}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
-                  {data.mentors.map((m) => (
+                  {mentorsAZ.map((m) => (
                     <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontFamily: font, color: '#0f1c3a', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 10px', cursor: 'pointer', background: mentorIds.includes(m.id) ? '#eef6ff' : '#fff' }}>
                       <input type="checkbox" checked={mentorIds.includes(m.id)}
                         onChange={(e) => setMentorIds((ids) => (e.target.checked ? [...ids, m.id] : ids.filter((x) => x !== m.id)))} />
@@ -228,18 +245,32 @@ export default function CohortsTab() {
                 <p style={{ ...small, margin: '0 0 8px' }}>Type or paste names, one per line. Names already in this cohort are skipped.</p>
                 <textarea style={{ ...input, width: '100%', minHeight: 100, resize: 'vertical', boxSizing: 'border-box' }} value={namesText}
                   onChange={(e) => setNamesText(e.target.value)} placeholder={'Jane Smith\nAlex Rivera'} />
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label style={{ ...small, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    Mentor coach for these names
+                    <select style={{ ...input, minWidth: 220 }} value={newMentorId} onChange={(e) => setNewMentorId(e.target.value)} aria-label="Mentor coach for new participants">
+                      <option value="">Assign later</option>
+                      {cohortMentors.map((m) => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                    </select>
+                  </label>
                   <button style={primary(!namesText.trim() || busy === 'add')} disabled={!namesText.trim() || busy === 'add'} onClick={addNames}>
                     {busy === 'add' ? 'Adding…' : 'Add participants'}
                   </button>
                 </div>
+                {cohortMentors.length === 0 && <p style={{ ...small, margin: '8px 0 0' }}>Check and save at least one mentor coach above to assign participants to them.</p>}
               </div>
 
               <div style={{ marginBottom: 8, ...h2 }}>Participants and their observation forms</div>
+              {unassignedCount > 0 && (
+                <div style={{ background: '#fff7ed', color: '#9a3412', border: `1px solid ${C.orange}`, borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 10 }}>
+                  {unassignedCount} participant{unassignedCount === 1 ? ' has' : 's have'} no mentor coach yet. No mentor coach can see them until you assign one in the Mentor coach column.
+                </div>
+              )}
               <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 10, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                 <thead>
                   <tr>
                     <th style={th}>Participant</th>
+                    <th style={th}>Mentor coach</th>
                     <th style={th}>Form #1</th>
                     <th style={th}>Form #2</th>
                     <th style={th}>Form #3</th>
@@ -259,6 +290,15 @@ export default function CohortsTab() {
                             <button style={ghost} onClick={() => setEditingPerson(null)}>Cancel</button>
                           </span>
                         ) : p.full_name}
+                      </td>
+                      <td style={td}>
+                        <select style={{ ...input, padding: '0.35rem 0.5rem', minWidth: 170, borderColor: p.mentor_id ? '#d1d5db' : C.orange }}
+                          value={p.mentor_id || ''} disabled={busy === `mentor-${p.id}`}
+                          onChange={(e) => setMentor(p, e.target.value)} aria-label={`Mentor coach for ${p.full_name}`}>
+                          <option value="">Unassigned</option>
+                          {p.mentor_id && !cohortMentors.some((m) => m.id === p.mentor_id) && <option value={p.mentor_id}>{mentorName[p.mentor_id] || 'Unknown'}</option>}
+                          {cohortMentors.map((m) => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                        </select>
                       </td>
                       {[1, 2, 3].map((n) => {
                         const o = forms[`${p.id}:${n}`]
@@ -284,7 +324,7 @@ export default function CohortsTab() {
                     </tr>
                   ))}
                   {people.length === 0 && (
-                    <tr><td colSpan={5} style={{ ...td, textAlign: 'center', color: '#999' }}>No participants yet. Add names above.</td></tr>
+                    <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: '#999' }}>No participants yet. Add names above.</td></tr>
                   )}
                 </tbody>
               </table>

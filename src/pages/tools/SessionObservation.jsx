@@ -16,6 +16,8 @@ const C = {
   orange: '#ff8200', green: '#c9d647', border: '#e2e6ec', soft: '#f0f2f5',
 }
 const font = "'Montserrat', sans-serif"
+// A to Z by participant name, ignoring capital letters.
+const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 const MAX_BYTES = 500 * 1024 * 1024
 
 const btn = (primary, disabled) => ({
@@ -116,6 +118,8 @@ export default function SessionObservation() {
   const [link, setLink] = useState(null) // { cohortId, participantId, formNumber, participantName } for the observation being worked on
   const [relink, setRelink] = useState({ participantId: '', formNumber: 0 }) // choice in the "Participant and form" panel
   const [relinking, setRelinking] = useState(false)
+  const [viewPersonId, setViewPersonId] = useState('') // participant chosen in the "By participant" dropdown
+  const startCardRef = useRef(null)
   const autoCreated = useRef(false) // the first automatic save has been tried
   const lastSaved = useRef('') // what was last saved, to know if there are unsaved changes
 
@@ -129,6 +133,11 @@ export default function SessionObservation() {
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
   useEffect(() => { loadDrafts(); loadCohorts() }, [])
 
+  // Saved observations split by the same rule used everywhere else: Complete = nothing left to fill in.
+  const isCompleteDraft = (d) => missingItems({ ...emptyForm(), ...(d.form || {}) }).length === 0
+  const completedDrafts = drafts.filter(isCompleteDraft)
+  const inProgressDrafts = drafts.filter((d) => !isCompleteDraft(d))
+
   // A mentor coach who is assigned to a cohort must say who the observation is for.
   // Admins who are not mentor coaches may skip it.
   const pickRequired = profile?.role === 'mentor' && cohorts.length > 0
@@ -139,6 +148,8 @@ export default function SessionObservation() {
 
   // "Participant and form" panel on the form screen: change who a saved observation is for.
   const allPeople = cohorts.flatMap((c) => c.participants.map((p) => ({ ...p, cohortId: c.id })))
+  const peopleAZ = [...allPeople].sort(az) // every participant assigned to this account, A to Z
+  const viewPerson = peopleAZ.find((p) => p.id === viewPersonId) || null
   const relinkPerson = allPeople.find((p) => p.id === relink.participantId)
     || (link && link.participantId === relink.participantId ? { id: link.participantId, name: link.participantName, cohortId: link.cohortId, forms: [] } : null)
   // A form number is taken if that participant has it saved, unless it is this very observation.
@@ -331,13 +342,22 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ }
   }
 
-  // The cohorts and participants this account may observe, and which form numbers already exist.
+  // "Start Form #n" in the By participant panel: fill in the start card below and bring it into view.
+  function startFormFor(person, n) {
+    setPick({ cohortId: person.cohortId, participantId: person.id, formNumber: n })
+    setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+
+  // The participants assigned to this account (grouped by cohort), and which form numbers already exist.
   async function loadCohorts() {
     try {
       const res = await authFetch('/api/user-actions?action=cohort-mine', { method: 'POST' })
       if (!res.ok) return
-      const list = (await res.json()).cohorts || []
+      const list = ((await res.json()).cohorts || [])
+        .map((c) => ({ ...c, participants: [...c.participants].sort(az) }))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
       setCohorts(list)
+      setViewPersonId((id) => (list.some((c) => c.participants.some((p) => p.id === id)) ? id : ''))
       setPick((p) => (list.some((c) => c.id === p.cohortId) ? p : { cohortId: list[0]?.id || '', participantId: '', formNumber: 0 }))
     } catch { /* the picker is optional for most accounts; ignore */ }
   }
@@ -541,26 +561,86 @@ export default function SessionObservation() {
     return (
       <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
         <div style={{ fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
-          {drafts.length > 0 && (
+          {(drafts.length > 0 || allPeople.length > 0) && (
             <div style={card}>
-              <h2 style={h2}>Continue a saved observation</h2>
+              <h2 style={h2}>Your saved observations</h2>
               {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
-              {drafts.map((d) => (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ flex: 1, fontSize: 13 }}>
-                    <div style={{ fontWeight: 700, color: C.navy }}>
-                      {d.title}
-                      {d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>Form #{d.form_number}</span> : null}
+              {[
+                { key: 'progress', label: 'In progress', rows: inProgressDrafts, open: true, color: C.orange },
+                { key: 'complete', label: 'Completed', rows: completedDrafts, open: false, color: '#7a8a16' },
+              ].map((group) => (
+                <details key={group.key} open={group.open} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                    {group.label}
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: group.color, borderRadius: 10, padding: '2px 9px' }}>{group.rows.length}</span>
+                  </summary>
+                  {group.rows.length === 0 && (
+                    <div style={{ ...small, padding: '0 0 12px' }}>{group.key === 'progress' ? 'Nothing in progress.' : 'No completed observations yet.'}</div>
+                  )}
+                  {group.rows.map((d) => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ flex: 1, fontSize: 13 }}>
+                        <div style={{ fontWeight: 700, color: C.navy }}>
+                          {d.title}
+                          {d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>Form #{d.form_number}</span> : null}
+                        </div>
+                        <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
+                      </div>
+                      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
+                      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
                     </div>
-                    <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
-                  </div>
-                  <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
-                  <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
-                </div>
+                  ))}
+                </details>
               ))}
+              {allPeople.length > 0 && (
+                <details open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                    By participant
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{allPeople.length}</span>
+                  </summary>
+                  <div style={{ paddingBottom: 12 }}>
+                    <label style={label} htmlFor="obs-by-participant">Choose a participant to see just their reports</label>
+                    <select id="obs-by-participant" style={{ ...input, maxWidth: 420 }} value={viewPersonId} onChange={(e) => setViewPersonId(e.target.value)}>
+                      <option value="">Choose a participant…</option>
+                      {peopleAZ.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{cohorts.length > 1 ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {viewPerson && [1, 2, 3].map((n) => {
+                    const mine = drafts.find((d) => d.participant_id === viewPerson.id && d.form_number === n)
+                    const elsewhere = !mine && viewPerson.forms.find((f) => f.formNumber === n)
+                    const done = mine ? isCompleteDraft(mine) : false
+                    return (
+                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                        <div style={{ flex: 1, fontSize: 13 }}>
+                          <div style={{ fontWeight: 700, color: C.navy }}>
+                            Form #{n} · {viewPerson.name}
+                            {mine && (
+                              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: done ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
+                                {done ? 'Complete' : 'In progress'}
+                              </span>
+                            )}
+                          </div>
+                          <div style={small}>
+                            {mine ? `Last saved ${new Date(mine.updated_at).toLocaleString()}`
+                              : elsewhere ? 'Saved by another mentor coach.'
+                              : 'Not started.'}
+                          </div>
+                        </div>
+                        {mine && <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(mine.id)}>Open</button>}
+                        {mine && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(mine.id, mine.title)}>Delete</button>}
+                        {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start Form #{n}</button>}
+                      </div>
+                    )
+                  })}
+                </details>
+              )}
             </div>
           )}
-          <div style={card}>
+          <div style={card} ref={startCardRef}>
             <h2 style={h2}>Start a session observation</h2>
             <p style={small}>
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
