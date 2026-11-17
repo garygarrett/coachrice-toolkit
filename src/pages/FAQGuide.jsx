@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import { authFetch } from '../lib/authFetch'
@@ -22,6 +23,7 @@ const input = { fontFamily: font, fontSize: 14, padding: '10px 12px', borderRadi
 
 export default function FAQGuide() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const isAdmin = profile?.role === 'admin'
   const [sections, setSections] = useState(null)
   const [error, setError] = useState('')
@@ -99,6 +101,7 @@ export default function FAQGuide() {
             <h1 style={{ margin: 0, fontSize: 26, color: C.navy }}>FAQ / Guide</h1>
             <p style={{ margin: '6px 0 0', color: C.muted, fontSize: 14 }}>Step-by-step help for using the CoachRICE Toolkit.</p>
           </div>
+          {['mentor', 'admin_tools', 'admin'].includes(profile?.role) && !editing && <button style={btn(false)} onClick={() => navigate('/tools/session-observation?tour=home')}>Take a guided tour</button>}
           {sections && sections.length > 0 && !editing && <button style={btn(false)} onClick={printGuide}>Print / Save as PDF</button>}
           {isAdmin && <button style={btn(!editing)} onClick={() => { setEditing((v) => !v); setDraft(null); setNotice(''); setError('') }}>{editing ? 'Done editing' : 'Edit guide'}</button>}
         </div>
