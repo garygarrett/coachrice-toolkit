@@ -46,8 +46,8 @@ If you mistyped your email, ask CoachRICE to correct it. An administrator can fi
     body: `Everything starts on the **Session Observation Form** page. From top to bottom:
 
 - **Cohort** (only if you work with more than one cohort). Pick a cohort to limit the lists below to that group.
-- **Your saved observations.** **In progress** holds forms you have started. **Completed** holds forms with every field filled in. Select **Open** to continue a form.
-- **By participant.** Pick a participant to see their Form #1, #2, and #3 and their Competency Review Form, with the status of each. Select **Start Form #2**, for example, to begin the next one.
+- **Your Saved Forms.** Session Observation Forms and Competency Review Forms (tagged CRF) are listed together. **In progress** holds forms you have started. **Completed** holds forms with every field filled in. Select **Open** to continue a form.
+- **By participant.** Pick a participant to see their SOF #1, #2, and #3 and their Competency Review Form, with the status of each. Select **Start SOF #2**, for example, to begin the next one.
 - **What would you like to create?** Switch between a Session Observation Form and a Competency Review Form.
 
 ![Choose a participant under "By participant" to see all of their forms in one place.](/guide/04-start-screen.png)
@@ -57,7 +57,7 @@ You only see the participants assigned to you. If a participant is missing, emai
   {
     title: 'Starting a Session Observation Form',
     audiences: MENTOR,
-    body: `1. Under **Who is this observation for?**, choose the participant, then choose **Form #1, #2, or #3**. The participant's name fills in on the form for you.
+    body: `1. Under **Who is this observation for?**, choose the participant, then choose **SOF #1, #2, or #3**. The participant's name fills in on the form for you.
 2. Add the coaching session as a transcript: select the box to choose a **.txt or .pdf** file, or paste the text into the large box. Speaker names and timestamps help, for example \`[05:32] Coach: ...\`.
 3. Optional: choose the **recording** so you can listen along while you review. The recording plays only on your computer. It is never uploaded or stored. A recording cannot replace the transcript.
 4. Select **Continue**.
@@ -105,7 +105,7 @@ At the end of each competency card, add **Areas of Strength** and **Areas for De
     audiences: MENTOR,
     body: `- **Save progress** stores your work so you can finish later. The form also saves on its own about 30 seconds after you change something. It keeps the transcript text, your answers, and your evidence. It never keeps audio.
 - **Back to my observations** saves, then returns you to your home screen.
-- The form's name updates itself, for example **Dana Ortiz - Session Observation Form #1 (Incomplete)**. It changes to **Complete** once every field is filled in.
+- The form's name updates itself, for example **Dana Ortiz - SOF #1 (Incomplete)**. It changes to **Complete** once every field is filled in.
 - **Download form (.docx)** fills in the original ICF Word form for you to keep or send.
 - **Download annotated transcript (PDF)** gives you the transcript with your evidence highlighted and tagged by behavior.
 
@@ -134,7 +134,7 @@ If you change a Session Observation Form later, select **Refresh from Session Ob
     audiences: MENTOR,
     body: `While you work on a review, you can read the participant's saved Session Observation Forms right next to it. There is no new tab and no download.
 
-- Select a **Form #** button above the review, or select a small rating chip (for example **#1 · Meets**) under a behavior. The form opens on the right, scrolled to that behavior.
+- Select a **SOF #** button above the review, or select a small rating chip (for example **#1 · Meets**) under a behavior. The form opens on the right, scrolled to that behavior.
 - The review stays editable while the panel is open.
 - Drag the panel's left edge to make it wider or narrower. Select **Close** when you are done.
 

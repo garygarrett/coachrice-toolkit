@@ -411,7 +411,7 @@ export default async function handler(req, res) {
   async function resolveObservationLink(supabase, auth, link) {
     const formNumber = Number(link.formNumber)
     if (!Number.isInteger(formNumber) || formNumber < 1 || formNumber > 3) {
-      return { status: 400, error: 'Choose Session Observation Form #1, #2, or #3' }
+      return { status: 400, error: 'Choose SOF #1, #2, or #3' }
     }
     const { data: participant } = await supabase
       .from('observation_participants')
@@ -451,7 +451,7 @@ export default async function handler(req, res) {
       .maybeSingle()
     if (error) {
       if (error.code === '23505') {
-        return res.status(409).json({ error: `Session Observation Form #${patch.form_number} already exists for that participant. Choose a different form number.` })
+        return res.status(409).json({ error: `SOF #${patch.form_number} already exists for that participant. Choose a different form number.` })
       }
       return res.status(500).json({ error: error.message })
     }
@@ -494,7 +494,7 @@ export default async function handler(req, res) {
       .single()
     if (error) {
       if (error.code === '23505') {
-        return res.status(409).json({ error: `Session Observation Form #${insert.form_number} already exists for that participant. Open the saved one instead.` })
+        return res.status(409).json({ error: `SOF #${insert.form_number} already exists for that participant. Open the saved one instead.` })
       }
       return res.status(500).json({ error: error.message })
     }
@@ -529,7 +529,7 @@ export default async function handler(req, res) {
       .maybeSingle()
     if (error) return res.status(500).json({ error: error.message })
     if (!data) return res.status(404).json({ error: 'Saved observation not found' })
-    // The participant's name, so the observation can be named "<name> - Session Observation Form #n (...)"
+    // The participant's name, so the observation can be named "<name> - SOF #n (...)"
     // even if this mentor coach is no longer assigned to that cohort.
     let participantName = ''
     if (data.participant_id) {
@@ -860,7 +860,7 @@ export default async function handler(req, res) {
   }
 
   // COHORTS - Admin > Users / Access Codes > Cohorts. A cohort is a group of participant NAMES (no accounts)
-  // plus the mentor coaches assigned to it. Mentor coaches pick a participant and Form #1/2/3 when they start
+  // plus the mentor coaches assigned to it. Mentor coaches pick a participant and SOF #1/2/3 when they start
   // a Session Observation Form. Everything below except cohort-mine is full admins only.
   const COHORT_MENTOR_ROLES = ['mentor', 'admin_tools', 'admin']
   const cleanName = (v) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, 120)

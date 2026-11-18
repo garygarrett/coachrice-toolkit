@@ -97,7 +97,7 @@ function evidenceLine(turn, roles, quote) {
 function autoNameFor(link, form) {
   if (!link || !link.participantName || !link.formNumber) return ''
   const status = missingItems(form).length === 0 ? 'Complete' : 'Incomplete'
-  return `${link.participantName} - Session Observation Form #${link.formNumber} (${status})`
+  return `${link.participantName} - SOF #${link.formNumber} (${status})`
 }
 
 export default function SessionObservation() {
@@ -198,6 +198,20 @@ export default function SessionObservation() {
   const shownDrafts = cohortFilter ? drafts.filter((d) => d.cohort_id === cohortFilter) : drafts
   const completedDrafts = shownDrafts.filter(isCompleteDraft)
   const inProgressDrafts = shownDrafts.filter((d) => !isCompleteDraft(d))
+  // Saved Competency Review Forms join the same lists (tagged CRF), newest first together with the observations.
+  const isCompleteReview = (r) => missingReviewItems({ ...emptyReview(), ...(r.review || {}) }).length === 0
+  const shownReviews = (cohortFilter ? reviews.filter((r) => r.cohort_id === cohortFilter) : reviews).map((r) => ({ ...r, kind: 'crf' }))
+  const byNewest = (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+  const savedInProgress = [...inProgressDrafts.map((d) => ({ ...d, kind: 'sof' })), ...shownReviews.filter((r) => !isCompleteReview(r))].sort(byNewest)
+  const savedCompleted = [...completedDrafts.map((d) => ({ ...d, kind: 'sof' })), ...shownReviews.filter(isCompleteReview)].sort(byNewest)
+  async function deleteReview(id, title) {
+    if (!window.confirm(`Delete "${title}" for good? This cannot be undone.`)) return
+    try {
+      const res = await authFetch('/api/user-actions?action=crf-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      if (!res.ok) throw new Error('Could not delete it')
+      loadDrafts(); loadCohorts()
+    } catch (e) { setError(e.message) }
+  }
 
   // A mentor coach who is assigned to a cohort must say who the observation is for.
   // Admins who are not mentor coaches may skip it.
@@ -427,7 +441,7 @@ export default function SessionObservation() {
     } catch { /* the list is a convenience; ignore */ } finally { setListsLoaded((l) => ({ ...l, drafts: true })) }
   }
 
-  // "Start Form #n" in the By participant panel: fill in the start card below and bring it into view.
+  // "Start SOF #n" in the By participant panel: fill in the start card below and bring it into view.
   function startFormFor(person, n) {
     setPick({ cohortId: person.cohortId, participantId: person.id, formNumber: n })
     setTimeout(() => startCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
@@ -477,7 +491,7 @@ export default function SessionObservation() {
       }
       setLink(newLink)
       setForm(nextForm)
-      setNotice(newLink ? `This observation is now for ${newLink.participantName}, Form #${newLink.formNumber}.` : 'This observation is no longer linked to a participant.')
+      setNotice(newLink ? `This observation is now for ${newLink.participantName}, SOF #${newLink.formNumber}.` : 'This observation is no longer linked to a participant.')
       loadCohorts(); loadDrafts()
     } catch (e) {
       setNotice(`Could not change the participant: ${e.message}`)
@@ -676,16 +690,16 @@ export default function SessionObservation() {
                 <option value="">All cohorts</option>
                 {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <span style={small}>Your saved observations and participants below show this cohort only.</span>
+              <span style={small}>Your saved forms and participants below show this cohort only.</span>
             </div>
           )}
-          {(drafts.length > 0 || allPeople.length > 0) && (
+          {(drafts.length > 0 || reviews.length > 0 || allPeople.length > 0) && (
             <div style={card} data-tour="home-saved">
-              <h2 style={h2}>Your saved observations</h2>
+              <h2 style={h2}>Your Saved Forms</h2>
               {error && <div style={{ color: '#b42318', fontSize: 13, margin: '8px 0' }}>{error}</div>}
               {[
-                { key: 'progress', label: 'In progress', rows: inProgressDrafts, open: true, color: C.orange },
-                { key: 'complete', label: 'Completed', rows: completedDrafts, open: false, color: '#7a8a16' },
+                { key: 'progress', label: 'In progress', rows: savedInProgress, open: true, color: C.orange },
+                { key: 'complete', label: 'Completed', rows: savedCompleted, open: false, color: '#7a8a16' },
               ].map((group) => (
                 <details key={group.key} open={group.open} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
                   <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
@@ -693,19 +707,21 @@ export default function SessionObservation() {
                     <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: group.color, borderRadius: 10, padding: '2px 9px' }}>{group.rows.length}</span>
                   </summary>
                   {group.rows.length === 0 && (
-                    <div style={{ ...small, padding: '0 0 12px' }}>{group.key === 'progress' ? 'Nothing in progress.' : 'No completed observations yet.'}</div>
+                    <div style={{ ...small, padding: '0 0 12px' }}>{group.key === 'progress' ? 'Nothing in progress.' : 'No completed forms yet.'}</div>
                   )}
                   {group.rows.map((d) => (
                     <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
                       <div style={{ flex: 1, fontSize: 13 }}>
                         <div style={{ fontWeight: 700, color: C.navy }}>
                           {d.title}
-                          {d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>Form #{d.form_number}</span> : null}
+                          {d.kind === 'crf'
+                            ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.white, background: C.navy, borderRadius: 6, padding: '2px 8px' }}>CRF</span>
+                            : d.form_number ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: C.navy, background: C.soft, borderRadius: 6, padding: '2px 8px' }}>SOF #{d.form_number}</span> : null}
                         </div>
                         <div style={small}>Last saved {new Date(d.updated_at).toLocaleString()}</div>
                       </div>
-                      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(d.id)}>Open</button>
-                      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(d.id, d.title)}>Delete</button>
+                      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => (d.kind === 'crf' ? (setMode('review'), setCrfRequest({ id: d.id, n: Date.now() })) : openDraft(d.id))}>Open</button>
+                      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => (d.kind === 'crf' ? deleteReview(d.id, d.title) : deleteDraft(d.id, d.title))}>Delete</button>
                     </div>
                   ))}
                 </details>
@@ -735,7 +751,7 @@ export default function SessionObservation() {
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
                         <div style={{ flex: 1, fontSize: 13 }}>
                           <div style={{ fontWeight: 700, color: C.navy }}>
-                            Form #{n} · {viewPerson.name}
+                            SOF #{n} · {viewPerson.name}
                             {mine && (
                               <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: done ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
                                 {done ? 'Complete' : 'In progress'}
@@ -750,7 +766,7 @@ export default function SessionObservation() {
                         </div>
                         {mine && <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(mine.id)}>Open</button>}
                         {mine && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(mine.id, mine.title)}>Delete</button>}
-                        {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start Form #{n}</button>}
+                        {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start SOF #{n}</button>}
                       </div>
                     )
                   })}
@@ -800,7 +816,7 @@ export default function SessionObservation() {
             <CompetencyReview request={crfRequest} onStageChange={setCrfStage} onChanged={() => { loadDrafts(); loadCohorts() }} />
           ) : (
           <div style={card}>
-            <h2 style={h2}>Start a session observation</h2>
+            <h2 style={h2}>Start a Session Observation Form</h2>
             <p style={small}>
               Add the participant&rsquo;s coaching session as a transcript. The tool finds evidence for each ICF behavior
               and highlights it in the transcript. You edit the evidence, choose every rating, and save the completed ICF form.
@@ -844,7 +860,7 @@ export default function SessionObservation() {
                               border: `2px solid ${chosen ? (existing ? C.orange : C.navy) : C.border}`, background: chosen ? (existing ? '#fff7ed' : C.navy) : C.white,
                               color: chosen ? (existing ? '#9a3412' : C.white) : C.navy,
                             }}>
-                            Form #{n}
+                            SOF #{n}
                             <span style={{ display: 'block', fontSize: 11, fontWeight: 600, marginTop: 2, color: chosen && !existing ? '#dbe4f5' : C.muted }}>
                               {existing ? 'Already saved' : 'Not started'}
                             </span>
@@ -854,14 +870,14 @@ export default function SessionObservation() {
                     </div>
                     {pickTaken && (
                       <div role="alert" style={{ marginTop: 12, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, lineHeight: 1.5 }}>
-                        <strong>Form #{pick.formNumber} for {pickPerson.name} has already been saved</strong>
-                        {pickTaken.mine ? ' by you.' : ' by another mentor coach.'} A participant can have only one of each form, so you cannot start another Form #{pick.formNumber}.
+                        <strong>SOF #{pick.formNumber} for {pickPerson.name} has already been saved</strong>
+                        {pickTaken.mine ? ' by you.' : ' by another mentor coach.'} A participant can have only one of each form, so you cannot start another SOF #{pick.formNumber}.
                         {pickTaken.mine
                           ? ' Open the saved one to keep working on it, or choose a different form number.'
                           : ' Choose a different form number, or ask an admin if this one needs to be redone.'}
                         {pickTaken.mine && (
                           <div style={{ marginTop: 8 }}>
-                            <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(pickTaken.id)}>Open saved Form #{pick.formNumber}</button>
+                            <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openDraft(pickTaken.id)}>Open saved SOF #{pick.formNumber}</button>
                           </div>
                         )}
                       </div>
@@ -914,7 +930,7 @@ export default function SessionObservation() {
               <button style={btn(true, !ready)} disabled={!ready} onClick={loadTranscript}>Continue</button>
               {!pickReady && (
                 <span style={{ ...small, marginLeft: 12 }}>
-                  {pickTaken ? `Form #${pick.formNumber} is already saved. Choose a different form to continue.` : pickPerson ? 'Choose Form #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
+                  {pickTaken ? `SOF #${pick.formNumber} is already saved. Choose a different form to continue.` : pickPerson ? 'Choose SOF #1, #2, or #3 to continue.' : 'Choose a participant and form to continue.'}
                 </span>
               )}
             </div>
@@ -1039,7 +1055,7 @@ export default function SessionObservation() {
                           border: `2px solid ${chosen ? (taken ? C.orange : C.navy) : C.border}`, background: chosen ? (taken ? '#fff7ed' : C.navy) : C.white,
                           color: chosen ? (taken ? '#9a3412' : C.white) : C.navy,
                         }}>
-                        Form #{n}
+                        SOF #{n}
                         <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: chosen && !taken ? '#dbe4f5' : C.muted }}>{taken ? 'Already saved' : link && link.participantId === relink.participantId && link.formNumber === n ? 'Current' : 'Available'}</span>
                       </button>
                     )
@@ -1053,7 +1069,7 @@ export default function SessionObservation() {
           </div>
           {relink.participantId && relink.formNumber > 0 && relinkTaken(relink.formNumber) && (
             <div role="alert" style={{ marginTop: 10, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
-              <strong>Form #{relink.formNumber} for {relinkPerson?.name} has already been saved.</strong> A participant can have only one of each form. Choose a different form number.
+              <strong>SOF #{relink.formNumber} for {relinkPerson?.name} has already been saved.</strong> A participant can have only one of each form. Choose a different form number.
             </div>
           )}
         </div>

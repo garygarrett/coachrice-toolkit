@@ -14,13 +14,13 @@ export const HOME_TOUR = [
   },
   {
     target: '[data-tour="home-saved"]',
-    title: 'Your saved observations',
-    body: 'In progress holds forms you have started. Completed holds forms with every field filled in. Select Open to keep working on a form. Delete removes the saved copy for good.',
+    title: 'Your Saved Forms',
+    body: 'Your Session Observation Forms and Competency Review Forms (tagged CRF) are listed together here. In progress holds forms you have started. Completed holds forms with every field filled in. Select Open to keep working on a form. Delete removes the saved copy for good.',
   },
   {
     target: '[data-tour="home-byparticipant"]',
     title: 'See one participant at a time',
-    body: 'Open By participant and choose a name. You will see their Form #1, #2, and #3 and their Competency Review Form, with the status of each. Select Start next to the one you want to begin.',
+    body: 'Open By participant and choose a name. You will see their SOF #1, #2, and #3 and their Competency Review Form, with the status of each. Select Start next to the one you want to begin.',
   },
   {
     target: '[data-tour="home-choice"]',
@@ -30,7 +30,7 @@ export const HOME_TOUR = [
   {
     target: '[data-tour="home-who"]',
     title: 'Who is this observation for?',
-    body: 'Choose the participant, then choose Form #1, #2, or #3. The participant’s name fills in on the ICF form for you. A form number that is already saved cannot be started twice.',
+    body: 'Choose the participant, then choose SOF #1, #2, or #3. The participant’s name fills in on the ICF form for you. A form number that is already saved cannot be started twice.',
   },
   {
     target: '[data-tour="home-transcript"]',

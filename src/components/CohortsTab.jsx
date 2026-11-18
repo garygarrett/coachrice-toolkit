@@ -8,7 +8,7 @@ import LoadingBar from './LoadingBar'
 
 // Admin > Users / Access Codes > Cohorts.
 // An admin builds a cohort, types in the participant names (names only, no accounts), and assigns mentor
-// coaches. The table shows each participant's Session Observation Form #1, #2, and #3 and who did them.
+// coaches. The table shows each participant's SOF #1, #2, and #3 and who did them.
 const C = { navy: '#00205B', gray: '#7C7E7F', border: '#e2e6ec', soft: '#f0f2f5', muted: '#6b7a99', lime: '#c9d647', orange: '#ff8200', blue: '#69cce6' }
 const font = 'Montserrat, sans-serif'
 const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: '18px 20px', marginBottom: 16 }
@@ -202,7 +202,7 @@ export default function CohortsTab() {
       <p style={{ ...small, marginTop: 0 }}>
         Build a cohort, type in the participant names, check the mentor coaches who work with it, then assign each participant to
         one mentor coach. A mentor coach sees only their own participants when they start a Session Observation Form, and picks
-        Form #1, #2, or #3. Participants are names only. They do not sign in.
+        SOF #1, #2, or #3. Participants are names only. They do not sign in.
       </p>
 
       {error && <div style={{ background: '#fef2f2', color: '#b42318', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 12 }}>{error}</div>}
@@ -326,9 +326,9 @@ export default function CohortsTab() {
                   <tr>
                     <th style={th}>Participant</th>
                     <th style={th}>Mentor coach</th>
-                    <th style={th}>Form #1</th>
-                    <th style={th}>Form #2</th>
-                    <th style={th}>Form #3</th>
+                    <th style={th}>SOF #1</th>
+                    <th style={th}>SOF #2</th>
+                    <th style={th}>SOF #3</th>
                     <th style={th}>Competency Review</th>
                     <th style={th}></th>
                   </tr>

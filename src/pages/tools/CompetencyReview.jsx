@@ -138,6 +138,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
 
   // The parent asks for a participant's review (By participant row): open it, or start it.
   useEffect(() => {
+    if (request?.id && handledRequest.current !== request.n && profile) { handledRequest.current = request.n; openSaved(request.id); return }
     if (!request?.participantId || handledRequest.current === request.n || !profile || !people.length) return
     const person = people.find((p) => p.id === request.participantId)
     if (!person) return
@@ -232,8 +233,6 @@ export default function CompetencyReview({ request = null, onStageChange = null,
 
   const missing = useMemo(() => missingReviewItems(review), [review])
   const isDone = (row) => !!row.review && missingReviewItems({ ...emptyReview(), ...row.review }).length === 0
-  const inProgress = saved.filter((s) => !isDone(s))
-  const done = saved.filter(isDone)
   const existingForPick = pickId ? saved.find((s) => s.participant_id === pickId) : null
 
   if (stage === 'form') {
@@ -256,7 +255,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
                   return (
                     <button key={x.id} type="button" onClick={() => (on ? setPanel(null) : openSof(x))}
                       style={{ ...btn(on), padding: '5px 12px', fontSize: 12 }}>
-                      Form #{x.formNumber} · {done ? 'Complete' : 'In progress'}
+                      SOF #{x.formNumber} · {done ? 'Complete' : 'In progress'}
                     </button>
                   )
                 })}
@@ -279,12 +278,12 @@ export default function CompetencyReview({ request = null, onStageChange = null,
         </div>
         </div>
         {panel && (
-          <aside role="complementary" aria-label={`Session Observation Form #${panel.sof.formNumber}`}
+          <aside role="complementary" aria-label={`SOF #${panel.sof.formNumber}`}
             style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: shownW, background: '#fff', borderLeft: `1px solid ${C.border}`, boxShadow: '-6px 0 24px rgba(0,32,91,0.12)', zIndex: 30, display: 'flex', flexDirection: 'column', fontFamily: font }}>
             <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the side panel" title="Drag to resize" onPointerDown={startDrag}
               style={{ position: 'absolute', left: -5, top: 0, bottom: 0, width: 10, cursor: 'col-resize', zIndex: 31 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>Session Observation Form #{panel.sof.formNumber}</div>
+              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>SOF #{panel.sof.formNumber}</div>
               <button type="button" aria-label="Close side panel" onClick={() => setPanel(null)} style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }}>Close ✕</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
@@ -298,23 +297,12 @@ export default function CompetencyReview({ request = null, onStageChange = null,
     )
   }
 
-  const Row = ({ s }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-      <div style={{ flex: 1, fontSize: 13 }}>
-        <div style={{ fontWeight: 700, color: C.navy }}>{s.title}</div>
-        <div style={small}>Last saved {new Date(s.updated_at).toLocaleString()}</div>
-      </div>
-      <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openSaved(s.id)}>Open</button>
-      <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => remove(s.id, s.title)}>Delete</button>
-    </div>
-  )
-
   return (
     <>
       <div style={{ fontFamily: font }}>
         {error && <div role="alert" style={{ background: '#fdecec', border: '1px solid #e8a0a0', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#8a1c1c', marginBottom: 12 }}>{error}</div>}
         <div style={card}>
-          <h2 style={h2}>Start a competency review</h2>
+          <h2 style={h2}>Start a Competency Review Form</h2>
           <p style={small}>
             The Competency Review Form sums up a participant&rsquo;s Session Observation Forms. When you start it for a participant,
             each behavior is pre-filled as &ldquo;Proficiency Demonstrated&rdquo; if any of their Session Observation Forms rated it Meets or Exceeds the
@@ -328,7 +316,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
           </select>
           {existingForPick && (
             <div style={{ marginTop: 12, background: '#fff8f0', border: `1px solid ${C.orange}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }}>
-              <strong>{pickPerson?.name} already has a Competency Review Form.</strong> A participant has only one.{' '}
+              <strong>{pickPerson?.name} already has a Competency Review Form.</strong>{' '}
               <button style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }} onClick={() => openSaved(existingForPick.id)}>Open saved review</button>
             </div>
           )}
@@ -344,13 +332,6 @@ export default function CompetencyReview({ request = null, onStageChange = null,
               {busy === 'start' ? 'Starting…' : 'Start Competency Review Form'}
             </button>
           </div>
-        </div>
-
-        <div style={card}>
-          <h2 style={h2}>Your saved reviews</h2>
-          {saved.length === 0 && <p style={small}>Nothing saved yet.</p>}
-          {inProgress.length > 0 && <details open><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>In progress ({inProgress.length})</summary>{inProgress.map((s) => <Row key={s.id} s={s} />)}</details>}
-          {done.length > 0 && <details><summary style={{ fontWeight: 800, color: C.navy, fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>Completed ({done.length})</summary>{done.map((s) => <Row key={s.id} s={s} />)}</details>}
         </div>
       </div>
     </>
