@@ -244,7 +244,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
             <button style={btn(false)} onClick={goBack}>← Back to my reviews</button>
             <button style={btn(true, busy === 'save')} disabled={busy === 'save'} onClick={() => save(false)}>{busy === 'save' ? 'Saving…' : 'Save progress'}</button>
             {link && <button style={btn(false, !!busy)} disabled={!!busy} onClick={refreshFromSofs}>Refresh from Session Observation Forms</button>}
-            <button style={btn(false, busy === 'docx')} disabled={busy === 'docx'} onClick={download}>{busy === 'docx' ? 'Preparing…' : 'Download form (Word)'}</button>
+            <button style={btn(false, busy === 'docx')} disabled={busy === 'docx'} onClick={download}>{busy === 'docx' ? 'Preparing…' : 'Download form (.docx)'}</button>
             <span style={{ ...small, marginLeft: 'auto' }}>{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
             {sofs.length > 0 && (
               <div style={{ flexBasis: '100%', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
