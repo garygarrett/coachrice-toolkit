@@ -329,7 +329,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
               disabled={!!busy || (pickRequired && !pickPerson) || !!existingForPick || (!!pickPerson?.review && !pickPerson.review.mine)}
               onClick={() => startFor(pickPerson)}
             >
-              {busy === 'start' ? 'Starting…' : 'Start Competency Review Form'}
+              {busy === 'start' ? 'Starting…' : 'Continue'}
             </button>
           </div>
         </div>
