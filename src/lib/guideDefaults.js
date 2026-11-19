@@ -118,10 +118,10 @@ At the bottom, the **Save** card lists anything still blank, so you know what is
     audiences: MENTOR,
     body: `The Competency Review Form sums up a participant's Session Observation Forms #1 to #3. There is one per participant.
 
-1. On your home screen, select **Competency Review Form** under **What would you like to create?**, choose the participant, and select **Start Competency Review Form**. You can also select **Start Competency Review** from the participant's row under **By participant**.
+1. On your home screen, select **Competency Review Form** under **What would you like to create?**, choose the participant, and select **Continue**. You can also select **Start Competency Review** from the participant's row under **By participant**.
 2. The form opens **pre-filled** from the participant's saved Session Observation Forms. A behavior shows **Proficiency Demonstrated** if any of their forms rated it Meets or Exceeds. It shows **Not Yet Demonstrated** if it was rated but never reached Meets. It stays blank if no form rated it.
 3. **Change anything that needs changing.** The pre-fill is a suggestion, and you decide.
-4. Fill in the remaining fields, then use **Save progress** and **Download form (Word)**.
+4. Fill in the remaining fields, then use **Save progress** and **Download form (.docx)**.
 
 ![Start the review from the home screen.](/guide/10-review-start.png)
 
