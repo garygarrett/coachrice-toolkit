@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { homeFor } from '../lib/roles'
@@ -10,6 +10,45 @@ export default function SetPassword() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  // 'checking' while the emailed link is turned into a sign-in, then 'ready' or 'expired'.
+  const [linkState, setLinkState] = useState('checking')
+  const [resendEmail, setResendEmail] = useState('')
+  const [resendBusy, setResendBusy] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+
+  useEffect(() => {
+    // Read the link's own error (for example an expired or already used link) before the client clears the address.
+    const hash = window.location.hash || ''
+    const linkFailed = /error=|error_code=|otp_expired|access_denied/.test(hash)
+    let alive = true
+    // The listener only sets state (never call Supabase data methods inside it).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (alive && session) setLinkState('ready')
+    })
+    ;(async () => {
+      const { data } = await supabase.auth.getSession()
+      if (!alive) return
+      if (data?.session) setLinkState('ready')
+      else if (linkFailed) setLinkState('expired')
+      else setTimeout(async () => { // give the emailed link a moment to finish signing in
+        const again = await supabase.auth.getSession()
+        if (alive) setLinkState(again.data?.session ? 'ready' : 'expired')
+      }, 1500)
+    })()
+    return () => { alive = false; sub?.subscription?.unsubscribe() }
+  }, [])
+
+  async function sendNewLink(e) {
+    e.preventDefault()
+    setError(null)
+    setResendBusy(true)
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resendEmail.trim(), {
+      redirectTo: `${window.location.origin}/set-password`,
+    })
+    setResendBusy(false)
+    if (resetError) setError(resetError.message)
+    else setResendSent(true)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -28,7 +67,8 @@ export default function SetPassword() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
-      setError(updateError.message)
+      if (/session missing/i.test(updateError.message)) setLinkState('expired')
+      else setError(updateError.message)
       setSubmitting(false)
       return
     }
@@ -63,9 +103,33 @@ export default function SetPassword() {
       <div style={s.formPanel}>
         <div style={s.formInner}>
           <div style={s.formTitle}>Set Your Password</div>
-          <div style={s.formSub}>Password must be at least 8 characters.</div>
 
-          <form onSubmit={handleSubmit}>
+          {linkState === 'checking' && <div style={s.formSub}>Checking your link…</div>}
+
+          {linkState === 'expired' && (
+            <form onSubmit={sendNewLink}>
+              <div style={{ ...s.formSub, color: '#00205B', fontWeight: 600 }}>This link has expired or was already used.</div>
+              <div style={s.formSub}>
+                Some email programs open links automatically, which uses them up. Enter your email and we will send you a fresh link. Open it right away, in the same browser you want to use.
+              </div>
+              {resendSent ? (
+                <p style={{ ...s.formSub, color: '#00205B', fontWeight: 600 }}>If that email has an account, a new link is on its way. Check your inbox.</p>
+              ) : (
+                <>
+                  <div style={s.field}>
+                    <label htmlFor="resend-email" style={s.label}>Email</label>
+                    <input id="resend-email" type="email" value={resendEmail} onChange={e => setResendEmail(e.target.value)} required style={s.input} autoComplete="email" />
+                  </div>
+                  {error && <p style={s.errorMsg}>{error}</p>}
+                  <button type="submit" disabled={resendBusy} style={s.btnSignin}>{resendBusy ? 'Sending…' : 'Send me a new link'}</button>
+                </>
+              )}
+            </form>
+          )}
+
+          {linkState === 'ready' && <div style={s.formSub}>Password must be at least 8 characters.</div>}
+
+          {linkState === 'ready' && <form onSubmit={handleSubmit}>
             <div style={s.field}>
               <label htmlFor="password" style={s.label}>New Password</label>
               <input
@@ -99,7 +163,7 @@ export default function SetPassword() {
             <button type="submit" disabled={submitting} style={s.btnSignin}>
               {submitting ? 'Saving…' : 'Set Password & Continue'}
             </button>
-          </form>
+          </form>}
         </div>
       </div>
     </div>
