@@ -32,12 +32,6 @@ const COMPETENCIES = [
   'ICF Code of Ethics',
 ]
 
-const EMPTY_USER_FORM = {
-  full_name: '',
-  email: '',
-  role: 'coach',
-}
-
 const EMPTY_QUESTION = {
   competency: COMPETENCIES[0],
   question: '',
@@ -211,9 +205,6 @@ export default function AdminPanel({ section = 'users' }) {
 
   // ── Users state ──
   const [users, setUsers] = useState([])
-  const [showInviteForm, setShowInviteForm] = useState(false)
-  const [inviteForm, setInviteForm] = useState(EMPTY_USER_FORM)
-  const [inviteSubmitting, setInviteSubmitting] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [editUserForm, setEditUserForm] = useState({})
   const [editUserSubmitting, setEditUserSubmitting] = useState(false)
@@ -562,10 +553,6 @@ export default function AdminPanel({ section = 'users' }) {
   })
 
   // ── User functions ──
-  function handleInviteChange(e) {
-    setInviteForm(f => ({ ...f, [e.target.name]: e.target.value }))
-  }
-
   function handleEditUserChange(e) {
     const val = e.target.name === 'is_active' ? e.target.value === 'true' : e.target.value
     setEditUserForm(f => ({ ...f, [e.target.name]: val }))
@@ -607,58 +594,6 @@ export default function AdminPanel({ section = 'users' }) {
     setEditUserForm(user)
     setEditUserError(null)
     setEditingUser(user)
-  }
-
-  async function handleInviteSubmit(e) {
-    e.preventDefault()
-    setUserError(null)
-    setInviteSubmitting(true)
-
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-      const res = await authFetch('/api/invite-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          full_name: inviteForm.full_name,
-          email: inviteForm.email,
-          role: inviteForm.role,
-        }),
-      })
-
-      clearTimeout(timeoutId)
-
-      let result
-      const contentType = res.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
-        result = await res.json()
-      } else {
-        const text = await res.text()
-        console.error('Non-JSON response:', res.status, text)
-        setUserError(`Server error (${res.status}): ${text || 'Unknown error'}`)
-        setInviteSubmitting(false)
-        return
-      }
-
-      if (!res.ok) {
-        setUserError(result.error || 'Invite failed')
-      } else {
-        setSuccessMsg(`Invite sent to ${inviteForm.full_name}`)
-        setShowInviteForm(false)
-        setInviteForm(EMPTY_USER_FORM)
-        await loadUsers()
-      }
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        setUserError('Request timed out. Please check your connection and try again.')
-      } else {
-        setUserError(err.message || 'Failed to send invite')
-      }
-    }
-    setInviteSubmitting(false)
   }
 
   async function handleEditUserSubmit(e) {
@@ -1507,43 +1442,9 @@ export default function AdminPanel({ section = 'users' }) {
     <>
       <div style={s.titleRow}>
         <h1 style={s.heading}>Users</h1>
-        {!showInviteForm && (
-          <button onClick={() => { setShowInviteForm(true); setEditingUser(null); setSuccessMsg(null) }} style={s.addBtn}>
-            + Add User
-          </button>
-        )}
       </div>
 
       {successMsg && <p style={s.successBanner}>{successMsg}</p>}
-
-      {showInviteForm && (
-        <div style={s.formCard}>
-          <h2 style={s.formHeading}>Invite New User</h2>
-          <form onSubmit={handleInviteSubmit}>
-            <div style={s.formGrid}>
-              <label style={s.label}>Full Name
-                <input name="full_name" value={inviteForm.full_name} onChange={handleInviteChange} required style={s.input} placeholder="Jane Smith" />
-              </label>
-              <label style={s.label}>Email
-                <input name="email" type="email" value={inviteForm.email} onChange={handleInviteChange} required style={s.input} placeholder="jane@rice.edu" />
-              </label>
-              <label style={s.label}>Role
-                <select name="role" value={inviteForm.role} onChange={handleInviteChange} style={s.input}>
-                  <option value="coach">Participant</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </label>
-            </div>
-            {userError && <p style={s.errorMsg}>{userError}</p>}
-            <div style={s.formActions}>
-              <button type="button" onClick={() => setShowInviteForm(false)} style={s.cancelBtn}>Cancel</button>
-              <button type="submit" disabled={inviteSubmitting} style={s.submitBtn}>
-                {inviteSubmitting ? 'Sending invite…' : 'Send Invite'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {editingUser && (
         <div style={s.formCard}>
