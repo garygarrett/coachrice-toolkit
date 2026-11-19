@@ -54,7 +54,7 @@ export default async function handler(req, res) {
   // CODE CHECK - Step 1 of first-time sign-up: is this a mentor-coach or admin code that can still be used?
   // It does not use the code up. It only says which kind of account the code creates.
   if (action === 'code-check') {
-    const found = await lookupCode(supabase, req.body?.code, ['mentor', 'admin'])
+    const found = await lookupCode(supabase, req.body?.code, ['mentor', 'admin', 'admin_full'])
     if (found.error) return res.status(found.status).json({ error: found.error })
     return res.status(200).json({ valid: true, role: found.code.role })
   }
@@ -62,6 +62,7 @@ export default async function handler(req, res) {
   // CODE SIGNUP - Step 2: create the account. A mentor/admin code works exactly once.
   //   mentor code -> role 'mentor' (Session Observation Form only)
   //   admin code  -> role 'admin_tools' (Internal Assessor, Audio to Transcript, Session Observation Form)
+  //   full admin code (role 'admin_full') -> role 'admin' (everything, including Users, History / Data, Tool Configuration)
   if (action === 'code-signup') {
     const { code, email, password } = req.body || {}
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
@@ -71,9 +72,9 @@ export default async function handler(req, res) {
     if (typeof password !== 'string' || password.length < 8) {
       return res.status(400).json({ error: 'Your password must be at least 8 characters' })
     }
-    const found = await lookupCode(supabase, code, ['mentor', 'admin'])
+    const found = await lookupCode(supabase, code, ['mentor', 'admin', 'admin_full'])
     if (found.error) return res.status(found.status).json({ error: found.error })
-    const role = found.code.role === 'admin' ? 'admin_tools' : 'mentor'
+    const role = found.code.role === 'admin_full' ? 'admin' : found.code.role === 'admin' ? 'admin_tools' : 'mentor'
 
     // Claim the code first (only if nobody else did), so two people cannot both use it.
     const { data: claimed } = await supabase
@@ -882,7 +883,7 @@ export default async function handler(req, res) {
         .is('deleted_at', null)
         .limit(2000),
       // Mentor Coach / Admin access codes nobody has used yet: these people can be given participants before they sign up.
-      supabase.from('access_codes').select('id, label, role, active, expires_at').in('role', ['mentor', 'admin']).is('used_at', null),
+      supabase.from('access_codes').select('id, label, role, active, expires_at').in('role', ['mentor', 'admin', 'admin_full']).is('used_at', null),
       supabase.from('observation_cohort_mentor_codes').select('cohort_id, code_id'),
       supabase
         .from('competency_reviews')
@@ -1030,7 +1031,7 @@ export default async function handler(req, res) {
     // Access codes whose person has not signed up yet. Left alone when the caller does not send codeIds.
     const wantedCodes = Array.isArray(codeIds) ? [...new Set(codeIds)] : null
     if (wantedCodes && wantedCodes.length) {
-      const { data: okCodes, error: codeError } = await supabase.from('access_codes').select('id').in('id', wantedCodes).in('role', ['mentor', 'admin']).is('used_at', null)
+      const { data: okCodes, error: codeError } = await supabase.from('access_codes').select('id').in('id', wantedCodes).in('role', ['mentor', 'admin', 'admin_full']).is('used_at', null)
       if (codeError) return res.status(500).json({ error: codeError.message })
       if ((okCodes || []).length !== wantedCodes.length) return res.status(400).json({ error: 'Only unused Mentor Coach or Admin access codes can be assigned before sign-up' })
     }

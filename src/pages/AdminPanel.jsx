@@ -816,6 +816,7 @@ export default function AdminPanel({ section = 'users' }) {
               <option value="student">Student</option>
               <option value="mentor">Mentor coach (one-time sign-up)</option>
               <option value="admin">Admin, tools only (one-time sign-up)</option>
+              <option value="admin_full">Full admin, everything (one-time sign-up)</option>
             </select>
           </div>
           <div style={{ minWidth: '150px' }}>
@@ -862,7 +863,7 @@ export default function AdminPanel({ section = 'users' }) {
                 <td style={{ padding: '12px 16px', fontWeight: 700, color: COLORS.navy, fontFamily: 'monospace', fontSize: '13px' }}>{ac.code}</td>
                 <td style={{ padding: '12px 16px', color: COLORS['text-main'] }}>{ac.label}</td>
                 <td style={{ padding: '12px 16px', fontSize: '12px', color: COLORS['text-main'] }}>
-                  {{ student: 'Student', mentor: 'Mentor coach (one-time)', admin: 'Admin (one-time)' }[ac.role || 'student']}
+                  {{ student: 'Student', mentor: 'Mentor coach (one-time)', admin: 'Admin, tools only (one-time)', admin_full: 'Full admin (one-time)' }[ac.role || 'student']}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   {(() => {
