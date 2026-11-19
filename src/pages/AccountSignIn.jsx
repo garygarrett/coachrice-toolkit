@@ -67,7 +67,7 @@ export default function AccountSignIn({ kind }) {
         setError(data.error === 'That access code has already been used'
           ? 'That access code has already been used. Use the "Sign in" tab at the top with your email and password.'
           : 'That access code is not valid. Check it and try again, or ask for a new one.')
-      } else if (data.role !== copy.codeKind) {
+      } else if (data.role !== copy.codeKind && !(kind === 'admin' && data.role === 'admin_full')) { // full admin codes also belong on the Admin sign-in
         setError(`That code is for the ${copy.other} sign-in. Go back and choose ${copy.other}.`)
       } else {
         go('account')
