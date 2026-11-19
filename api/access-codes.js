@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
       if (error || !data) return res.status(200).json({ valid: false })
       // Mentor-coach and admin codes only create accounts. They never open a tool directly.
-      if (data.role === 'mentor' || data.role === 'admin') return res.status(200).json({ valid: false, reason: 'signup' })
+      if (data.role === 'mentor' || data.role === 'admin' || data.role === 'admin_full') return res.status(200).json({ valid: false, reason: 'signup' })
       if (!data.active) return res.status(200).json({ valid: false, reason: 'inactive' })
       if (data.expires_at && new Date(data.expires_at) < new Date()) return res.status(200).json({ valid: false, reason: 'expired' })
 
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
     if (!(await requireAdmin(req, res, supabase))) return
     const { code, label, role, expiresAt } = req.body
     if (!code || !label) return res.status(400).json({ error: 'code and label are required' })
-    const codeRole = ['student', 'mentor', 'admin'].includes(role) ? role : 'student'
+    const codeRole = ['student', 'mentor', 'admin', 'admin_full'].includes(role) ? role : 'student'
     let expires = null
     if (expiresAt) {
       const d = new Date(expiresAt)
