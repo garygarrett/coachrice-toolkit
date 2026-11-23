@@ -10,15 +10,15 @@ import { downloadCompetencyReview } from '../../lib/crf/fillCrfDocx'
 const C = { navy: '#00205B', gray: '#7C7E7F', white: '#FFFFFF', orange: '#ff8200', border: '#e2e6ec', soft: '#f0f2f5' }
 const font = "'Montserrat', sans-serif"
 const btn = (primary, disabled) => ({
-  fontFamily: font, fontWeight: 700, fontSize: 13, padding: '10px 18px', borderRadius: 8,
+  fontFamily: font, fontWeight: 600, fontSize: 14, minHeight: 44, padding: '0 20px', borderRadius: 4,
   border: primary ? 'none' : `1px solid ${C.navy}`, background: primary ? C.navy : C.white, color: primary ? C.white : C.navy,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
 })
-const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, marginBottom: 18 }
-const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 800 }
-const small = { fontSize: 12, color: C.gray, lineHeight: 1.5 }
-const input = { fontFamily: font, fontSize: 13, padding: '9px 11px', border: `1px solid ${C.border}`, borderRadius: 8, width: '100%', boxSizing: 'border-box' }
-const label = { fontSize: 12, fontWeight: 700, color: C.navy, display: 'block', marginBottom: 4 }
+const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 28, marginBottom: 24 }
+const h2 = { fontSize: 18, color: C.navy, margin: '0 0 8px', fontWeight: 700, lineHeight: 1.3 }
+const small = { fontSize: 13, color: '#5b6785', lineHeight: 1.5 }
+const input = { fontFamily: font, fontSize: 13, padding: '11px 12px', minHeight: 44, border: `1px solid #b9c0cf`, borderRadius: 4, width: '100%', boxSizing: 'border-box' }
+const label = { fontSize: 13, fontWeight: 600, color: C.navy, display: 'block', marginBottom: 6 }
 
 const reviewTitle = (name) => (name ? `${name} - Competency Review Form` : 'Untitled competency review')
 const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
@@ -240,7 +240,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
       <>
         <div ref={rootRef} style={{ paddingRight: panel ? Math.max(0, shownW + 12 - slack.right) : 0 }}>
         <div style={{ maxWidth: 960, margin: panel ? 0 : '0 auto', fontFamily: font }}>
-          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button style={btn(false)} onClick={goBack}>← Back to my reviews</button>
             <button style={btn(true, busy === 'save')} disabled={busy === 'save'} onClick={() => save(false)}>{busy === 'save' ? 'Saving…' : 'Save progress'}</button>
             {link && <button style={btn(false, !!busy)} disabled={!!busy} onClick={refreshFromSofs}>Refresh from Session Observation Forms</button>}
@@ -283,7 +283,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
             <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the side panel" title="Drag to resize" onPointerDown={startDrag}
               style={{ position: 'absolute', left: -5, top: 0, bottom: 0, width: 10, cursor: 'col-resize', zIndex: 31 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ flex: 1, fontWeight: 800, color: C.navy, fontSize: 14 }}>SOF #{panel.sof.formNumber}</div>
+              <div style={{ flex: 1, fontWeight: 700, color: C.navy, fontSize: 14 }}>SOF #{panel.sof.formNumber}</div>
               <button type="button" aria-label="Close side panel" onClick={() => setPanel(null)} style={{ ...btn(false), padding: '6px 12px', fontSize: 12 }}>Close ✕</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>

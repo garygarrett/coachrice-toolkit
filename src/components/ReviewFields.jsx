@@ -4,8 +4,8 @@ import { COMPETENCIES, BEHAVIORS, LEVELS, SELF_REVIEW, NEEDED, SESSION_ROWS, tot
 // (readOnly disables every input).
 const C = { navy: '#00205B', gray: '#7C7E7F', border: '#e2e6ec', soft: '#f0f2f5', orange: '#ff8200', sky: '#69cce6', green: '#c9d647' }
 const font = "'Montserrat', sans-serif"
-const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, marginBottom: 18 }
-const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 800 }
+const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: 22, marginBottom: 18 }
+const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 700 }
 const small = { fontSize: 12, color: C.gray, lineHeight: 1.5 }
 const input = { fontFamily: font, fontSize: 13, padding: '9px 11px', border: `1px solid ${C.border}`, borderRadius: 8, width: '100%', boxSizing: 'border-box' }
 const label = { fontSize: 12, fontWeight: 700, color: C.navy, display: 'block', marginBottom: 4 }
@@ -128,7 +128,7 @@ export default function ReviewFields({ review, setReview, readOnly = false, sofs
       </div>
 
       {r.prefilledFrom?.length > 0 && (
-        <div style={{ background: '#eef7fb', border: `1px solid ${C.sky}`, borderRadius: 10, padding: '10px 14px', fontSize: 12, color: C.navy, marginBottom: 14 }}>
+        <div style={{ background: '#eef7fb', border: `1px solid ${C.sky}`, borderRadius: 4, padding: '10px 14px', fontSize: 12, color: C.navy, marginBottom: 14 }}>
           Proficiency was pre-filled from Session Observation Form {r.prefilledFrom.map((n) => `#${n}`).join(', ')}:
           &ldquo;Demonstrated&rdquo; where any of those forms rated the behavior Meets or Exceeds the standard.
           You can change any answer{readOnly ? '' : ' below'}.
@@ -157,7 +157,7 @@ export default function ReviewFields({ review, setReview, readOnly = false, sofs
                           type="button"
                           aria-label={`Open SOF #${x.formNumber} at ${b.id}`}
                           onClick={() => onOpenSof(x, b.id)}
-                          style={{ fontFamily: font, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 12, cursor: 'pointer', border: `1px solid ${good ? C.green : C.border}`, background: good ? '#f3f8d6' : C.soft, color: C.navy }}
+                          style={{ fontFamily: font, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 4, cursor: 'pointer', border: `1px solid ${good ? C.green : C.border}`, background: good ? '#f3f8d6' : C.soft, color: C.navy }}
                         >
                           #{x.formNumber} · {SHORT_RATING[rt] || rt}
                         </button>
@@ -168,7 +168,7 @@ export default function ReviewFields({ review, setReview, readOnly = false, sofs
                 <Choice name={b.id} options={DEMO} value={r.statements[b.id] || null} onChange={(v) => setStatement(b.id, c.n, v)} disabled={lock} />
               </div>
             ))}
-            <div style={{ background: C.soft, borderRadius: 10, padding: '12px 14px', marginTop: 6 }}>
+            <div style={{ background: C.soft, borderRadius: 4, padding: '12px 14px', marginTop: 6 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 8 }}>
                 Has the mentor coaching client demonstrated proficiency with at least {NEEDED[c.n]} of the statements?
                 <span style={{ ...small, marginLeft: 8 }}>({have} of {items.length} marked Demonstrated)</span>

@@ -93,11 +93,11 @@ export default function GuidedTour({ steps, onClose, font = 'Montserrat, sans-se
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000, fontFamily: font }}>
       {/* Blocks clicks on the page while the tour is open, and dims it */}
       <div style={{ position: 'absolute', inset: 0, background: hl ? 'transparent' : 'rgba(0,32,91,0.55)' }} onClick={(e) => e.stopPropagation()} />
-      {hl && <div aria-hidden="true" style={{ position: 'fixed', ...hl, borderRadius: 10, border: `2px solid ${C.teal}`, boxShadow: '0 0 0 9999px rgba(0,32,91,0.55)', pointerEvents: 'none', transition: 'all 0.15s ease' }} />}
+      {hl && <div aria-hidden="true" style={{ position: 'fixed', ...hl, borderRadius: 4, border: `2px solid ${C.teal}`, boxShadow: '0 0 0 9999px rgba(0,32,91,0.55)', pointerEvents: 'none', transition: 'all 0.15s ease' }} />}
       <div ref={bubble} role="dialog" aria-modal="true" aria-label={`Guided tour: ${step.title}`}
-        style={{ position: 'fixed', ...pos, width: bw, background: '#fff', borderRadius: 12, padding: '18px 20px 16px', boxShadow: '0 12px 40px rgba(0,32,91,0.35)', borderTop: `5px solid ${C.teal}` }}>
+        style={{ position: 'fixed', ...pos, width: bw, background: '#fff', borderRadius: 4, padding: '18px 20px 16px', boxShadow: 'none', borderTop: `5px solid ${C.teal}` }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Step {i + 1} of {list.length}</div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.navy, marginBottom: 6 }}>{step.title}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 6 }}>{step.title}</div>
         <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#0f1c3a' }}>{step.body}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
           <button type="button" onClick={onClose} style={{ ...btn(false), border: 'none', color: C.gray, padding: '8px 4px', fontWeight: 600 }}>{last ? 'Close' : 'Skip tour'}</button>

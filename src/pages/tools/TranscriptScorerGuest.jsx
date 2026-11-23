@@ -652,7 +652,7 @@ export default function TranscriptScorerGuest() {
         </ul>
       </div>
 
-      <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
+      <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '24px', marginBottom: '24px' }}>
         <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, margin: '0 0 16px' }}>SUBMISSION CONSENT</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
@@ -675,7 +675,7 @@ export default function TranscriptScorerGuest() {
       </div>
 
       <div
-        style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer' }}
+        style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer' }}
         onClick={() => fileInputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#69cce6' }}
         onDragLeave={(e) => { e.currentTarget.style.borderColor = COLORS['gray-border'] }}
@@ -755,7 +755,7 @@ export default function TranscriptScorerGuest() {
         </div>
       </div>
 
-      <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '32px' }}>
+      <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '32px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 700, color: COLORS.navy, marginBottom: '8px' }}>Your Coaching Feedback</h2>
         <p style={{ fontSize: '13px', color: COLORS['text-muted'], marginBottom: '24px' }}>Coach: {evaluation.coach_identifier || 'Submitted Coach'}</p>
 

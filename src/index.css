@@ -1,3 +1,16 @@
+:root {
+  --navy: #00205B;
+  --gray: #7C7E7F;
+  --sky: #69cce6;
+  --blue: #78b3e0;
+  --orange: #ff8200;
+  --lime: #c9d647;
+  --ink: #0f1c3a;
+  --muted: #5b6785;
+  --line: #dfe3ea;
+  --wash: #f6f7f9;
+}
+
 html, body, #root {
   height: 100%;
   width: 100%;
@@ -12,9 +25,21 @@ html, body, #root {
 }
 
 body {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Montserrat, Arial, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard focus is always visible. */
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

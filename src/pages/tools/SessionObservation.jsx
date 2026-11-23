@@ -36,16 +36,16 @@ const az = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'bas
 const MAX_BYTES = 500 * 1024 * 1024
 
 const btn = (primary, disabled) => ({
-  fontFamily: font, fontWeight: 700, fontSize: 13, padding: '10px 18px', borderRadius: 8,
+  fontFamily: font, fontWeight: 600, fontSize: 14, minHeight: 44, padding: '0 20px', borderRadius: 4,
   border: primary ? 'none' : `1px solid ${C.navy}`,
   background: primary ? C.navy : C.white, color: primary ? C.white : C.navy,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
 })
-const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, marginBottom: 18 }
-const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 800 }
-const small = { fontSize: 12, color: C.gray, lineHeight: 1.5 }
-const input = { fontFamily: font, fontSize: 13, padding: '9px 11px', border: `1px solid ${C.border}`, borderRadius: 8, width: '100%', boxSizing: 'border-box' }
-const label = { fontSize: 12, fontWeight: 700, color: C.navy, display: 'block', marginBottom: 4 }
+const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 28, marginBottom: 24 }
+const h2 = { fontSize: 18, color: C.navy, margin: '0 0 8px', fontWeight: 700, lineHeight: 1.3 }
+const small = { fontSize: 13, color: '#5b6785', lineHeight: 1.5 }
+const input = { fontFamily: font, fontSize: 13, padding: '11px 12px', minHeight: 44, border: `1px solid #b9c0cf`, borderRadius: 4, width: '100%', boxSizing: 'border-box' }
+const label = { fontSize: 13, fontWeight: 600, color: C.navy, display: 'block', marginBottom: 6 }
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -702,9 +702,9 @@ export default function SessionObservation() {
                 { key: 'complete', label: 'Completed', rows: savedCompleted, open: false, color: '#7a8a16' },
               ].map((group) => (
                 <details key={group.key} open={group.open} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
-                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 700, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
                     {group.label}
-                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: group.color, borderRadius: 10, padding: '2px 9px' }}>{group.rows.length}</span>
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: group.color, borderRadius: 4, padding: '2px 9px' }}>{group.rows.length}</span>
                   </summary>
                   {group.rows.length === 0 && (
                     <div style={{ ...small, padding: '0 0 12px' }}>{group.key === 'progress' ? 'Nothing in progress.' : 'No completed forms yet.'}</div>
@@ -728,20 +728,21 @@ export default function SessionObservation() {
               ))}
               {peopleAZ.length > 0 && (
                 <details data-tour="home-byparticipant" open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
-                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 800, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
+                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 700, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
                     By participant
-                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 10, padding: '2px 9px' }}>{peopleAZ.length}</span>
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 4, padding: '2px 9px' }}>{peopleAZ.length}</span>
                   </summary>
-                  <div style={{ paddingBottom: 12 }}>
-                    <label style={label} htmlFor="obs-by-participant">Choose a participant to see just their reports</label>
-                    <select id="obs-by-participant" style={{ ...input, maxWidth: 420 }} value={viewPersonId} onChange={(e) => setViewPersonId(e.target.value)}>
-                      <option value="">Choose a participant…</option>
-                      {peopleAZ.map((p) => (
-                        <option key={p.id} value={p.id}>
+                  <div role="listbox" aria-label="Participants" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 16 }}>
+                    {peopleAZ.map((p) => {
+                      const on = viewPersonId === p.id
+                      return (
+                        <button key={p.id} type="button" role="option" aria-selected={on} onClick={() => setViewPersonId(on ? '' : p.id)}
+                          style={{ fontFamily: font, fontSize: 14, fontWeight: on ? 700 : 500, minHeight: 44, padding: '0 16px', borderRadius: 4, cursor: 'pointer',
+                            border: `1px solid ${on ? C.navy : '#b9c0cf'}`, background: on ? C.navy : C.white, color: on ? C.white : C.navy }}>
                           {p.name}{cohorts.length > 1 && !cohortFilter ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                        </button>
+                      )
+                    })}
                   </div>
                   {viewPerson && [1, 2, 3].map((n) => {
                     const mine = drafts.find((d) => d.participant_id === viewPerson.id && d.form_number === n)
@@ -805,7 +806,7 @@ export default function SessionObservation() {
           )}
           <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice" data-tour="home-choice">
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
+              <div style={{ fontWeight: 700, color: C.navy, fontSize: 14 }}>What would you like to create?</div>
             </div>
             <button style={btn(mode === 'sof')} aria-pressed={mode === 'sof'} onClick={() => setMode('sof')}>Session Observation Form</button>
             <button style={btn(mode === 'review')} aria-pressed={mode === 'review'} onClick={() => setMode('review')}>Competency Review Form</button>
@@ -824,8 +825,8 @@ export default function SessionObservation() {
             <div style={{ height: 14 }} />
 
             {cohorts.length > 0 && (
-              <div data-tour="home-who" style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 18, background: C.soft }}>
-                <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 12 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
+              <div data-tour="home-who" style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: 16, marginBottom: 18, background: C.soft }}>
+                <div style={{ fontWeight: 700, color: C.navy, fontSize: 14, marginBottom: 12 }}>Who is this observation for?{pickRequired ? ' *' : ''}</div>
                 <div>
                   <label style={label} htmlFor="obs-participant">Participant{shownCohorts.length === 1 ? ` (${shownCohorts[0].name})` : ''}</label>
                   <select id="obs-participant" style={{ ...input, maxWidth: 420 }} value={pick.participantId}
@@ -856,7 +857,7 @@ export default function SessionObservation() {
                         return (
                           <button key={n} type="button" onClick={() => setPick((p) => ({ ...p, formNumber: n }))} aria-pressed={chosen}
                             style={{
-                              fontFamily: font, fontWeight: 800, fontSize: 14, padding: '10px 22px', borderRadius: 10, cursor: 'pointer', minWidth: 150, textAlign: 'center',
+                              fontFamily: font, fontWeight: 700, fontSize: 14, padding: '10px 22px', borderRadius: 4, cursor: 'pointer', minWidth: 150, textAlign: 'center',
                               border: `2px solid ${chosen ? (existing ? C.orange : C.navy) : C.border}`, background: chosen ? (existing ? '#fff7ed' : C.navy) : C.white,
                               color: chosen ? (existing ? '#9a3412' : C.white) : C.navy,
                             }}>
@@ -869,7 +870,7 @@ export default function SessionObservation() {
                       })}
                     </div>
                     {pickTaken && (
-                      <div role="alert" style={{ marginTop: 12, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, lineHeight: 1.5 }}>
+                      <div role="alert" style={{ marginTop: 12, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 4, padding: '12px 14px', fontSize: 13.5, lineHeight: 1.5 }}>
                         <strong>SOF #{pick.formNumber} for {pickPerson.name} has already been saved</strong>
                         {pickTaken.mine ? ' by you.' : ' by another mentor coach.'} A participant can have only one of each form, so you cannot start another SOF #{pick.formNumber}.
                         {pickTaken.mine
@@ -887,13 +888,13 @@ export default function SessionObservation() {
               </div>
             )}
 
-            <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 8 }}>Transcript</div>
+            <div style={{ fontWeight: 700, color: C.navy, fontSize: 14, marginBottom: 8 }}>Transcript</div>
             <div
               data-tour="home-transcript"
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
-              style={{ border: `2px dashed ${C.border}`, borderRadius: 10, padding: 26, textAlign: 'center', cursor: 'pointer', background: C.soft }}
+              style={{ border: `2px dashed ${C.border}`, borderRadius: 4, padding: 26, textAlign: 'center', cursor: 'pointer', background: C.soft }}
             >
               <div style={{ fontWeight: 700, color: C.navy, marginBottom: 6 }}>
                 {file ? file.name : 'Click to choose a .txt or .pdf transcript, or drop it here'}
@@ -911,7 +912,7 @@ export default function SessionObservation() {
                   placeholder={'[00:05] Coach: What would you like to focus on today?\n[00:11] Client: ...'} />
                 {(
                   <>
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, margin: '22px 0 6px' }}>Recording</div>
+                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 14, margin: '22px 0 6px' }}>Recording</div>
                     <div style={{ ...small, margin: '0 0 6px' }}>
                       Optional: add the recording to play along with the transcript as you review. It plays only on your computer and is not uploaded.
                     </div>
@@ -1022,8 +1023,8 @@ export default function SessionObservation() {
         )}
       </div>
       {(cohorts.length > 0 || link) && (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 14, background: C.soft }}>
-          <div style={{ fontWeight: 800, color: C.navy, fontSize: 14, marginBottom: 2 }}>Participant and form</div>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: 14, marginBottom: 14, background: C.soft }}>
+          <div style={{ fontWeight: 700, color: C.navy, fontSize: 14, marginBottom: 2 }}>Participant and form</div>
           <div style={{ ...small, marginBottom: 10 }}>
             {link ? 'Change who this observation is for, or which form number it is.' : 'This observation is not linked to a participant yet. Choose one to link it.'}
           </div>
@@ -1051,7 +1052,7 @@ export default function SessionObservation() {
                     return (
                       <button key={n} type="button" aria-pressed={chosen} onClick={() => setRelink((r) => ({ ...r, formNumber: n }))}
                         style={{
-                          fontFamily: font, fontWeight: 800, fontSize: 13, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                          fontFamily: font, fontWeight: 700, fontSize: 13, padding: '8px 16px', borderRadius: 4, cursor: 'pointer', textAlign: 'center',
                           border: `2px solid ${chosen ? (taken ? C.orange : C.navy) : C.border}`, background: chosen ? (taken ? '#fff7ed' : C.navy) : C.white,
                           color: chosen ? (taken ? '#9a3412' : C.white) : C.navy,
                         }}>
@@ -1068,13 +1069,13 @@ export default function SessionObservation() {
             </button>
           </div>
           {relink.participantId && relink.formNumber > 0 && relinkTaken(relink.formNumber) && (
-            <div role="alert" style={{ marginTop: 10, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
+            <div role="alert" style={{ marginTop: 10, border: `1px solid ${C.orange}`, background: '#fff7ed', color: '#9a3412', borderRadius: 4, padding: '10px 14px', fontSize: 13 }}>
               <strong>SOF #{relink.formNumber} for {relinkPerson?.name} has already been saved.</strong> A participant can have only one of each form. Choose a different form number.
             </div>
           )}
         </div>
       )}
-      <div data-tour="form-toolbar" style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+      <div data-tour="form-toolbar" style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
         <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={goBack}>&larr; Back to my observations</button>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
@@ -1089,7 +1090,7 @@ export default function SessionObservation() {
         {/* Transcript */}
         <div data-tour="form-transcript" style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
           <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Transcript</div>
+            <div style={{ fontWeight: 700, color: C.navy, fontSize: 14 }}>Transcript</div>
             <div style={{ ...small, marginTop: 4 }}>
               Evidence for <strong style={{ color: C.navy }}>{activeBehavior.id}</strong> is highlighted. Use <strong>+</strong> to add a whole turn, or select words and press the button below.
             </div>
@@ -1133,7 +1134,7 @@ export default function SessionObservation() {
                     )}
                   </div>
                   <button data-tour={ti === 0 ? 'form-add-turn' : undefined} title={on ? `Remove from ${active}` : `Add to ${active}`} onClick={() => toggleTurn(t)}
-                    style={{ border: `1px solid ${on ? C.sky : C.border}`, background: on ? C.sky : C.white, color: C.navy, width: 24, height: 24, borderRadius: 6, cursor: 'pointer', fontWeight: 800, fontFamily: font, alignSelf: 'flex-start' }}>
+                    style={{ border: `1px solid ${on ? C.sky : C.border}`, background: on ? C.sky : C.white, color: C.navy, width: 24, height: 24, borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontFamily: font, alignSelf: 'flex-start' }}>
                     {on ? '✓' : '+'}
                   </button>
                 </div>
@@ -1143,8 +1144,8 @@ export default function SessionObservation() {
         </div>
 
         {/* Side bar on the right: jump to a competency (short labels; the full name shows on hover) */}
-        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ gridColumn: 3, gridRow: 1, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 0 8px', textAlign: 'center' }}>Jump</div>
+        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ gridColumn: 3, gridRow: 1, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 0 8px', textAlign: 'center' }}>Jump</div>
           {[
             { id: 'sec-info', label: 'Info', full: 'Form details', sub: '' },
             { id: 'sec-c1', label: '1', full: 'Competency 1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2` },
@@ -1174,7 +1175,7 @@ export default function SessionObservation() {
         {/* Form */}
         <div style={{ gridColumn: 2, gridRow: 1, minWidth: 0 }}>
           <div style={{ ...card, background: C.navy, color: C.white, border: 'none' }}>
-            <div style={{ fontWeight: 800, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
+            <div style={{ fontWeight: 700, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
               Evidence below comes from the transcript. Edit it freely. The AI offers suggestions only: you choose every rating and every box.
             </div>
@@ -1248,7 +1249,7 @@ export default function SessionObservation() {
                 const items = form.evidence[b.id] || []
                 return (
                   <div key={b.id} onClick={() => setActive(b.id)}
-                    style={{ border: `2px solid ${isActive ? C.sky : C.border}`, borderRadius: 10, padding: 14, marginTop: 14, background: isActive ? '#f7fcfe' : C.white }}>
+                    style={{ border: `2px solid ${isActive ? C.sky : C.border}`, borderRadius: 4, padding: 14, marginTop: 14, background: isActive ? '#f7fcfe' : C.white }}>
                     <div style={{ fontWeight: 700, color: C.navy, fontSize: 13.5, marginBottom: 8 }}>{b.id} {b.text}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
                       {RATINGS.map((r) => radio(form.ratings[b.id] === r.id, () => set({ ratings: { ...form.ratings, [b.id]: r.id } }), <span title={r.hint}>{r.label}</span>, r.id))}
@@ -1285,7 +1286,7 @@ export default function SessionObservation() {
                 const i = COMPETENCIES.findIndex((x) => x.n === c.n)
                 return (
                   <div style={{ marginTop: 18, borderTop: `2px solid ${C.border}`, paddingTop: 14 }}>
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>Observation feedback for Competency {c.n}</div>
+                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 14 }}>Observation feedback for Competency {c.n}</div>
                     <p style={{ ...small, margin: '4px 0 0' }}>
                       Support each with evidence (timestamps, quotes) and written feedback. Across all competencies the form needs at least 2 areas of strength and 2 areas for development.
                     </p>
@@ -1293,8 +1294,8 @@ export default function SessionObservation() {
                       const row = form[key][i]
                       const upd = (patch) => set({ [key]: form[key].map((r, j) => (j === i ? { ...r, ...patch } : r)) })
                       return (
-                        <div key={key} style={{ marginTop: 12, background: C.soft, borderRadius: 10, padding: 12 }}>
-                          <div style={{ fontWeight: 800, color: C.navy, fontSize: 13, marginBottom: 6 }}>{title}</div>
+                        <div key={key} style={{ marginTop: 12, background: C.soft, borderRadius: 4, padding: 12 }}>
+                          <div style={{ fontWeight: 700, color: C.navy, fontSize: 13, marginBottom: 6 }}>{title}</div>
                           {field('Statement for Feedback', row.statement, (v) => upd({ statement: v }))}
                           <label style={{ ...label, marginTop: 8 }}>Feedback Comments</label>
                           <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={row.comments} onChange={(e) => upd({ comments: e.target.value })} />

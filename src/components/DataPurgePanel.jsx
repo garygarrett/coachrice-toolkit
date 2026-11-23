@@ -74,7 +74,7 @@ export default function DataPurgePanel() {
       {error && <div style={{ background: '#fff3e6', border: '1px solid #ffe0b2', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: NAVY, marginBottom: 16 }}>{error}</div>}
       {message && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#15803d', marginBottom: 16 }}>{message}</div>}
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 20, maxWidth: 760 }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4, padding: 20, maxWidth: 760 }}>
         {loading ? <div style={{ color: '#999', fontSize: 13 }}>Loading…</div> : (
           <>
             {groups.map((g) => (

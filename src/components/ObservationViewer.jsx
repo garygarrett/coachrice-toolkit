@@ -6,8 +6,8 @@ import { downloadAnnotatedTranscript, downloadFilledForm, observationTitle } fro
 // Read-only view of one saved Session Observation Form (for admins). Nothing here can be edited or saved.
 const C = { navy: '#00205B', gray: '#7C7E7F', border: '#e2e6ec', soft: '#f0f2f5', lime: '#c9d647', orange: '#ff8200', muted: '#6b7a99' }
 const font = "'Montserrat', sans-serif"
-const box = { border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 14, background: '#fff' }
-const h3 = { fontSize: 14, fontWeight: 800, color: C.navy, margin: '0 0 10px' }
+const box = { border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px', marginBottom: 14, background: '#fff' }
+const h3 = { fontSize: 14, fontWeight: 700, color: C.navy, margin: '0 0 10px' }
 const lab = { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }
 const btn = { fontFamily: font, fontWeight: 700, fontSize: 12, padding: '8px 14px', borderRadius: 8, border: `1px solid ${C.navy}`, background: '#fff', color: C.navy, cursor: 'pointer' }
 const roleName = (r) => (r === 'coach' ? 'Coach' : r === 'client' ? 'Client' : 'Other')
@@ -59,11 +59,11 @@ export default function ObservationViewer({ record, onBack, embedded = false, fo
     <div style={{ fontFamily: font }}>
       {!embedded && <button style={{ ...btn, marginBottom: 12 }} onClick={onBack}>← Back to the list</button>}
       <div style={{ ...box, background: C.soft }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>{observationTitle(form)}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{observationTitle(form)}</div>
         <div style={{ fontSize: 12, color: C.muted, margin: '4px 0 10px' }}>
           {embedded ? '' : `Mentor coach: ${record.owner?.full_name || record.owner?.email || 'Unknown'} · `}Started {fmt(record.created_at)} · Last saved {fmt(record.updated_at)}
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 10, background: missing.length ? '#fff1de' : '#edf7d0', color: missing.length ? '#a45a00' : '#4d5b00' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: missing.length ? '#fff1de' : '#edf7d0', color: missing.length ? '#a45a00' : '#4d5b00' }}>
           {missing.length ? `In progress · ${missing.length} item${missing.length === 1 ? '' : 's'} still blank` : 'Complete'}
         </span>
         <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Read only. This view cannot change the saved record.</div>
@@ -157,10 +157,10 @@ export default function ObservationViewer({ record, onBack, embedded = false, fo
                 {segs.map((g, i) => (
                   <span key={i}>
                     {g.hl ? <mark style={{ background: C.lime, padding: '1px 0' }}>{g.text}</mark> : g.text}
-                    {g.hl && !(segs[i + 1] && segs[i + 1].hl) && <span style={{ color: C.orange, fontWeight: 800, fontSize: 10 }}> [{g.codes.join(', ')}]</span>}
+                    {g.hl && !(segs[i + 1] && segs[i + 1].hl) && <span style={{ color: C.orange, fontWeight: 700, fontSize: 10 }}> [{g.codes.join(', ')}]</span>}
                   </span>
                 ))}
-                {info?.loose.size > 0 && <span style={{ color: C.orange, fontWeight: 800, fontSize: 10 }}> [{[...info.loose].join(', ')}]</span>}
+                {info?.loose.size > 0 && <span style={{ color: C.orange, fontWeight: 700, fontSize: 10 }}> [{[...info.loose].join(', ')}]</span>}
               </div>
             </div>
           )

@@ -626,7 +626,7 @@ export default function TranscriptScorer() {
           </div>
 
           {/* Consent Checkboxes */}
-          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '24px', marginBottom: '24px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.navy, marginBottom: '16px', margin: '0 0 16px' }}>SUBMISSION CONSENT</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
@@ -669,7 +669,7 @@ export default function TranscriptScorer() {
           </div>
 
           {/* File Upload */}
-          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer', transition: 'border-color 0.2s' }} onClick={() => fileInputRef.current?.click()}
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '40px', textAlign: 'center', marginBottom: '24px', cursor: 'pointer', transition: 'border-color 0.2s' }} onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
               e.currentTarget.style.borderColor = '#69cce6';
@@ -838,7 +838,7 @@ export default function TranscriptScorer() {
           </div>
 
           {/* Detailed Feedback Display */}
-          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '10px', padding: '32px' }}>
+          <div style={{ background: '#fff', border: `1px solid ${COLORS['gray-border']}`, borderRadius: '4px', padding: '32px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 700, color: COLORS.navy, marginBottom: '8px' }}>
               Your Coaching Feedback
             </h2>

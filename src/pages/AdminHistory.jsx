@@ -287,19 +287,19 @@ export default function AdminHistory() {
                 const d = sumById[person.id]
                 if (!d) return null
                 const isMentor = d.role === 'mentor'
-                const card = { border: `1px solid ${COLORS['gray-border']}`, borderRadius: 10, padding: '16px 18px' }
+                const card = { border: `1px solid ${COLORS['gray-border']}`, borderRadius: 4, padding: '16px 18px' }
                 return (
                   <div style={card}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy }}>{d.full_name || d.email}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.navy }}>{d.full_name || d.email}</div>
                     <div style={{ fontSize: 12, color: COLORS['text-muted'], marginBottom: 14 }}>{TYPE[d.role]} · {d.email}</div>
                     {isMentor ? (
                       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                         <div style={{ ...card, minWidth: 180 }}>
-                          <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.navy }}>{d.runs.observations}</div>
+                          <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.navy }}>{d.runs.observations}</div>
                           <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Session observations run</div>
                         </div>
                         <div style={{ ...card, minWidth: 180 }}>
-                          <div style={{ fontSize: 28, fontWeight: 800, color: COLORS.navy }}>{d.saved.observations}</div>
+                          <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.navy }}>{d.saved.observations}</div>
                           <div style={{ fontSize: 12, color: COLORS['text-muted'] }}>Saved now (in progress or complete)</div>
                         </div>
                       </div>
@@ -665,7 +665,7 @@ const s = {
     display: 'flex',
     gap: 0,
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: '4px',
     marginBottom: '20px',
     padding: '4px',
   },
@@ -690,7 +690,7 @@ const s = {
   },
   section: {
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: '4px',
     border: `1px solid ${COLORS['gray-border']}`,
     padding: '20px',
   },

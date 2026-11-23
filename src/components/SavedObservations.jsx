@@ -45,7 +45,7 @@ export default function SavedObservations({ userId }) {
 
   return (
     <div style={{ marginTop: 18 }}>
-      <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 8 }}>Saved Session Observation Forms</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 8 }}>Saved Session Observation Forms</div>
       {error && <div style={{ color: '#b42318', fontSize: 13, marginBottom: 8 }}>{error}</div>}
       {rows === null && !error && <LoadingBar />}
       {rows && rows.length === 0 && <div style={{ fontSize: 13, color: C.muted }}>Nothing saved right now.</div>}
@@ -53,12 +53,12 @@ export default function SavedObservations({ userId }) {
         const form = { ...emptyForm(), ...(r.form || {}) }
         const missing = missingItems(form).length
         return (
-          <div key={r.id} onClick={() => open(r.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', marginBottom: 8, cursor: 'pointer', background: opening === r.id ? C.soft : '#fff' }}>
+          <div key={r.id} onClick={() => open(r.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 8, cursor: 'pointer', background: opening === r.id ? C.soft : '#fff' }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, color: C.navy, fontSize: 13.5 }}>{r.title || observationTitle(form)}</div>
               <div style={{ fontSize: 11.5, color: C.muted }}>Started {fmt(r.created_at)} · Last saved {fmt(r.updated_at)}</div>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 10, background: missing ? '#fff1de' : '#edf7d0', color: missing ? '#a45a00' : '#4d5b00' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: missing ? '#fff1de' : '#edf7d0', color: missing ? '#a45a00' : '#4d5b00' }}>
               {missing ? 'In progress' : 'Complete'}
             </span>
             <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{opening === r.id ? 'Opening…' : 'View'}</span>

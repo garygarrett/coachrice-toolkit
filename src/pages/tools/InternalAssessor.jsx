@@ -214,7 +214,7 @@ export default function InternalAssessor() {
     background: primary ? C.navy : C.white, color: primary ? C.white : C.navy,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
   })
-  const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }
+  const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 24, marginBottom: 20 }
 
   return (
     <Layout active="assessor" pageTitle="Internal Assessor">
@@ -228,7 +228,7 @@ export default function InternalAssessor() {
                 disabled={running}
                 onClick={() => setVersionId(v.id)}
                 style={{
-                  flex: '1 1 260px', textAlign: 'left', padding: '14px 18px', borderRadius: 10, fontFamily: font,
+                  flex: '1 1 260px', textAlign: 'left', padding: '14px 18px', borderRadius: 4, fontFamily: font,
                   border: `2px solid ${versionId === v.id ? C.navy : C.border}`,
                   background: versionId === v.id ? '#eef3fb' : C.white,
                   cursor: running ? 'not-allowed' : 'pointer',
@@ -301,7 +301,7 @@ export default function InternalAssessor() {
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: C.gray, marginBottom: 10 }}>RESULTS</div>
             {results.map((r, i) => (
-              <div key={i} style={{ padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 10 }}>
+              <div key={i} style={{ padding: '12px 14px', border: `1px solid ${C.border}`, borderRadius: 4, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: C.navy }}>

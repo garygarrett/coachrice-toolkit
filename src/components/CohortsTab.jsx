@@ -11,7 +11,7 @@ import LoadingBar from './LoadingBar'
 // coaches. The table shows each participant's SOF #1, #2, and #3 and who did them.
 const C = { navy: '#00205B', gray: '#7C7E7F', border: '#e2e6ec', soft: '#f0f2f5', muted: '#6b7a99', lime: '#c9d647', orange: '#ff8200', blue: '#69cce6' }
 const font = 'Montserrat, sans-serif'
-const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: '18px 20px', marginBottom: 16 }
+const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 16 }
 const h2 = { fontSize: '1.05rem', fontWeight: 700, color: C.navy, margin: '0 0 10px', fontFamily: font }
 const small = { fontSize: 13, color: C.muted, fontFamily: font }
 const input = { padding: '0.55rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 6, fontSize: '0.9rem', fontFamily: font, background: '#fff', color: '#111' }
@@ -321,7 +321,7 @@ export default function CohortsTab() {
                   {unassignedCount} participant{unassignedCount === 1 ? ' has' : 's have'} no mentor coach yet. No mentor coach can see them until you assign one in the Mentor coach column.
                 </div>
               )}
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 10, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 4, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                 <thead>
                   <tr>
                     <th style={th}>Participant</th>

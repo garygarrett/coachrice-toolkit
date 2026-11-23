@@ -4,93 +4,7 @@ import { useVisibility } from '../context/VisibilityContext'
 import { isToolOnlyRole } from '../lib/roles'
 import { useGuideAvailable } from '../lib/guideAvailability'
 import logo from '../CoachRICE_White.png'
-
-const COLORS = {
-  navy: '#00205B',
-  teal: '#69cce6',
-  gray: '#7C7E7F',
-  'gray-light': '#f0f2f5',
-  'gray-border': '#e2e6ec',
-  white: '#ffffff',
-  'text-main': '#0f1c3a',
-  'text-muted': '#6b7a99',
-}
-
-function ToolIcon({ id, size = 16, color = 'currentColor' }) {
-  const s = { fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
-  const icons = {
-    dashboard: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <rect x="1" y="1" width="6" height="6" rx="1" />
-        <rect x="9" y="1" width="6" height="6" rx="1" />
-        <rect x="1" y="9" width="6" height="6" rx="1" />
-        <rect x="9" y="9" width="6" height="6" rx="1" />
-      </svg>
-    ),
-    history: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <circle cx="8" cy="8" r="6.5" />
-        <polyline points="8,4.5 8,8 10.5,9.5" />
-      </svg>
-    ),
-    exam: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <path d="M11 2 L14 5 L5 14 L2 14 L2 11 Z" />
-        <line x1="9" y1="4" x2="12" y2="7" />
-      </svg>
-    ),
-    transcript: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <rect x="2.5" y="1" width="11" height="14" rx="1.5" />
-        <line x1="5" y1="5" x2="11" y2="5" />
-        <line x1="5" y1="8" x2="11" y2="8" />
-        <line x1="5" y1="11" x2="9" y2="11" />
-      </svg>
-    ),
-    ai: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <rect x="2.5" y="5.5" width="11" height="8" rx="2" />
-        <circle cx="5.5" cy="9.5" r="1" />
-        <circle cx="10.5" cy="9.5" r="1" />
-        <line x1="8" y1="3" x2="8" y2="5.5" />
-        <circle cx="8" cy="2" r="1" />
-      </svg>
-    ),
-    users: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <circle cx="6" cy="5" r="2.5" />
-        <path d="M1.5 14 C1.5 10.8 3.5 9.5 6 9.5 C8.5 9.5 10.5 10.8 10.5 14" />
-        <circle cx="11.5" cy="5.5" r="2" />
-        <path d="M11.5 9.5 C13.5 9.5 14.5 10.8 14.5 13" />
-      </svg>
-    ),
-    settings: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <line x1="2" y1="4" x2="14" y2="4" />
-        <line x1="2" y1="8" x2="14" y2="8" />
-        <line x1="2" y1="12" x2="14" y2="12" />
-        <circle cx="5" cy="4" r="1.5" fill="#00205B" />
-        <circle cx="10.5" cy="8" r="1.5" fill="#00205B" />
-        <circle cx="6.5" cy="12" r="1.5" fill="#00205B" />
-      </svg>
-    ),
-    help: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <circle cx="8" cy="8" r="6.2" />
-        <path d="M6.2 6.2 C6.2 5 7 4.4 8 4.4 C9 4.4 9.8 5 9.8 6 C9.8 7.3 8 7.3 8 8.8" />
-        <circle cx="8" cy="11.3" r="0.5" fill={color} />
-      </svg>
-    ),
-    analytics: (
-      <svg width={size} height={size} viewBox="0 0 16 16" style={s}>
-        <rect x="2" y="10" width="2" height="4" rx="0.5" />
-        <rect x="6" y="6" width="2" height="8" rx="0.5" />
-        <rect x="10" y="2" width="2" height="12" rx="0.5" />
-      </svg>
-    ),
-  }
-  return icons[id] || null
-}
+import { COLORS, FONT } from '../theme'
 
 export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
   const navigate = useNavigate()
@@ -140,196 +54,79 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     ] },
   ]
 
+  const NavItem = ({ n }) => {
+    const on = active === n.id
+    return (
+      <button
+        type="button"
+        aria-current={on ? 'page' : undefined}
+        style={{ ...styles.navItem, ...(on ? styles.navItemActive : {}) }}
+        onClick={() => navigate(n.path)}
+      >
+        {n.label}
+      </button>
+    )
+  }
+  const Group = ({ label, items }) => (
+    <div style={styles.group}>
+      <div style={styles.navLabel}>{label}</div>
+      {items.map(n => <NavItem key={n.id} n={n} />)}
+    </div>
+  )
+
   return (
     <div style={styles.container}>
-      <div style={styles.sidebar}>
+      <nav style={styles.sidebar} aria-label="Main">
         <div style={styles.logoArea}>
-          <img src={logo} alt="CoachRICE" style={{ height: 36, width: 'auto', maxWidth: 140, objectFit: 'contain' }} />
+          <img src={logo} alt="CoachRICE" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
         </div>
         <div style={styles.nav}>
-          {isAdmin && adminGroups.map((g, gi) => (
-            <div key={g.label}>
-              {gi > 0 && <div style={styles.navDivider}></div>}
-              <div style={styles.navLabel}>{g.label}</div>
-              {g.items.map(n => (
-                <div
-                  key={n.id}
-                  style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }}
-                  onClick={() => navigate(n.path)}
-                >
-                  <ToolIcon id={n.icon} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                  <span style={{ fontSize: 10 }}>{n.label}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-          {!isAdmin && !isCode && <div style={styles.navLabel}>General</div>}
-          {!isAdmin && !isCode && navItems.map(n => (
-            <div key={n.id} style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }} onClick={() => navigate(n.id === 'dashboard' ? '/dashboard' : '/history')}>
-              <ToolIcon id={n.id} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-              <span>{n.label}</span>
-            </div>
-          ))}
-          {!isAdmin && !isCode && <div style={styles.navDivider}></div>}
-          {!isAdmin && <div style={styles.navLabel}>{isCode ? (codeRole === 'admin' ? 'Admin tools' : 'Mentor coach tools') : 'Toolkit'}</div>}
-          {!isAdmin && toolItems.map(n => (
-            <div
-              key={n.id}
-              style={{ ...styles.navItem, ...(active === n.id ? styles.navItemActive : {}), cursor: 'pointer' }}
-              onClick={() => navigate(n.path)}
-            >
-              <ToolIcon id={n.id} size={14} color={active === n.id ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-              <span style={{ fontSize: 10 }}>{n.label}</span>
-            </div>
-          ))}
-          {!isAdmin && hasGuide && (
-            <>
-              <div style={styles.navDivider}></div>
-              <div style={styles.navLabel}>Help</div>
-              <div
-                style={{ ...styles.navItem, ...(active === 'guide' ? styles.navItemActive : {}), cursor: 'pointer' }}
-                onClick={() => navigate('/guide')}
-              >
-                <ToolIcon id="help" size={14} color={active === 'guide' ? COLORS.teal : 'rgba(255,255,255,0.55)'} />
-                <span style={{ fontSize: 10 }}>FAQ / Guide</span>
-              </div>
-            </>
+          {isAdmin && adminGroups.map(g => <Group key={g.label} label={g.label} items={g.items} />)}
+          {!isAdmin && !isCode && (
+            <Group label="General" items={navItems.map(n => ({ ...n, path: n.id === 'dashboard' ? '/dashboard' : '/history' }))} />
           )}
+          {!isAdmin && (
+            <Group label={isCode ? (codeRole === 'admin' ? 'Admin tools' : 'Mentor coach tools') : 'Toolkit'} items={toolItems} />
+          )}
+          {!isAdmin && hasGuide && <Group label="Help" items={[{ id: 'guide', label: 'FAQ / Guide', path: '/guide' }]} />}
         </div>
         <div style={styles.avatarRow}>
-          <div style={styles.avatar}>{profile?.full_name?.[0] || 'C'}</div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={styles.avatarName}>{isCode ? (codeLabel || 'Account') : (profile?.full_name?.split(' ')[0] || 'Coach')}</div>
-            <div style={styles.avatarRole}>
-              <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 9, cursor: 'pointer', padding: 0, fontFamily: 'Montserrat, sans-serif' }}>
-                Sign Out
-              </button>
-            </div>
+            <button type="button" onClick={signOut} style={styles.signOut}>Sign out</button>
           </div>
         </div>
-      </div>
+      </nav>
       <div style={styles.mainWrapper}>
-        <div style={styles.topbar}>
-          <span>{pageTitle}</span>
-        </div>
-        <div style={styles.content}>
+        <header style={styles.topbar}>
+          <h1 style={styles.pageTitle}>{pageTitle}</h1>
+        </header>
+        <main style={styles.content}>
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )
 }
 
 const styles = {
-  container: {
-    display: 'flex',
-    height: '100vh',
-    width: '100vw',
-    fontFamily: 'Montserrat, sans-serif',
-    overflow: 'hidden',
-    background: COLORS['gray-light'],
-  },
-  sidebar: {
-    width: 220,
-    background: COLORS.navy,
-    display: 'flex',
-    flexDirection: 'column',
-    flexShrink: 0,
-  },
-  logoArea: {
-    padding: '20px 18px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  nav: {
-    padding: '14px 0',
-    flex: 1,
-    overflowY: 'auto',
-  },
-  navLabel: {
-    fontSize: 8,
-    fontWeight: 700,
-    letterSpacing: '1.6px',
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.3)',
-    padding: '12px 18px 6px',
-  },
+  container: { display: 'flex', height: '100vh', width: '100vw', fontFamily: FONT, overflow: 'hidden', background: '#fff' },
+  sidebar: { width: 248, background: COLORS.navy, display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  logoArea: { padding: '24px 24px 20px', display: 'flex', alignItems: 'center' },
+  nav: { padding: '4px 0 16px', flex: 1, overflowY: 'auto' },
+  group: { marginBottom: 20 },
+  navLabel: { fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.62)', padding: '8px 24px 6px' },
   navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '9px 18px',
-    fontSize: 11,
-    fontWeight: 500,
-    color: 'rgba(255,255,255,0.55)',
-    cursor: 'pointer',
-    borderLeft: '2px solid transparent',
-    transition: 'all 0.2s',
+    display: 'block', width: '100%', textAlign: 'left', minHeight: 40, padding: '9px 24px 9px 21px',
+    fontFamily: FONT, fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.88)',
+    background: 'transparent', border: 'none', borderLeft: '3px solid transparent', cursor: 'pointer',
   },
-  navItemActive: {
-    color: '#fff',
-    background: 'rgba(105,204,230,0.1)',
-    borderLeftColor: COLORS.teal,
-    fontWeight: 600,
-  },
-  navDivider: {
-    height: 1,
-    margin: '6px 18px',
-    borderTop: '1px solid rgba(255,255,255,0.07)',
-  },
-  avatarRow: {
-    padding: '14px 18px',
-    borderTop: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: '50%',
-    background: COLORS.teal,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 11,
-    fontWeight: 800,
-    color: COLORS.navy,
-    flexShrink: 0,
-  },
-  avatarName: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  avatarRole: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.35)',
-  },
-  mainWrapper: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  topbar: {
-    height: 50,
-    background: '#fff',
-    borderBottom: `1px solid ${COLORS['gray-border']}`,
-    display: 'flex',
-    alignItems: 'center',
-    padding: '0 32px',
-    fontSize: 12,
-    fontWeight: 700,
-    color: COLORS['text-main'],
-    flexShrink: 0,
-  },
-  content: {
-    padding: '28px 32px',
-    flex: 1,
-    background: COLORS['gray-light'],
-    overflowY: 'auto',
-  },
+  navItemActive: { color: '#fff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderLeftColor: COLORS.orange },
+  avatarRow: { padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.14)' },
+  avatarName: { fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  signOut: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', padding: '4px 0', minHeight: 24, fontFamily: FONT, textDecoration: 'underline' },
+  mainWrapper: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 },
+  topbar: { background: '#fff', borderBottom: `1px solid ${COLORS.line}`, display: 'flex', alignItems: 'center', padding: '18px 40px', flexShrink: 0 },
+  pageTitle: { fontSize: 20, fontWeight: 700, color: COLORS.navy, margin: 0, lineHeight: 1.3 },
+  content: { flex: 1, background: COLORS.wash, overflowY: 'auto', padding: '32px 40px' },
 }

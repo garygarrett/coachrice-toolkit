@@ -781,7 +781,7 @@ export default function AdminPanel({ section = 'users' }) {
       {accessCodeSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 14px', fontSize: '12px', color: '#15803d', marginBottom: '16px' }}>{accessCodeSuccess}</div>}
 
       {/* Add new code form */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '24px', marginBottom: '28px' }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '24px', marginBottom: '28px' }}>
         <h3 style={{ fontSize: '13px', fontWeight: 700, color: COLORS.navy, margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add New Access Code</h3>
         <form onSubmit={createAccessCode} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1', minWidth: '160px' }}>
@@ -839,7 +839,7 @@ export default function AdminPanel({ section = 'users' }) {
       </div>
 
       {/* Existing codes table */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ background: '#f7f8fa' }}>
@@ -987,7 +987,7 @@ export default function AdminPanel({ section = 'users' }) {
     <div key={tool.id}>
       <div style={s.titleRow}>
         <h1 style={s.heading}>{tool.label}</h1>
-        <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '10px', background: tool.group === 'published' ? '#edf7d0' : '#fff1de', color: tool.group === 'published' ? '#4d5b00' : '#a45a00' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '4px', background: tool.group === 'published' ? '#edf7d0' : '#fff1de', color: tool.group === 'published' ? '#4d5b00' : '#a45a00' }}>
           {tool.group === 'published' ? 'Published' : 'In progress'}
         </span>
       </div>
@@ -1174,7 +1174,7 @@ export default function AdminPanel({ section = 'users' }) {
           <div style={{
             background: COLORS['gray-light'],
             border: `1px solid ${COLORS['gray-border']}`,
-            borderRadius: '10px',
+            borderRadius: '4px',
             padding: '28px 24px',
             display: 'flex',
             flexDirection: 'column',
@@ -1555,7 +1555,7 @@ export default function AdminPanel({ section = 'users' }) {
         ).map((tab, i, all) => (
           <span key={tab.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
             {tab.group && tab.group !== all[i - 1]?.group && (
-              <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: COLORS['text-muted'], margin: i ? '0 4px 0 14px' : '0 4px 0 8px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: COLORS['text-muted'], margin: i ? '0 4px 0 14px' : '0 4px 0 8px' }}>
                 {tab.group === 'published' ? 'Published' : tab.group === 'progress' ? 'In progress' : 'Pages'}
               </span>
             )}
@@ -1587,7 +1587,7 @@ const s = {
     rowGap: '4px',
     gap: 0,
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: '4px',
     marginBottom: 0,
     padding: '4px',
   },
@@ -1662,7 +1662,7 @@ const s = {
   formCard: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '10px',
+    borderRadius: '4px',
     padding: '1.75rem',
     marginBottom: '1.75rem',
   },
@@ -1676,7 +1676,7 @@ const s = {
   cancelBtn: { background: '#fff', border: '1px solid #d1d5db', borderRadius: '6px', padding: '0.6rem 1.2rem', fontSize: '0.9rem', cursor: 'pointer', color: '#555', fontFamily: 'Montserrat, sans-serif' },
   submitBtn: { background: '#00205B', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.6rem 1.4rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', fontFamily: 'Montserrat, sans-serif' },
   filterRow: { display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' },
-  table: { width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e5e7eb', fontSize: '0.9rem' },
+  table: { width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: '4px', overflow: 'hidden', border: '1px solid #e5e7eb', fontSize: '0.9rem' },
   th: { textAlign: 'left', padding: '0.85rem 1rem', background: '#f9fafb', color: '#6b7280', fontWeight: '600', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb' },
   trBody: { borderBottom: '1px solid #f3f4f6' },
   td: { padding: '0.85rem 1rem', color: '#374151', verticalAlign: 'middle' },
@@ -1693,7 +1693,7 @@ const s = {
   tilePreview: {
     background: '#fff',
     border: `1px solid ${COLORS['gray-border']}`,
-    borderRadius: 10,
+    borderRadius: 4,
     padding: '16px 16px',
     display: 'flex',
     flexDirection: 'column',

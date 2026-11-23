@@ -39,7 +39,7 @@ const btn = (primary, disabled) => ({
   background: primary ? C.navy : C.white, color: primary ? C.white : C.navy,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
 })
-const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }
+const card = { background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 24, marginBottom: 20 }
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -509,7 +509,7 @@ export default function AudioToTranscript() {
                 onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
-                style={{ border: `2px dashed ${C.blue}`, borderRadius: 12, padding: 32, textAlign: 'center', cursor: 'pointer', background: C.soft }}
+                style={{ border: `2px dashed ${C.blue}`, borderRadius: 4, padding: 32, textAlign: 'center', cursor: 'pointer', background: C.soft }}
               >
                 <div style={{ fontWeight: 700, color: C.navy, marginBottom: 6 }}>
                   {file ? file.name : 'Click to choose a recording, or drop it here'}

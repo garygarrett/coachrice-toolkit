@@ -77,9 +77,9 @@ function barColor(pct) {
 
 function Card({ title, sessions, totals }) {
   return (
-    <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: '16px 18px', background: '#fff', marginBottom: 14 }}>
+    <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 4, padding: '16px 18px', background: '#fff', marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.navy }}>{title}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.navy }}>{title}</div>
         <div style={{ fontSize: 11, color: COLORS.muted }}>{sessions} session{sessions === 1 ? '' : 's'}</div>
       </div>
       {COMPETENCIES.map(({ n, title: name }) => {

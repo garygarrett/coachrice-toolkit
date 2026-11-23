@@ -17,7 +17,7 @@ const AUDIENCES = [
 ]
 const label = (id) => AUDIENCES.find((a) => a.id === id)?.label || id
 
-const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 16 }
+const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: 24, marginBottom: 16 }
 const btn = (primary) => ({ fontFamily: font, fontWeight: 700, fontSize: 13, padding: '9px 16px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${C.navy}`, background: primary ? C.navy : '#fff', color: primary ? '#fff' : C.navy })
 const input = { fontFamily: font, fontSize: 14, padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, width: '100%', boxSizing: 'border-box' }
 
@@ -127,8 +127,8 @@ export default function FAQGuide() {
         {/* ---- Reading view ---- */}
         {sections && sections.length > 0 && !editing && (
           <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <nav aria-label="In this guide" style={{ flex: '0 0 230px', position: 'sticky', top: 16, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 10px' }}>
-              <div style={{ fontWeight: 800, color: C.navy, margin: '0 8px 8px', fontSize: 13, letterSpacing: '0.03em', textTransform: 'uppercase' }}>In this guide</div>
+            <nav aria-label="In this guide" style={{ flex: '0 0 230px', position: 'sticky', top: 16, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 10px' }}>
+              <div style={{ fontWeight: 700, color: C.navy, margin: '0 8px 8px', fontSize: 13, letterSpacing: '0.03em', textTransform: 'uppercase' }}>In this guide</div>
               {toc.map((t, i) => (
                 <a key={t.id} href={`#guide-${t.id}`} onClick={(e) => { e.preventDefault(); scrollTo(t.id) }}
                   style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '7px 8px', borderRadius: 6, color: C.navy, fontWeight: 600, fontSize: 13, lineHeight: 1.35, textDecoration: 'none' }}
@@ -158,7 +158,7 @@ export default function FAQGuide() {
           <>
             {sections.length > 0 && (
               <div style={card}>
-                <div style={{ fontWeight: 800, color: C.navy, marginBottom: 4, fontSize: 15 }}>Sections</div>
+                <div style={{ fontWeight: 700, color: C.navy, marginBottom: 4, fontSize: 15 }}>Sections</div>
                 <p style={{ margin: '0 0 12px', color: C.muted, fontSize: 13 }}>The order here is the order everyone sees. Each person only sees sections marked for their kind of account. If someone has no section marked for them, the FAQ / Guide link does not appear for them.</p>
                 {sections.map((s, i) => (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
@@ -179,7 +179,7 @@ export default function FAQGuide() {
 
             {draft && (
               <div style={card}>
-                <div style={{ fontWeight: 800, color: C.navy, marginBottom: 12, fontSize: 16 }}>{draft.id ? 'Edit section' : 'New section'}</div>
+                <div style={{ fontWeight: 700, color: C.navy, marginBottom: 12, fontSize: 16 }}>{draft.id ? 'Edit section' : 'New section'}</div>
                 <label htmlFor="g-title" style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>Title</label>
                 <input id="g-title" style={{ ...input, margin: '4px 0 14px' }} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={200} />
                 <label htmlFor="g-body" style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>Text</label>
@@ -202,7 +202,7 @@ export default function FAQGuide() {
         )}
 
         {sections && (sections.length > 0 || editing) && (
-          <div style={{ marginTop: 8, padding: '14px 18px', borderRadius: 10, background: '#eef7fb', borderLeft: `5px solid ${C.teal}`, color: C.navy, fontWeight: 600, fontSize: 14 }}>
+          <div style={{ marginTop: 8, padding: '14px 18px', borderRadius: 4, background: '#eef7fb', borderLeft: `5px solid ${C.teal}`, color: C.navy, fontWeight: 600, fontSize: 14 }}>
             For any questions, email <a href="mailto:CoachRICE@rice.edu" style={{ color: C.navy }}>CoachRICE@rice.edu</a>
           </div>
         )}
