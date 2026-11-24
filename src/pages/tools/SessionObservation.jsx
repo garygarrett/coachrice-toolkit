@@ -675,7 +675,32 @@ export default function SessionObservation() {
       <Layout bare={crfForm} active="observation" pageTitle={crfForm ? 'Competency Review Form' : 'Session Observation Form Mentor Coaching'}>
         {tour === 'home' && <GuidedTour steps={HOME_TOUR} onClose={closeTour} font={font} />}
         {!tour && !crfForm && <TourHelpButton onClick={startHomeTour} />}
-        <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
+        <div style={crfForm ? undefined : { display: 'flex', margin: '-32px -40px', minHeight: 'calc(100vh - 77px)' }}>
+        {!crfForm && peopleAZ.length > 0 && (
+          <aside aria-label="Participants" style={{ width: 300, flexShrink: 0, background: C.navy, color: C.white, padding: '24px 0', overflowY: 'auto' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', padding: '0 24px 10px' }}>Participants ({peopleAZ.length})</div>
+            {peopleAZ.map((p) => {
+              const on = viewPersonId === p.id
+              const sofs = [1, 2, 3].map((n) => drafts.find((d) => d.participant_id === p.id && d.form_number === n))
+              const done = sofs.filter((d) => d && isCompleteDraft(d)).length
+              const started = sofs.filter(Boolean).length
+              const rev = reviews.find((r) => r.participant_id === p.id)
+              const led = rev && isCompleteReview(rev) ? C.green : started > 0 || rev ? C.orange : 'rgba(255,255,255,0.35)'
+              return (
+                <button key={p.id} type="button" aria-current={on ? 'true' : undefined} onClick={() => setViewPersonId(on ? '' : p.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', minHeight: 56, padding: '8px 24px 8px 21px', fontFamily: font, cursor: 'pointer',
+                    border: 'none', borderLeft: `3px solid ${on ? C.orange : 'transparent'}`, background: on ? 'rgba(255,255,255,0.1)' : 'transparent', color: C.white }}>
+                  <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: '50%', background: led, flexShrink: 0 }} />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 14, fontWeight: on ? 700 : 500 }}>{p.name}{cohorts.length > 1 && !cohortFilter ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}</span>
+                    <span style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{done} of 3 SOFs complete{rev ? (isCompleteReview(rev) ? ', CRF complete' : ', CRF started') : ''}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </aside>
+        )}
+        <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, flex: 1, minWidth: 0, maxWidth: 1000, padding: '32px 40px' }}>
           {!crfForm && (<>
           {cohorts.length > 1 && (
             <div data-tour="home-cohort" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -691,6 +716,68 @@ export default function SessionObservation() {
                 {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <span style={small}>Your saved forms and participants below show this cohort only.</span>
+            </div>
+          )}
+          {viewPerson && (
+            <div data-tour="home-byparticipant" style={card}>
+              <h2 style={{ ...h2, fontSize: 22, marginBottom: 4 }}>{viewPerson?.name}</h2>
+              <div style={{ ...small, marginBottom: 12 }}>Four steps: three Session Observation Forms (SOF), then the Competency Review Form (CRF).</div>
+              {viewPerson && [1, 2, 3].map((n) => {
+                const mine = drafts.find((d) => d.participant_id === viewPerson.id && d.form_number === n)
+                const elsewhere = !mine && viewPerson.forms.find((f) => f.formNumber === n)
+                const done = mine ? isCompleteDraft(mine) : false
+                return (
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ flex: 1, fontSize: 13 }}>
+                      <div style={{ fontWeight: 700, color: C.navy }}>
+                        SOF #{n} · {viewPerson.name}
+                        {mine && (
+                          <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: done ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
+                            {done ? 'Complete' : 'In progress'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={small}>
+                        {mine ? `Last saved ${new Date(mine.updated_at).toLocaleString()}`
+                          : elsewhere ? 'Saved by another mentor coach.'
+                          : 'Not started.'}
+                      </div>
+                    </div>
+                    {mine && <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(mine.id)}>Open</button>}
+                    {mine && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(mine.id, mine.title)}>Delete</button>}
+                    {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start SOF #{n}</button>}
+                  </div>
+                )
+              })}
+              {viewPerson && (() => {
+                const mineReview = reviews.find((r) => r.participant_id === viewPerson.id)
+                const elsewhereReview = !mineReview && viewPerson.review
+                const doneReview = mineReview ? missingReviewItems({ ...emptyReview(), ...(mineReview.review || {}) }).length === 0 : false
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ flex: 1, fontSize: 13 }}>
+                      <div style={{ fontWeight: 700, color: C.navy }}>
+                        Competency Review Form · {viewPerson.name}
+                        {mineReview && (
+                          <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: doneReview ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
+                            {doneReview ? 'Complete' : 'In progress'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={small}>
+                        {mineReview ? `Last saved ${new Date(mineReview.updated_at).toLocaleString()}`
+                          : elsewhereReview ? 'Saved by another mentor coach.'
+                          : 'Not started. It is pre-filled from this participant’s Session Observation Forms.'}
+                      </div>
+                    </div>
+                    {!elsewhereReview && (
+                      <button style={{ ...btn(!!mineReview), padding: '7px 14px' }} onClick={() => { setMode('review'); setCrfRequest({ participantId: viewPerson.id, n: Date.now() }) }}>
+                        {mineReview ? 'Open' : 'Start Competency Review'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           )}
           {(drafts.length > 0 || reviews.length > 0 || allPeople.length > 0) && (
@@ -726,82 +813,6 @@ export default function SessionObservation() {
                   ))}
                 </details>
               ))}
-              {peopleAZ.length > 0 && (
-                <details data-tour="home-byparticipant" open={!!viewPerson} style={{ borderTop: `1px solid ${C.border}`, padding: '4px 0' }}>
-                  <summary style={{ cursor: 'pointer', padding: '10px 0', fontWeight: 700, color: C.navy, fontSize: 14, listStylePosition: 'inside' }}>
-                    By participant
-                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: '#fff', background: C.navy, borderRadius: 4, padding: '2px 9px' }}>{peopleAZ.length}</span>
-                  </summary>
-                  <div role="listbox" aria-label="Participants" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 16 }}>
-                    {peopleAZ.map((p) => {
-                      const on = viewPersonId === p.id
-                      return (
-                        <button key={p.id} type="button" role="option" aria-selected={on} onClick={() => setViewPersonId(on ? '' : p.id)}
-                          style={{ fontFamily: font, fontSize: 14, fontWeight: on ? 700 : 500, minHeight: 44, padding: '0 16px', borderRadius: 4, cursor: 'pointer',
-                            border: `1px solid ${on ? C.navy : '#b9c0cf'}`, background: on ? C.navy : C.white, color: on ? C.white : C.navy }}>
-                          {p.name}{cohorts.length > 1 && !cohortFilter ? ` (${cohorts.find((c) => c.id === p.cohortId)?.name})` : ''}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {viewPerson && [1, 2, 3].map((n) => {
-                    const mine = drafts.find((d) => d.participant_id === viewPerson.id && d.form_number === n)
-                    const elsewhere = !mine && viewPerson.forms.find((f) => f.formNumber === n)
-                    const done = mine ? isCompleteDraft(mine) : false
-                    return (
-                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-                        <div style={{ flex: 1, fontSize: 13 }}>
-                          <div style={{ fontWeight: 700, color: C.navy }}>
-                            SOF #{n} · {viewPerson.name}
-                            {mine && (
-                              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: done ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
-                                {done ? 'Complete' : 'In progress'}
-                              </span>
-                            )}
-                          </div>
-                          <div style={small}>
-                            {mine ? `Last saved ${new Date(mine.updated_at).toLocaleString()}`
-                              : elsewhere ? 'Saved by another mentor coach.'
-                              : 'Not started.'}
-                          </div>
-                        </div>
-                        {mine && <button style={{ ...btn(true), padding: '7px 14px' }} onClick={() => openDraft(mine.id)}>Open</button>}
-                        {mine && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => deleteDraft(mine.id, mine.title)}>Delete</button>}
-                        {!mine && !elsewhere && <button style={{ ...btn(false), padding: '7px 14px' }} onClick={() => startFormFor(viewPerson, n)}>Start SOF #{n}</button>}
-                      </div>
-                    )
-                  })}
-                  {viewPerson && (() => {
-                    const mineReview = reviews.find((r) => r.participant_id === viewPerson.id)
-                    const elsewhereReview = !mineReview && viewPerson.review
-                    const doneReview = mineReview ? missingReviewItems({ ...emptyReview(), ...(mineReview.review || {}) }).length === 0 : false
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-                        <div style={{ flex: 1, fontSize: 13 }}>
-                          <div style={{ fontWeight: 700, color: C.navy }}>
-                            Competency Review Form · {viewPerson.name}
-                            {mineReview && (
-                              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: doneReview ? '#7a8a16' : C.orange, borderRadius: 6, padding: '2px 8px' }}>
-                                {doneReview ? 'Complete' : 'In progress'}
-                              </span>
-                            )}
-                          </div>
-                          <div style={small}>
-                            {mineReview ? `Last saved ${new Date(mineReview.updated_at).toLocaleString()}`
-                              : elsewhereReview ? 'Saved by another mentor coach.'
-                              : 'Not started. It is pre-filled from this participant’s Session Observation Forms.'}
-                          </div>
-                        </div>
-                        {!elsewhereReview && (
-                          <button style={{ ...btn(!!mineReview), padding: '7px 14px' }} onClick={() => { setMode('review'); setCrfRequest({ participantId: viewPerson.id, n: Date.now() }) }}>
-                            {mineReview ? 'Open' : 'Start Competency Review'}
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })()}
-                </details>
-              )}
             </div>
           )}
           <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }} data-testid="form-choice" data-tour="home-choice">
@@ -938,6 +949,7 @@ export default function SessionObservation() {
           </div>
           )}
           </div>
+        </div>
         </div>
       </Layout>
     )
