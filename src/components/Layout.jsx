@@ -6,7 +6,7 @@ import { useGuideAvailable } from '../lib/guideAvailability'
 import logo from '../CoachRICE_White.png'
 import { COLORS, FONT } from '../theme'
 
-export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard' }) {
+export default function Layout({ children, active = 'dashboard', pageTitle = 'Dashboard', bare = false }) {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
   const visibility = useVisibility() ?? { exam: true, transcript: true, ai: true }
@@ -74,6 +74,20 @@ export default function Layout({ children, active = 'dashboard', pageTitle = 'Da
     </div>
   )
 
+  if (bare) {
+    // Focused work screens (SOF, CRF): no sidebar, just a slim navy bar.
+    return (
+      <div style={{ ...styles.container, flexDirection: 'column' }}>
+        <header style={styles.bareBar}>
+          <img src={logo} alt="CoachRICE" style={{ height: 26, width: 'auto', objectFit: 'contain' }} />
+          <h1 style={styles.bareTitle}>{pageTitle}</h1>
+          <button type="button" onClick={signOut} style={{ ...styles.signOut, marginLeft: 'auto' }}>Sign out</button>
+        </header>
+        <main style={{ ...styles.content, padding: 0 }}>{children}</main>
+      </div>
+    )
+  }
+
   return (
     <div style={styles.container}>
       <nav style={styles.sidebar} aria-label="Main">
@@ -125,6 +139,8 @@ const styles = {
   avatarRow: { padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.14)' },
   avatarName: { fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   signOut: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', padding: '4px 0', minHeight: 24, fontFamily: FONT, textDecoration: 'underline' },
+  bareBar: { background: COLORS.navy, display: 'flex', alignItems: 'center', gap: 20, padding: '0 32px', minHeight: 56, flexShrink: 0 },
+  bareTitle: { fontSize: 15, fontWeight: 600, color: '#fff', margin: 0 },
   mainWrapper: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 },
   topbar: { background: '#fff', borderBottom: `1px solid ${COLORS.line}`, display: 'flex', alignItems: 'center', padding: '18px 40px', flexShrink: 0 },
   pageTitle: { fontSize: 20, fontWeight: 700, color: COLORS.navy, margin: 0, lineHeight: 1.3 },

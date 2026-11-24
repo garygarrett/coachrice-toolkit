@@ -672,7 +672,7 @@ export default function SessionObservation() {
     const ready = (file || pasted.trim().length > 20) && pickReady
     const crfForm = mode === 'review' && crfStage === 'form' // an open review takes over the page, like an open observation
     return (
-      <Layout active="observation" pageTitle={crfForm ? 'Competency Review Form Mentor Coaching' : 'Session Observation Form Mentor Coaching'}>
+      <Layout bare={crfForm} active="observation" pageTitle={crfForm ? 'Competency Review Form' : 'Session Observation Form Mentor Coaching'}>
         {tour === 'home' && <GuidedTour steps={HOME_TOUR} onClose={closeTour} font={font} />}
         {!tour && !crfForm && <TourHelpButton onClick={startHomeTour} />}
         <div style={crfForm ? { fontFamily: font, padding: '16px 32px 32px' } : { fontFamily: font, maxWidth: 960, margin: '0 auto', padding: 32 }}>
@@ -1006,10 +1006,10 @@ export default function SessionObservation() {
   const q1Fail = form.q.q1 === 'not_observed' || form.q.q2 === 'not_observed'
 
   return (
-    <Layout active="observation" pageTitle="Session Observation Form Mentor Coaching">
+    <Layout bare active="observation" pageTitle="Session Observation Form">
       {tour === 'form' && <GuidedTour steps={FORM_TOUR} onClose={closeTour} font={font} />}
       {!tour && <TourHelpButton onClick={() => setTour('form')} />}
-      <div style={{ fontFamily: font, maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+      <div style={{ fontFamily: font, maxWidth: 1600, margin: '0 auto', padding: '24px 40px 48px' }}>
       <div style={{ marginBottom: 14 }}>
         <label style={label} htmlFor="obs-title">Name of this observation</label>
         {autoName ? (
@@ -1075,7 +1075,7 @@ export default function SessionObservation() {
           )}
         </div>
       )}
-      <div data-tour="form-toolbar" style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,32,91,0.08)' }}>
+      <div data-tour="form-toolbar" style={{ position: 'sticky', top: 0, zIndex: 30, background: C.white, border: 'none', borderBottom: `1px solid ${C.border}`, borderRadius: 0, padding: '12px 0', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <button style={btn(false, savingDraft)} disabled={savingDraft} onClick={goBack}>&larr; Back to my observations</button>
         <button style={btn(true, savingDraft)} disabled={savingDraft} onClick={() => saveDraft(false)}>{savingDraft ? 'Saving…' : 'Save progress'}</button>
         <button style={btn(false, saving)} disabled={saving} onClick={save}>{saving ? 'Building form…' : 'Download form (.docx)'}</button>
@@ -1085,7 +1085,7 @@ export default function SessionObservation() {
         </span>
         {notice && <span style={{ fontSize: 12, color: C.navy, fontWeight: 600, flexBasis: '100%' }}>{notice}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) minmax(380px, 7fr) 64px', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 5fr) minmax(380px, 7fr) 240px', gap: 32, alignItems: 'start' }}>
 
         {/* Transcript */}
         <div data-tour="form-transcript" style={{ ...card, padding: 0, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
@@ -1144,16 +1144,16 @@ export default function SessionObservation() {
         </div>
 
         {/* Side bar on the right: jump to a competency (short labels; the full name shows on hover) */}
-        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ gridColumn: 3, gridRow: 1, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '6px 0 8px', textAlign: 'center' }}>Jump</div>
+        <nav data-tour="form-jump" aria-label="Jump to a competency" style={{ gridColumn: 3, gridRow: 1, position: 'sticky', top: 74, maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', background: C.white, borderLeft: `1px solid ${C.border}`, borderRadius: 0, padding: 0, borderTop: 'none', borderBottom: 'none', borderRight: 'none' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, padding: '4px 16px 10px' }}>Jump to</div>
           {[
-            { id: 'sec-info', label: 'Info', full: 'Form details', sub: '' },
-            { id: 'sec-c1', label: '1', full: 'Competency 1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2` },
+            { id: 'sec-info', label: 'Form details', full: 'Form details', sub: '' },
+            { id: 'sec-c1', label: '1 · Ethical Practice', full: 'Competency 1 · Ethical Practice', sub: `${[form.q.q1, form.q.q2].filter(Boolean).length}/2` },
             ...COMPETENCIES.map((c) => {
               const mine = BEHAVIORS.filter((b) => b.comp === c.n)
-              return { id: `sec-c${c.n}`, label: `${c.n}`, full: `Competency ${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length}`, first: mine[0]?.id }
+              return { id: `sec-c${c.n}`, label: `${c.n} · ${SHORT[c.n]}`, full: `Competency ${c.n} · ${SHORT[c.n]}`, sub: `${mine.filter((b) => form.ratings[b.id]).length}/${mine.length}`, first: mine[0]?.id }
             }),
-            { id: 'sec-sign', label: 'Sign', full: 'Signature & save', sub: '' },
+            { id: 'sec-sign', label: 'Signature & save', full: 'Signature & save', sub: '' },
           ].map((it) => {
             const on = navActive === it.id
             return (
@@ -1164,8 +1164,8 @@ export default function SessionObservation() {
                   if (it.first) setActive(it.first)
                   document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }}
-                style={{ display: 'block', width: '100%', textAlign: 'center', fontFamily: font, cursor: 'pointer', border: 'none', borderRight: `4px solid ${on ? C.sky : 'transparent'}`, background: on ? '#eef6ff' : 'transparent', borderRadius: 6, padding: '8px 2px', marginBottom: 2, color: C.navy }}>
-                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>{it.label}</span>
+                style={{ display: 'block', width: '100%', textAlign: 'left', fontFamily: font, cursor: 'pointer', border: 'none', borderLeft: `3px solid ${on ? C.orange : 'transparent'}`, background: on ? C.soft : 'transparent', borderRadius: 0, padding: '10px 16px', minHeight: 44, color: C.navy }}>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: on ? 700 : 500, lineHeight: 1.3 }}>{it.label}</span>
                 {it.sub && <span style={{ display: 'block', fontSize: 11, color: C.gray, marginTop: 1 }}>{it.sub}</span>}
               </button>
             )
@@ -1174,8 +1174,8 @@ export default function SessionObservation() {
 
         {/* Form */}
         <div style={{ gridColumn: 2, gridRow: 1, minWidth: 0 }}>
-          <div style={{ ...card, background: C.navy, color: C.white, border: 'none' }}>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
+          <div style={{ ...card, border: 'none', borderBottom: `1px solid ${C.border}`, borderRadius: 0, padding: '0 0 20px', color: C.navy }}>
+            <div style={{ fontWeight: 700, fontSize: 22 }}>ICF Mentor Coaching Session Observation Form &ndash; ACC</div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
               Evidence below comes from the transcript. Edit it freely. The AI offers suggestions only: you choose every rating and every box.
             </div>
@@ -1197,7 +1197,7 @@ export default function SessionObservation() {
             </div>
           </div>
 
-          <div style={card}>
+          <div style={{ ...card, border: 'none', borderTop: `1px solid ${C.border}`, borderRadius: 0, padding: '28px 0', marginBottom: 0 }}>
             <h2 style={h2}>Mentor Coach Self-Review Checklist</h2>
             <p style={small}>Complete this self-review checklist before completing the observation form.</p>
             {SELF_REVIEW.map((text, i) => check(form.selfReview[i], (v) => set({ selfReview: form.selfReview.map((b, j) => (j === i ? v : b)) }), text, i))}
@@ -1234,7 +1234,7 @@ export default function SessionObservation() {
               value={form.qComments} onChange={(e) => set({ qComments: e.target.value })} />
           </div>
 
-          <div style={card}>
+          <div style={{ ...card, border: 'none', borderTop: `1px solid ${C.border}`, borderRadius: 0, padding: '28px 0', marginBottom: 0 }}>
             <h2 style={h2}>Competency 2: Embodies a Coaching Mindset</h2>
             <p style={small}>There are no behavioral statements in this competency. It cannot be fully captured in a single moment in time.</p>
           </div>
@@ -1323,7 +1323,7 @@ export default function SessionObservation() {
             <p style={{ ...small, marginTop: 10 }}>Digital or written signatures are both accepted by ICF. You can also print the saved form and sign it by hand.</p>
           </div>
 
-          <div style={card}>
+          <div style={{ ...card, border: 'none', borderTop: `1px solid ${C.border}`, borderRadius: 0, padding: '28px 0', marginBottom: 0 }}>
             <h2 style={h2}>Save</h2>
             {missing.length > 0 ? (
               <div style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 12 }}>

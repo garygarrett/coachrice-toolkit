@@ -4,7 +4,7 @@ import { COMPETENCIES, BEHAVIORS, LEVELS, SELF_REVIEW, NEEDED, SESSION_ROWS, tot
 // (readOnly disables every input).
 const C = { navy: '#00205B', gray: '#7C7E7F', border: '#e2e6ec', soft: '#f0f2f5', orange: '#ff8200', sky: '#69cce6', green: '#c9d647' }
 const font = "'Montserrat', sans-serif"
-const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: 22, marginBottom: 18 }
+const card = { background: '#fff', border: 'none', borderTop: '1px solid #dfe3ea', borderRadius: 0, padding: '28px 0', marginBottom: 0 }
 const h2 = { fontSize: 16, color: C.navy, margin: '0 0 6px', fontWeight: 700 }
 const small = { fontSize: 12, color: C.gray, lineHeight: 1.5 }
 const input = { fontFamily: font, fontSize: 13, padding: '9px 11px', border: `1px solid ${C.border}`, borderRadius: 8, width: '100%', boxSizing: 'border-box' }

@@ -240,7 +240,7 @@ export default function CompetencyReview({ request = null, onStageChange = null,
       <>
         <div ref={rootRef} style={{ paddingRight: panel ? Math.max(0, shownW + 12 - slack.right) : 0 }}>
         <div style={{ maxWidth: 960, margin: panel ? 0 : '0 auto', fontFamily: font }}>
-          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#fff', border: 'none', borderBottom: `1px solid ${C.border}`, borderRadius: 0, padding: '12px 0', marginBottom: 24, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button style={btn(false)} onClick={goBack}>← Back to my reviews</button>
             <button style={btn(true, busy === 'save')} disabled={busy === 'save'} onClick={() => save(false)}>{busy === 'save' ? 'Saving…' : 'Save progress'}</button>
             {link && <button style={btn(false, !!busy)} disabled={!!busy} onClick={refreshFromSofs}>Refresh from Session Observation Forms</button>}
